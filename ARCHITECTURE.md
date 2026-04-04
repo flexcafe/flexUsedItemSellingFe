@@ -1,0 +1,139 @@
+# Flex Cafe – Clean Architecture (Onion Architecture)
+
+Flex Cafe is a React Native (Expo) mobile application that implements **Onion Architecture** to separate concerns across domain, application, infrastructure, and presentation layers. This provides a clean, testable, and maintainable codebase.
+
+## Tech Stack
+
+- **Runtime:** React 19, React Native 0.81, Expo SDK 54
+- **Routing:** Expo Router 6 (file-based routing)
+- **HTTP:** Axios with interceptors for auth tokens
+- **Server State:** TanStack React Query v5
+- **Validation:** Zod v4
+- **Token Storage:** expo-secure-store (native) / localStorage (web)
+- **DI:** Manual dependency injection container
+
+## Folder Structure
+
+```
+flex-cafe-fe/
+├── app/                          # Expo Router – routes only (thin screens)
+│   ├── _layout.tsx               # Root layout: providers + auth gate
+│   ├── (auth)/                   # Unauthenticated route group
+│   │   ├── _layout.tsx
+│   │   └── login.tsx
+│   ├── (tabs)/                   # Authenticated tab navigator
+│   │   ├── _layout.tsx
+│   │   ├── index.tsx             # Home / Dashboard
+│   │   ├── products.tsx          # Products list
+│   │   └── explore.tsx           # Explore
+│   └── modal.tsx
+│
+├── core/                         # Onion Architecture layers
+│   ├── domain/                   # INNERMOST – pure business logic
+│   │   ├── entities/             # Product, User
+│   │   ├── repositories/         # IProductRepository, IAuthRepository
+│   │   ├── services/             # IProductService, IAuthService
+│   │   ├── types/                # Shared types (Id, PaginationParams, auth)
+│   │   └── value-objects/        # Money
+│   │
+│   ├── application/              # Use cases & data transformation
+│   │   ├── dtos/                 # ProductDto, AuthDto
+│   │   ├── services/             # ProductService, AuthService (implementations)
+│   │   └── mappers/              # ProductMapper, AuthMapper
+│   │
+│   └── infrastructure/           # OUTERMOST – external concerns
+│       ├── api/                  # HttpClient (Axios), API constants/endpoints
+│       ├── repositories/         # ApiProductRepository, ApiAuthRepository
+│       ├── storage/              # TokenStorage (expo-secure-store wrapper)
+│       └── di/                   # Dependency injection container
+│
+├── features/                     # Feature modules (vertical slices)
+│   ├── auth/
+│   │   └── presentation/         # LoginScreen
+│   └── products/
+│       └── presentation/         # ProductListScreen
+│
+├── presentation/                 # Shared presentation concerns
+│   ├── providers/                # QueryProvider, AuthProvider
+│   └── hooks/                    # useProducts, useAuth, etc.
+│
+├── components/                   # Shared UI components (existing)
+├── constants/                    # Theme, colors, fonts
+├── hooks/                        # Platform-specific hooks (useColorScheme)
+└── assets/                       # Images, fonts, etc.
+```
+
+## Architecture Layers
+
+### Domain Layer (`core/domain/`)
+The innermost layer. Contains pure TypeScript interfaces and types with **zero framework dependencies**. Defines:
+- **Entities** – core business objects (Product, AuthUser)
+- **Repository interfaces** – contracts for data access
+- **Service interfaces** – contracts for business operations
+- **Types** – shared value types
+- **Value Objects** – domain primitives (Money)
+
+### Application Layer (`core/application/`)
+Orchestrates domain logic. Contains:
+- **DTOs** – data transfer objects for API communication
+- **Service implementations** – fulfill domain service contracts by delegating to repositories
+- **Mappers** – transform between DTOs and domain entities
+
+### Infrastructure Layer (`core/infrastructure/`)
+The outermost core layer. Implements domain interfaces with concrete dependencies:
+- **HttpClient** – Axios instance with auth token interceptor (reads from SecureStore)
+- **API constants** – endpoint definitions and base URL config
+- **Repository implementations** – API-backed repos (ApiProductRepository, ApiAuthRepository)
+- **TokenStorage** – expo-secure-store wrapper for secure token persistence
+- **DI Container** – wires all dependencies together
+
+### Presentation Layer (`presentation/`)
+Shared React hooks and providers:
+- **AuthProvider** – manages auth state, login/logout, token lifecycle
+- **QueryProvider** – configures TanStack React Query client
+- **Hooks** – useProducts, useAuth (resolve services via DI container)
+
+### Features (`features/`)
+Feature-specific modules containing their own presentation components. Each feature is a vertical slice:
+- `features/auth/presentation/` – LoginScreen
+- `features/products/presentation/` – ProductListScreen
+
+### App Routes (`app/`)
+Expo Router file-based routing. Screens are **thin** – they import feature components and render them. Route protection is handled via the AuthGate in the root layout (replacing Next.js middleware).
+
+## Dependency Flow
+
+```
+app/ → features/ → presentation/ → core/application/ → core/domain/
+                                  ↘ core/infrastructure/ (implements domain interfaces)
+```
+
+- `app/` depends on `features/` and `presentation/`
+- `features/` use `presentation/hooks/` which resolve services from the DI container
+- `core/application/services/` depend only on `core/domain/` interfaces
+- `core/infrastructure/` implements `core/domain/` interfaces and is wired via the DI container
+- `core/domain/` has **zero external dependencies**
+
+## Auth Flow (replacing NextAuth)
+
+1. App launches → `AuthProvider` checks `TokenStorage` for existing token
+2. If token exists → calls `getProfile()` to validate and hydrate user state
+3. If no token or invalid → `AuthGate` redirects to `(auth)/login`
+4. Login → `AuthService.login()` → stores token in `TokenStorage` → updates context
+5. `HttpClient` interceptor reads token from `TokenStorage` for every request
+6. On 401 → clears tokens, triggers logout, redirects to login
+7. Logout → clears `TokenStorage`, clears React Query cache, resets auth state
+
+## Environment Variables
+
+Copy `.env` and set:
+- `EXPO_PUBLIC_API_URL` – backend API base URL (e.g., `http://localhost:8080/api`)
+
+## Adding a New Feature
+
+1. **Domain:** Define entity in `core/domain/entities/`, repository interface in `core/domain/repositories/`, service interface in `core/domain/services/`
+2. **Application:** Create DTO in `core/application/dtos/`, mapper in `core/application/mappers/`, service implementation in `core/application/services/`
+3. **Infrastructure:** Implement repository in `core/infrastructure/repositories/`, register in `core/infrastructure/di/container.ts`
+4. **Presentation:** Create hook in `presentation/hooks/` using TanStack Query + DI container
+5. **Feature:** Build screen components in `features/<name>/presentation/`
+6. **Route:** Add route file in `app/` that imports the feature component
