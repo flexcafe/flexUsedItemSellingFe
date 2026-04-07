@@ -1,9 +1,8 @@
 export type UserRole = "admin" | "staff" | "customer";
 
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
+export type LoginCredentials =
+  | { mode: "phone"; phone: string; password: string }
+  | { mode: "facebook"; facebookId: string; password: string };
 
 export interface RegisterData {
   name: string;

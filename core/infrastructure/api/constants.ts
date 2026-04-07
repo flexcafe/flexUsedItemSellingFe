@@ -10,7 +10,8 @@ export const API_CONFIG = {
 
 export const API_ENDPOINTS = {
   AUTH: {
-    LOGIN: "/v1/auth/login",
+    // Base URL already includes `/api` (see `API_CONFIG.BASE_URL`)
+    LOGIN: "/v1/client/auth/login",
     REGISTER: "/v1/auth/register",
     PROFILE: "/v1/auth/profile",
   },

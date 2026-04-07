@@ -8,6 +8,7 @@ import "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { QueryProvider } from "@/presentation/providers/QueryProvider";
 import { AuthProvider, useAuth } from "@/presentation/providers/AuthProvider";
+import { LocaleProvider } from "@/presentation/providers/LocaleProvider";
 
 function AuthGate() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -43,10 +44,12 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <QueryProvider>
-        <AuthProvider>
-          <AuthGate />
-          <StatusBar style="auto" />
-        </AuthProvider>
+        <LocaleProvider>
+          <AuthProvider>
+            <AuthGate />
+            <StatusBar style="auto" />
+          </AuthProvider>
+        </LocaleProvider>
       </QueryProvider>
     </ThemeProvider>
   );

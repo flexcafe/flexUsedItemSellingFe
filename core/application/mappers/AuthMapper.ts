@@ -6,10 +6,10 @@ import type { LoginRequestDto, LoginResponseDto } from "../dtos/AuthDto";
 export function toLoginRequestDto(
   credentials: LoginCredentials
 ): LoginRequestDto {
-  return {
-    email: credentials.email,
-    password: credentials.password,
-  };
+  if (credentials.mode === "phone") {
+    return { phone: credentials.phone, password: credentials.password };
+  }
+  return { facebookId: credentials.facebookId, password: credentials.password };
 }
 
 function normalizeRole(raw: string | undefined): UserRole {
