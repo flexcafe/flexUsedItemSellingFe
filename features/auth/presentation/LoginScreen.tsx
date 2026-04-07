@@ -10,31 +10,55 @@ import {
   View,
 } from "react-native";
 import { z } from "zod";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useAuth } from "@/presentation/providers/AuthProvider";
+import { useLocale } from "@/presentation/providers/LocaleProvider";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
-const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email"),
-  password: z.string().min(1, "Password is required"),
-});
-
 export function LoginScreen() {
   const { login } = useAuth();
+  const { locale, setLocale, t } = useLocale();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
-  const [email, setEmail] = useState("");
+  const phoneSchema = z.object({
+    mode: z.literal("phone"),
+    phone: z.string().min(1, t("phoneRequired")),
+    password: z.string().min(1, t("passwordRequired")),
+  });
+
+  const facebookSchema = z.object({
+    mode: z.literal("facebook"),
+    facebookId: z.string().min(1, t("facebookIdRequired")),
+    password: z.string().min(1, t("passwordRequired")),
+  });
+
+  const loginSchema = z.discriminatedUnion("mode", [phoneSchema, facebookSchema]);
+
+  const [mode, setMode] = useState<"phone" | "facebook">("phone");
+  const [phone, setPhone] = useState("");
+  const [facebookId, setFacebookId] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{
+    phone?: string;
+    facebookId?: string;
+    password?: string;
+  }>({});
 
   const handleLogin = async () => {
     setErrors({});
-    const result = loginSchema.safeParse({ email, password });
+    const result = loginSchema.safeParse(
+      mode === "phone" ? { mode, phone, password } : { mode, facebookId, password }
+    );
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((issue) => {
@@ -47,16 +71,47 @@ export function LoginScreen() {
 
     setIsSubmitting(true);
     try {
-      const success = await login({ email, password });
+      const success = await login(result.data);
       if (!success) {
-        Alert.alert("Login Failed", "Invalid email or password. Please try again.");
+        Alert.alert(t("loginFailedTitle"), t("loginFailedBody"));
       }
-    } catch {
-      Alert.alert("Error", "Something went wrong. Please try again.");
+    } catch (e) {
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      if (status === 400) {
+        Alert.alert(
+          t("invalidRequestTitle"),
+          t("invalidRequestBody")
+        );
+      } else if (status === 401) {
+        Alert.alert(t("loginFailedTitle"), t("invalidCredsBody"));
+      } else {
+        Alert.alert(t("errorTitle"), t("genericErrorBody"));
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const [languageWidth, setLanguageWidth] = useState(0);
+  const langIndex = locale === "ko" ? 0 : locale === "my" ? 1 : 2;
+  const pillX = useSharedValue(0);
+
+  const pillStyle = useAnimatedStyle(() => {
+    const w = languageWidth > 0 ? languageWidth / 3 : 0;
+    return {
+      width: w,
+      transform: [{ translateX: pillX.value }],
+    };
+  }, [languageWidth]);
+
+  // keep animation in sync with state + layout width
+  if (languageWidth > 0) {
+    const w = languageWidth / 3;
+    const target = w * langIndex;
+    if (pillX.value !== target) {
+      pillX.value = withTiming(target, { duration: 420 });
+    }
+  }
 
   return (
     <ThemedView style={styles.container}>
@@ -64,31 +119,95 @@ export function LoginScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}>
         <View style={styles.header}>
-          <ThemedText type="title">Flex Cafe</ThemedText>
+          <ThemedText type="title">{t("appName")}</ThemedText>
           <ThemedText style={styles.subtitle}>
-            Sign in to your account
+            {t("signInSubtitle")}
           </ThemedText>
         </View>
 
         <View style={styles.form}>
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Email</ThemedText>
-            <TextInput
+          <View style={styles.segment}>
+            <Pressable
+              onPress={() => setMode("phone")}
+              disabled={isSubmitting}
               style={[
-                styles.input,
-                { color: colors.text, borderColor: errors.email ? "#e74c3c" : colors.icon },
-              ]}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="you@example.com"
-              placeholderTextColor={colors.icon}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!isSubmitting}
-            />
-            {errors.email && (
-              <ThemedText style={styles.error}>{errors.email}</ThemedText>
+                styles.segmentItem,
+                { borderColor: colors.icon },
+                mode === "phone" && { backgroundColor: colors.tint },
+              ]}>
+              <ThemedText
+                style={[
+                  styles.segmentText,
+                  mode === "phone" && { color: "#fff" },
+                ]}>
+                Phone
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              onPress={() => setMode("facebook")}
+              disabled={isSubmitting}
+              style={[
+                styles.segmentItem,
+                { borderColor: colors.icon },
+                mode === "facebook" && { backgroundColor: colors.tint },
+              ]}>
+              <ThemedText
+                style={[
+                  styles.segmentText,
+                  mode === "facebook" && { color: "#fff" },
+                ]}>
+                Facebook ID
+              </ThemedText>
+            </Pressable>
+          </View>
+
+          <View style={styles.field}>
+            <ThemedText style={styles.label}>
+              {mode === "phone" ? t("phone") : t("facebookId")}
+            </ThemedText>
+            {mode === "phone" ? (
+              <>
+                <TextInput
+                  style={[
+                    styles.input,
+                    { color: colors.text, borderColor: errors.phone ? "#e74c3c" : colors.icon },
+                  ]}
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="+959123456789"
+                  placeholderTextColor={colors.icon}
+                  keyboardType="phone-pad"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!isSubmitting}
+                />
+                {errors.phone && (
+                  <ThemedText style={styles.error}>{errors.phone}</ThemedText>
+                )}
+              </>
+            ) : (
+              <>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      color: colors.text,
+                      borderColor: errors.facebookId ? "#e74c3c" : colors.icon,
+                    },
+                  ]}
+                  value={facebookId}
+                  onChangeText={setFacebookId}
+                  placeholder="100012345678901"
+                  placeholderTextColor={colors.icon}
+                  keyboardType="number-pad"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!isSubmitting}
+                />
+                {errors.facebookId && (
+                  <ThemedText style={styles.error}>{errors.facebookId}</ThemedText>
+                )}
+              </>
             )}
           </View>
 
@@ -101,7 +220,7 @@ export function LoginScreen() {
               ]}
               value={password}
               onChangeText={setPassword}
-              placeholder="Enter your password"
+              placeholder={t("password")}
               placeholderTextColor={colors.icon}
               secureTextEntry
               editable={!isSubmitting}
@@ -122,9 +241,53 @@ export function LoginScreen() {
             {isSubmitting ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <ThemedText style={styles.buttonText}>Sign In</ThemedText>
+              <ThemedText style={styles.buttonText}>{t("signIn")}</ThemedText>
             )}
           </Pressable>
+
+        </View>
+
+        {/* Bottom language bar (matches Figma: wide pill with flag buttons) */}
+        <View pointerEvents="box-none" style={styles.languageDock}>
+          <View
+            style={[
+              styles.languageBar,
+              { backgroundColor: colors.background, borderColor: colors.tint },
+            ]}
+            onLayout={(e) => setLanguageWidth(e.nativeEvent.layout.width - 16)}>
+            <Animated.View
+              style={[
+                styles.languagePill,
+                { backgroundColor: colors.tint },
+                pillStyle,
+              ]}
+            />
+
+            <Pressable
+              disabled={isSubmitting}
+              style={styles.flagButton}
+              onPress={() => setLocale("ko")}>
+              <ThemedText style={[styles.flag, locale === "ko" && styles.flagSelected]}>
+                🇰🇷
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              disabled={isSubmitting}
+              style={styles.flagButton}
+              onPress={() => setLocale("my")}>
+              <ThemedText style={[styles.flag, locale === "my" && styles.flagSelected]}>
+                🇲🇲
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              disabled={isSubmitting}
+              style={styles.flagButton}
+              onPress={() => setLocale("zh")}>
+              <ThemedText style={[styles.flag, locale === "zh" && styles.flagSelected]}>
+                🇨🇳
+              </ThemedText>
+            </Pressable>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </ThemedView>
@@ -134,8 +297,8 @@ export function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingTop: 24,
   },
   keyboardView: {
     flex: 1,
@@ -151,6 +314,21 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: 20,
+  },
+  segment: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  segmentItem: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  segmentText: {
+    fontWeight: "600",
+    fontSize: 14,
   },
   field: {
     gap: 6,
@@ -183,5 +361,47 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "600",
     fontSize: 16,
+  },
+  languageDock: {
+    position: "absolute",
+    left: 24,
+    right: 24,
+    bottom: 18,
+  },
+  languageBar: {
+    height: 56,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    position: "relative",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  languagePill: {
+    position: "absolute",
+    left: 8,
+    top: 8,
+    bottom: 8,
+    borderRadius: 12,
+  },
+  flagButton: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  flag: {
+    fontSize: 22,
+    opacity: 0.95,
+  },
+  flagSelected: {
+    color: "#fff",
+    opacity: 1,
   },
 });

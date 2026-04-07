@@ -1,5 +1,6 @@
 export interface LoginRequestDto {
-  email: string;
+  phone?: string;
+  facebookId?: string;
   password: string;
 }
 

@@ -16,8 +16,16 @@ export class ApiAuthRepository implements IAuthRepository {
         API_ENDPOINTS.AUTH.LOGIN,
         body
       );
-      return toAuthUser(data, credentials.email);
+      // Backend may not return an email; keep the domain model stable.
+      return toAuthUser(
+        data,
+        credentials.mode === "phone" ? credentials.phone : credentials.facebookId
+      );
     } catch (err) {
+      // Let presentation distinguish 400 vs 401 vs network, while still
+      // defaulting to null for unexpected shapes.
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 400 || status === 401) throw err;
       console.error("[ApiAuthRepository.login]", err);
       return null;
     }
