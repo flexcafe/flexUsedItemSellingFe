@@ -1,4 +1,8 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from "@react-navigation/native";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
@@ -6,9 +10,9 @@ import { ActivityIndicator, View } from "react-native";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { QueryProvider } from "@/presentation/providers/QueryProvider";
 import { AuthProvider, useAuth } from "@/presentation/providers/AuthProvider";
 import { LocaleProvider } from "@/presentation/providers/LocaleProvider";
+import { QueryProvider } from "@/presentation/providers/QueryProvider";
 
 function AuthGate() {
   const { isAuthenticated, isLoading } = useAuth();

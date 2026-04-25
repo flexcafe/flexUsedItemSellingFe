@@ -1,3 +1,4 @@
+import { useRouter, type Href } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -24,6 +25,7 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export function LoginScreen() {
+  const router = useRouter();
   const { login } = useAuth();
   const { locale, setLocale, t } = useLocale();
   const colorScheme = useColorScheme();
@@ -245,6 +247,18 @@ export function LoginScreen() {
             )}
           </Pressable>
 
+          <View style={styles.signUpRow}>
+            <ThemedText style={styles.signUpText}>
+              {t("noAccount")}{" "}
+            </ThemedText>
+            <Pressable
+              disabled={isSubmitting}
+              onPress={() => router.push("/(auth)/register" as Href)}>
+              <ThemedText style={[styles.signUpLink, { color: colors.tint }]}>
+                {t("signUp")}
+              </ThemedText>
+            </Pressable>
+          </View>
         </View>
 
         {/* Bottom language bar (matches Figma: wide pill with flag buttons) */}
@@ -403,5 +417,19 @@ const styles = StyleSheet.create({
   flagSelected: {
     color: "#fff",
     opacity: 1,
+  },
+  signUpRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 12,
+  },
+  signUpText: {
+    opacity: 0.7,
+    fontSize: 14,
+  },
+  signUpLink: {
+    fontWeight: "700",
+    fontSize: 14,
   },
 });
