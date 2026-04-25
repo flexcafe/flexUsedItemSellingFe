@@ -9,7 +9,11 @@ import {
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { AuthUser } from "@/core/domain/entities/User";
-import type { LoginCredentials, RegisterData } from "@/core/domain/types/auth";
+import type {
+  LoginCredentials,
+  RegisterData,
+  RegisterInput,
+} from "@/core/domain/types/auth";
 import type { IAuthService } from "@/core/domain/services/IAuthService";
 import { TokenStorage } from "@/core/infrastructure/storage/TokenStorage";
 import { HttpClient } from "@/core/infrastructure/api/HttpClient";
@@ -23,8 +27,13 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   login: (credentials: LoginCredentials) => Promise<boolean>;
-  register: (data: RegisterData) => Promise<void>;
+  register: (data: RegisterData | RegisterInput) => Promise<boolean>;
   logout: () => Promise<void>;
+  sendPhoneOtp: (phone: string) => Promise<void>;
+  verifyPhoneOtp: (phone: string, code: string) => Promise<void>;
+  sendEmailVerification: (email: string) => Promise<void>;
+  verifyEmail: (email: string, token: string) => Promise<void>;
+  requestKbzPayVerification: (message: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -81,9 +90,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   }, []);
 
-  const register = useCallback(async (data: RegisterData) => {
+  const register = useCallback(async (data: RegisterData | RegisterInput) => {
     const authService = container.resolve<IAuthService>("authService");
-    await authService.register(data);
+    const user = await authService.register(data);
+    if (!user) return false;
+
+    await TokenStorage.setAccessToken(user.accessToken);
+    setState({ user, isLoading: false, isAuthenticated: true });
+    return true;
   }, []);
 
   const logout = useCallback(async () => {
@@ -92,9 +106,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ user: null, isLoading: false, isAuthenticated: false });
   }, [queryClient]);
 
+  const sendPhoneOtp = useCallback(async (phone: string) => {
+    const authService = container.resolve<IAuthService>("authService");
+    await authService.sendPhoneOtp(phone);
+  }, []);
+
+  const verifyPhoneOtp = useCallback(async (phone: string, code: string) => {
+    const authService = container.resolve<IAuthService>("authService");
+    await authService.verifyPhoneOtp(phone, code);
+  }, []);
+
+  const sendEmailVerification = useCallback(async (email: string) => {
+    const authService = container.resolve<IAuthService>("authService");
+    await authService.sendEmailVerification(email);
+  }, []);
+
+  const verifyEmail = useCallback(async (email: string, token: string) => {
+    const authService = container.resolve<IAuthService>("authService");
+    await authService.verifyEmail(email, token);
+  }, []);
+
+  const requestKbzPayVerification = useCallback(async (message: string) => {
+    const authService = container.resolve<IAuthService>("authService");
+    await authService.requestKbzPayVerification(message);
+  }, []);
+
   const value = useMemo<AuthContextValue>(
-    () => ({ ...state, login, register, logout }),
-    [state, login, register, logout]
+    () => ({
+      ...state,
+      login,
+      register,
+      logout,
+      sendPhoneOtp,
+      verifyPhoneOtp,
+      sendEmailVerification,
+      verifyEmail,
+      requestKbzPayVerification,
+    }),
+    [
+      state,
+      login,
+      register,
+      logout,
+      sendPhoneOtp,
+      verifyPhoneOtp,
+      sendEmailVerification,
+      verifyEmail,
+      requestKbzPayVerification,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

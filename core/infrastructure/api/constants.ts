@@ -12,8 +12,13 @@ export const API_ENDPOINTS = {
   AUTH: {
     // Base URL already includes `/api` (see `API_CONFIG.BASE_URL`)
     LOGIN: "/v1/client/auth/login",
-    REGISTER: "/v1/auth/register",
-    PROFILE: "/v1/auth/profile",
+    REGISTER: "/v1/client/auth/register",
+    PROFILE: "/v1/client/auth/profile",
+    OTP_SEND: "/v1/client/auth/otp/send",
+    OTP_VERIFY: "/v1/client/auth/otp/verify",
+    EMAIL_SEND: "/v1/client/auth/email/send-verification",
+    EMAIL_VERIFY: "/v1/client/auth/email/verify",
+    KBZPAY_REQUEST: "/v1/client/auth/kbzpay/request-verification",
   },
   PRODUCTS: {
     LIST: "/v1/products",

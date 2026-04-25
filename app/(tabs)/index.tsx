@@ -13,9 +13,7 @@ export default function HomeScreen() {
         <ThemedText type="title">
           Welcome{user?.name ? `, ${user.name}` : ""}!
         </ThemedText>
-        <ThemedText style={styles.subtitle}>
-          {user?.email}
-        </ThemedText>
+        <ThemedText style={styles.subtitle}>{user?.email}</ThemedText>
       </View>
 
       <View style={styles.content}>
@@ -24,10 +22,7 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.logoutWrapper}>
-        <ThemedText
-          type="link"
-          onPress={logout}
-          style={styles.logoutText}>
+        <ThemedText type="link" onPress={logout} style={styles.logoutText}>
           Sign Out
         </ThemedText>
       </View>
