@@ -1,46 +1,40 @@
-import type { IAuthRepository } from "@/core/domain/repositories/IAuthRepository";
-import type { AuthUser } from "@/core/domain/entities/User";
-import type {
-  LoginCredentials,
-  RegisterData,
-  RegisterInput,
-} from "@/core/domain/types/auth";
 import type { LoginResponseDto } from "@/core/application/dtos/AuthDto";
 import {
   toAuthUser,
   toLoginRequestDto,
   toRegisterRequestDto,
 } from "@/core/application/mappers/AuthMapper";
+import type { AuthUser } from "@/core/domain/entities/User";
+import type { IAuthRepository } from "@/core/domain/repositories/IAuthRepository";
+import type {
+  LoginCredentials,
+  RegisterData,
+  RegisterInput,
+} from "@/core/domain/types/auth";
 import type { HttpClient } from "../api/HttpClient";
 import { API_ENDPOINTS } from "../api/constants";
+import { TokenStorage } from "../storage/TokenStorage";
 
 export class ApiAuthRepository implements IAuthRepository {
   constructor(private readonly http: HttpClient) {}
 
   async login(credentials: LoginCredentials): Promise<AuthUser | null> {
     const body = toLoginRequestDto(credentials);
-    try {
-      const data = await this.http.post<LoginResponseDto>(
-        API_ENDPOINTS.AUTH.LOGIN,
-        body
-      );
-      return toAuthUser(
-        data,
-        credentials.mode === "phone" ? credentials.phone : credentials.facebookId
-      );
-    } catch (err) {
-      const status = (err as { response?: { status?: number } })?.response?.status;
-      if (status === 400 || status === 401) throw err;
-      console.error("[ApiAuthRepository.login]", err);
-      return null;
-    }
+    const data = await this.http.post<LoginResponseDto>(
+      API_ENDPOINTS.AUTH.LOGIN,
+      body,
+    );
+    return toAuthUser(
+      data,
+      credentials.mode === "phone" ? credentials.phone : credentials.facebookId,
+    );
   }
 
   async register(data: RegisterData | RegisterInput): Promise<AuthUser | null> {
     const body = toRegisterRequestDto(data);
     const res = await this.http.post<LoginResponseDto>(
       API_ENDPOINTS.AUTH.REGISTER,
-      body
+      body,
     );
     return toAuthUser(res, body.email);
   }
@@ -48,9 +42,10 @@ export class ApiAuthRepository implements IAuthRepository {
   async getProfile(): Promise<AuthUser | null> {
     try {
       const data = await this.http.get<LoginResponseDto>(
-        API_ENDPOINTS.AUTH.PROFILE
+        API_ENDPOINTS.AUTH.PROFILE,
       );
-      return toAuthUser(data);
+      const accessToken = await TokenStorage.getAccessToken();
+      return toAuthUser(data, undefined, accessToken ?? undefined);
     } catch {
       return null;
     }

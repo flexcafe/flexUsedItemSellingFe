@@ -127,7 +127,7 @@ app/ → features/ → presentation/ → core/application/ → core/domain/
 ## Environment Variables
 
 Copy `.env` and set:
-- `EXPO_PUBLIC_API_URL` – backend API base URL (e.g., `http://localhost:8080/api`)
+- `EXPO_PUBLIC_API_URL` – backend API base URL (e.g., `http://localhost:3000/api`)
 
 ## Adding a New Feature
 

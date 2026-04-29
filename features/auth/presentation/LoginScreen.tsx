@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -17,6 +18,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { AuthLogo } from "@/components/auth-logo";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useAuth } from "@/presentation/providers/AuthProvider";
@@ -49,6 +51,7 @@ export function LoginScreen() {
   const [phone, setPhone] = useState("");
   const [facebookId, setFacebookId] = useState("");
   const [password, setPassword] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{
     phone?: string;
@@ -120,146 +123,170 @@ export function LoginScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}>
-        <View style={styles.header}>
-          <ThemedText type="title">{t("appName")}</ThemedText>
-          <ThemedText style={styles.subtitle}>
-            {t("signInSubtitle")}
-          </ThemedText>
-        </View>
-
-        <View style={styles.form}>
-          <View style={styles.segment}>
-            <Pressable
-              onPress={() => setMode("phone")}
-              disabled={isSubmitting}
-              style={[
-                styles.segmentItem,
-                { borderColor: colors.icon },
-                mode === "phone" && { backgroundColor: colors.tint },
-              ]}>
-              <ThemedText
-                style={[
-                  styles.segmentText,
-                  mode === "phone" && { color: "#fff" },
-                ]}>
-                Phone
-              </ThemedText>
-            </Pressable>
-            <Pressable
-              onPress={() => setMode("facebook")}
-              disabled={isSubmitting}
-              style={[
-                styles.segmentItem,
-                { borderColor: colors.icon },
-                mode === "facebook" && { backgroundColor: colors.tint },
-              ]}>
-              <ThemedText
-                style={[
-                  styles.segmentText,
-                  mode === "facebook" && { color: "#fff" },
-                ]}>
-                Facebook ID
-              </ThemedText>
-            </Pressable>
-          </View>
-
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>
-              {mode === "phone" ? t("phone") : t("facebookId")}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
+          <View style={styles.header}>
+            <AuthLogo />
+            <ThemedText type="title" style={styles.appTitle}>
+              {t("appName")}
             </ThemedText>
-            {mode === "phone" ? (
-              <>
-                <TextInput
-                  style={[
-                    styles.input,
-                    { color: colors.text, borderColor: errors.phone ? "#e74c3c" : colors.icon },
-                  ]}
-                  value={phone}
-                  onChangeText={setPhone}
-                  placeholder="+959123456789"
-                  placeholderTextColor={colors.icon}
-                  keyboardType="phone-pad"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!isSubmitting}
-                />
-                {errors.phone && (
-                  <ThemedText style={styles.error}>{errors.phone}</ThemedText>
-                )}
-              </>
-            ) : (
-              <>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      color: colors.text,
-                      borderColor: errors.facebookId ? "#e74c3c" : colors.icon,
-                    },
-                  ]}
-                  value={facebookId}
-                  onChangeText={setFacebookId}
-                  placeholder="100012345678901"
-                  placeholderTextColor={colors.icon}
-                  keyboardType="number-pad"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!isSubmitting}
-                />
-                {errors.facebookId && (
-                  <ThemedText style={styles.error}>{errors.facebookId}</ThemedText>
-                )}
-              </>
-            )}
+            <ThemedText style={styles.subtitle}>
+              {t("signInSubtitle")}
+            </ThemedText>
           </View>
 
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Password</ThemedText>
-            <TextInput
+          <View style={styles.form}>
+            <View style={styles.segment}>
+              <Pressable
+                onPress={() => setMode("phone")}
+                disabled={isSubmitting}
+                style={[
+                  styles.segmentItem,
+                  { borderColor: colors.icon },
+                  mode === "phone" && { backgroundColor: colors.tint },
+                ]}>
+                <ThemedText
+                  style={[
+                    styles.segmentText,
+                    mode === "phone" && { color: "#fff" },
+                  ]}>
+                  Phone
+                </ThemedText>
+              </Pressable>
+              <Pressable
+                onPress={() => setMode("facebook")}
+                disabled={isSubmitting}
+                style={[
+                  styles.segmentItem,
+                  { borderColor: colors.icon },
+                  mode === "facebook" && { backgroundColor: colors.tint },
+                ]}>
+                <ThemedText
+                  style={[
+                    styles.segmentText,
+                    mode === "facebook" && { color: "#fff" },
+                  ]}>
+                  Facebook ID
+                </ThemedText>
+              </Pressable>
+            </View>
+
+            <View style={styles.field}>
+              <ThemedText style={styles.label}>
+                {mode === "phone" ? t("phone") : t("facebookId")}
+              </ThemedText>
+              {mode === "phone" ? (
+                <>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      { color: colors.text, borderColor: errors.phone ? "#e74c3c" : colors.icon },
+                    ]}
+                    value={phone}
+                    onChangeText={setPhone}
+                    placeholder="+959123456789"
+                    placeholderTextColor={colors.icon}
+                    keyboardType="phone-pad"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!isSubmitting}
+                  />
+                  {errors.phone && (
+                    <ThemedText style={styles.error}>{errors.phone}</ThemedText>
+                  )}
+                </>
+              ) : (
+                <>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        color: colors.text,
+                        borderColor: errors.facebookId ? "#e74c3c" : colors.icon,
+                      },
+                    ]}
+                    value={facebookId}
+                    onChangeText={setFacebookId}
+                    placeholder="100012345678901"
+                    placeholderTextColor={colors.icon}
+                    keyboardType="number-pad"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!isSubmitting}
+                  />
+                  {errors.facebookId && (
+                    <ThemedText style={styles.error}>{errors.facebookId}</ThemedText>
+                  )}
+                </>
+              )}
+            </View>
+
+            <View style={styles.field}>
+              <ThemedText style={styles.label}>Password</ThemedText>
+              <View style={styles.passwordRow}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.passwordInput,
+                    { color: colors.text, borderColor: errors.password ? "#e74c3c" : colors.icon },
+                  ]}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder={t("password")}
+                  placeholderTextColor={colors.icon}
+                  secureTextEntry={!isPasswordVisible}
+                  editable={!isSubmitting}
+                />
+                <Pressable
+                  onPress={() => setIsPasswordVisible((v) => !v)}
+                  disabled={isSubmitting}
+                  accessibilityRole="button"
+                  accessibilityLabel={isPasswordVisible ? t("hidePassword") : t("showPassword")}
+                  style={({ pressed }) => [
+                    styles.passwordToggle,
+                    { opacity: pressed ? 0.7 : 1 },
+                  ]}>
+                  <ThemedText style={[styles.passwordToggleText, { color: colors.tint }]}>
+                    {isPasswordVisible ? t("hide") : t("show")}
+                  </ThemedText>
+                </Pressable>
+              </View>
+              {errors.password && (
+                <ThemedText style={styles.error}>{errors.password}</ThemedText>
+              )}
+            </View>
+
+            <Pressable
               style={[
-                styles.input,
-                { color: colors.text, borderColor: errors.password ? "#e74c3c" : colors.icon },
+                styles.button,
+                { backgroundColor: colors.tint },
+                isSubmitting && styles.buttonDisabled,
               ]}
-              value={password}
-              onChangeText={setPassword}
-              placeholder={t("password")}
-              placeholderTextColor={colors.icon}
-              secureTextEntry
-              editable={!isSubmitting}
-            />
-            {errors.password && (
-              <ThemedText style={styles.error}>{errors.password}</ThemedText>
-            )}
-          </View>
-
-          <Pressable
-            style={[
-              styles.button,
-              { backgroundColor: colors.tint },
-              isSubmitting && styles.buttonDisabled,
-            ]}
-            onPress={handleLogin}
-            disabled={isSubmitting}>
-            {isSubmitting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <ThemedText style={styles.buttonText}>{t("signIn")}</ThemedText>
-            )}
-          </Pressable>
-
-          <View style={styles.signUpRow}>
-            <ThemedText style={styles.signUpText}>
-              {t("noAccount")}{" "}
-            </ThemedText>
-            <Pressable
-              disabled={isSubmitting}
-              onPress={() => router.push("/(auth)/register" as Href)}>
-              <ThemedText style={[styles.signUpLink, { color: colors.tint }]}>
-                {t("signUp")}
-              </ThemedText>
+              onPress={handleLogin}
+              disabled={isSubmitting}>
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <ThemedText style={styles.buttonText}>{t("signIn")}</ThemedText>
+              )}
             </Pressable>
+
+            <View style={styles.signUpRow}>
+              <ThemedText style={styles.signUpText}>
+                {t("noAccount")}{" "}
+              </ThemedText>
+              <Pressable
+                disabled={isSubmitting}
+                onPress={() => router.push("/(auth)/register" as Href)}>
+                <ThemedText style={[styles.signUpLink, { color: colors.tint }]}>
+                  {t("signUp")}
+                </ThemedText>
+              </Pressable>
+            </View>
           </View>
-        </View>
+        </ScrollView>
 
         {/* Bottom language bar (matches Figma: wide pill with flag buttons) */}
         <View pointerEvents="box-none" style={styles.languageDock}>
@@ -316,14 +343,22 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: "center",
+    paddingTop: 24,
+    paddingBottom: 96,
   },
   header: {
     alignItems: "center",
-    marginBottom: 48,
+    marginBottom: 32,
+    gap: 8,
+  },
+  appTitle: {
+    marginTop: 8,
   },
   subtitle: {
-    marginTop: 8,
     opacity: 0.6,
   },
   form: {
@@ -357,6 +392,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
+  },
+  passwordRow: {
+    position: "relative",
+    justifyContent: "center",
+  },
+  passwordInput: {
+    paddingRight: 80,
+  },
+  passwordToggle: {
+    position: "absolute",
+    right: 12,
+    height: 44,
+    justifyContent: "center",
+    paddingHorizontal: 8,
+  },
+  passwordToggleText: {
+    fontWeight: "700",
+    fontSize: 14,
   },
   error: {
     color: "#e74c3c",

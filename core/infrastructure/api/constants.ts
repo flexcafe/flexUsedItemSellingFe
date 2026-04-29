@@ -5,7 +5,7 @@ const envApiUrl =
   process.env.EXPO_PUBLIC_API_URL;
 
 export const API_CONFIG = {
-  BASE_URL: envApiUrl ?? "http://localhost:8080/api",
+  BASE_URL: envApiUrl ?? "http://localhost:3000/api",
 } as const;
 
 export const API_ENDPOINTS = {
@@ -13,7 +13,7 @@ export const API_ENDPOINTS = {
     // Base URL already includes `/api` (see `API_CONFIG.BASE_URL`)
     LOGIN: "/v1/client/auth/login",
     REGISTER: "/v1/client/auth/register",
-    PROFILE: "/v1/client/auth/profile",
+    PROFILE: "/v1/client/auth/me",
     OTP_SEND: "/v1/client/auth/otp/send",
     OTP_VERIFY: "/v1/client/auth/otp/verify",
     EMAIL_SEND: "/v1/client/auth/email/send-verification",

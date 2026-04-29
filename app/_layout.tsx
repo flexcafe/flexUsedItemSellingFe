@@ -5,10 +5,11 @@ import {
 } from "@react-navigation/native";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import "react-native-reanimated";
 
+import { AnimatedLaunchScreen } from "@/components/animated-launch-screen";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthProvider, useAuth } from "@/presentation/providers/AuthProvider";
 import { LocaleProvider } from "@/presentation/providers/LocaleProvider";
@@ -44,13 +45,22 @@ function AuthGate() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const [showLaunch, setShowLaunch] = useState(true);
+  const handleLaunchFinish = useCallback(() => {
+    setShowLaunch(false);
+  }, []);
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <QueryProvider>
         <LocaleProvider>
           <AuthProvider>
-            <AuthGate />
+            <View style={{ flex: 1 }}>
+              <AuthGate />
+              {showLaunch ? (
+                <AnimatedLaunchScreen onFinish={handleLaunchFinish} />
+              ) : null}
+            </View>
             <StatusBar style="auto" />
           </AuthProvider>
         </LocaleProvider>
