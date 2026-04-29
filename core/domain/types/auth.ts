@@ -22,8 +22,8 @@ export interface RegisterInput {
   age: number;
   maritalStatus: MaritalStatus;
   region: string;
-  gpsLatitude?: number;
-  gpsLongitude?: number;
+  gpsLatitude: number;
+  gpsLongitude: number;
   referralId?: string;
 }
 

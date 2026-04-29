@@ -4,34 +4,41 @@ export interface LoginRequestDto {
   password: string;
 }
 
-export interface LoginResponseDto {
+export interface AuthProfileDto {
+  id?: string;
+  email?: string | null;
+  name?: string | null;
+  nickname?: string | null;
+  phone?: string;
+  role?: string;
+}
+
+export interface LoginResponseDto extends AuthProfileDto {
   access_token?: string;
   token?: string;
   accessToken?: string;
-  user?: {
-    id?: string;
-    email?: string;
-    name?: string | null;
-    role?: string;
+  tokens?: {
+    access_token?: string;
+    token?: string;
+    accessToken?: string;
   };
+  user?: AuthProfileDto;
 }
 
 export interface RegisterRequestDto {
-  registrationType: "PHONE_AND_FACEBOOK" | "PHONE_ONLY";
   nickname: string;
   phone: string;
   email: string;
   password: string;
   confirmPassword: string;
-  facebookId?: string;
   kbzPayName: string;
   kbzPayPhoneNumber: string;
   gender: "MALE" | "FEMALE";
   age: number;
   maritalStatus: "SINGLE" | "MARRIED";
   region: string;
-  gpsLatitude?: number;
-  gpsLongitude?: number;
+  gpsLatitude: number;
+  gpsLongitude: number;
   referralId?: string;
 }
 

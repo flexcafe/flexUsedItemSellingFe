@@ -12,7 +12,9 @@ import {
   View,
 } from "react-native";
 import { z } from "zod";
+import * as Location from "expo-location";
 
+import { AuthLogo } from "@/components/auth-logo";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import type {
@@ -33,6 +35,7 @@ const WARNING_BORDER = "#FDBA74";
 const WARNING_TEXT = "#C2410C";
 
 type SegmentOption<T extends string> = { value: T; label: string };
+type LocationCoords = { latitude: number; longitude: number };
 
 function Segmented<T extends string>({
   options,
@@ -85,11 +88,13 @@ export function RegisterScreen() {
   const colors = Colors[colorScheme ?? "light"];
 
   const [registrationType, setRegistrationType] =
-    useState<RegistrationType>("PHONE_AND_FACEBOOK");
+    useState<RegistrationType>("PHONE_ONLY");
   const [nickname, setNickname] = useState("");
   const [nicknameChecked, setNicknameChecked] = useState<null | boolean>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [facebookId, setFacebookId] = useState("");
@@ -100,10 +105,14 @@ export function RegisterScreen() {
   const [maritalStatus, setMaritalStatus] = useState<MaritalStatus>("SINGLE");
   const [region, setRegion] = useState("");
   const [regionVerified, setRegionVerified] = useState(false);
+  const [locationCoords, setLocationCoords] = useState<LocationCoords | null>(
+    null
+  );
   const [referralId, setReferralId] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sendingOtp, setSendingOtp] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const schema = useMemo(() => {
@@ -197,20 +206,43 @@ export function RegisterScreen() {
     }
   };
 
-  const handleVerifyLocation = () => {
-    // Lightweight client-only verification: marks the region as verified so
-    // the backend receives a non-empty value. A fully-featured implementation
-    // could swap this for an `expo-location` reverse-geocode flow.
+  const handleVerifyLocation = async () => {
     if (region.trim().length === 0) {
       setErrors((e) => ({ ...e, region: t("regionVerify") }));
       return;
     }
-    setRegionVerified(true);
-    setErrors((e) => {
-      const next = { ...e };
-      delete next.region;
-      return next;
-    });
+
+    setIsLocating(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setRegionVerified(false);
+        setLocationCoords(null);
+        setErrors((e) => ({ ...e, region: t("regionVerify") }));
+        return;
+      }
+
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      setLocationCoords({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+      setRegionVerified(true);
+      setErrors((e) => {
+        const next = { ...e };
+        delete next.region;
+        return next;
+      });
+    } catch {
+      setRegionVerified(false);
+      setLocationCoords(null);
+      setErrors((e) => ({ ...e, region: t("regionVerify") }));
+      Alert.alert(t("errorTitle"), t("genericErrorBody"));
+    } finally {
+      setIsLocating(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -242,6 +274,11 @@ export function RegisterScreen() {
       return;
     }
 
+    if (!regionVerified || !locationCoords) {
+      setErrors({ region: t("regionVerify") });
+      return;
+    }
+
     const input: RegisterInput = {
       registrationType: parsed.data.registrationType,
       nickname: parsed.data.nickname,
@@ -255,6 +292,8 @@ export function RegisterScreen() {
       age: parsed.data.age,
       maritalStatus: parsed.data.maritalStatus,
       region: parsed.data.region,
+      gpsLatitude: locationCoords.latitude,
+      gpsLongitude: locationCoords.longitude,
       referralId: parsed.data.referralId,
     };
     if (parsed.data.registrationType === "PHONE_AND_FACEBOOK") {
@@ -313,6 +352,10 @@ export function RegisterScreen() {
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled">
+          <View style={styles.brandArea}>
+            <AuthLogo variant="compact" />
+          </View>
+
           <View style={styles.headerRow}>
             <Pressable
               onPress={() => router.back()}
@@ -331,7 +374,6 @@ export function RegisterScreen() {
             <ThemedText style={styles.label}>{t("registrationMethod")}</ThemedText>
             <Segmented<RegistrationType>
               options={[
-                { value: "PHONE_AND_FACEBOOK", label: t("both") },
                 { value: "PHONE_ONLY", label: t("phoneOnly") },
               ]}
               value={registrationType}
@@ -387,15 +429,30 @@ export function RegisterScreen() {
           {/* Password */}
           <View style={styles.field}>
             <ThemedText style={styles.label}>{t("password")}</ThemedText>
-            <TextInput
-              style={inputStyle(!!errors.password)}
-              value={password}
-              onChangeText={setPassword}
-              placeholder={t("password")}
-              placeholderTextColor={colors.icon}
-              secureTextEntry
-              editable={!isSubmitting}
-            />
+            <View style={styles.passwordRow}>
+              <TextInput
+                style={[inputStyle(!!errors.password), styles.passwordInput]}
+                value={password}
+                onChangeText={setPassword}
+                placeholder={t("password")}
+                placeholderTextColor={colors.icon}
+                secureTextEntry={!isPasswordVisible}
+                editable={!isSubmitting}
+              />
+              <Pressable
+                onPress={() => setIsPasswordVisible((v) => !v)}
+                disabled={isSubmitting}
+                accessibilityRole="button"
+                accessibilityLabel={isPasswordVisible ? t("hidePassword") : t("showPassword")}
+                style={({ pressed }) => [
+                  styles.passwordToggle,
+                  { opacity: pressed ? 0.7 : 1 },
+                ]}>
+                <ThemedText style={[styles.passwordToggleText, { color: colors.tint }]}>
+                  {isPasswordVisible ? t("hide") : t("show")}
+                </ThemedText>
+              </Pressable>
+            </View>
             {errors.password ? (
               <ThemedText style={styles.error}>{errors.password}</ThemedText>
             ) : null}
@@ -404,15 +461,32 @@ export function RegisterScreen() {
           {/* Confirm Password */}
           <View style={styles.field}>
             <ThemedText style={styles.label}>{t("confirmPassword")}</ThemedText>
-            <TextInput
-              style={inputStyle(!!errors.confirmPassword)}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              placeholder={t("confirmPasswordPlaceholder")}
-              placeholderTextColor={colors.icon}
-              secureTextEntry
-              editable={!isSubmitting}
-            />
+            <View style={styles.passwordRow}>
+              <TextInput
+                style={[inputStyle(!!errors.confirmPassword), styles.passwordInput]}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder={t("confirmPasswordPlaceholder")}
+                placeholderTextColor={colors.icon}
+                secureTextEntry={!isConfirmPasswordVisible}
+                editable={!isSubmitting}
+              />
+              <Pressable
+                onPress={() => setIsConfirmPasswordVisible((v) => !v)}
+                disabled={isSubmitting}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  isConfirmPasswordVisible ? t("hidePassword") : t("showPassword")
+                }
+                style={({ pressed }) => [
+                  styles.passwordToggle,
+                  { opacity: pressed ? 0.7 : 1 },
+                ]}>
+                <ThemedText style={[styles.passwordToggleText, { color: colors.tint }]}>
+                  {isConfirmPasswordVisible ? t("hide") : t("show")}
+                </ThemedText>
+              </Pressable>
+            </View>
             {errors.confirmPassword ? (
               <ThemedText style={styles.error}>{errors.confirmPassword}</ThemedText>
             ) : null}
@@ -602,6 +676,7 @@ export function RegisterScreen() {
               onChangeText={(v) => {
                 setRegion(v);
                 setRegionVerified(false);
+                setLocationCoords(null);
               }}
               placeholder={t("regionPlaceholder")}
               placeholderTextColor={colors.icon}
@@ -609,7 +684,7 @@ export function RegisterScreen() {
             />
             <Pressable
               onPress={handleVerifyLocation}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isLocating}
               style={[
                 styles.regionButton,
                 {
@@ -686,9 +761,13 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 42,
     paddingBottom: 40,
     gap: 18,
+  },
+  brandArea: {
+    alignItems: "center",
+    marginBottom: 2,
   },
   headerRow: {
     flexDirection: "row",
@@ -722,6 +801,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     minWidth: 80,
+  },
+  passwordRow: {
+    position: "relative",
+    justifyContent: "center",
+  },
+  passwordInput: {
+    paddingRight: 80,
+  },
+  passwordToggle: {
+    position: "absolute",
+    right: 12,
+    height: 44,
+    justifyContent: "center",
+    paddingHorizontal: 8,
+  },
+  passwordToggleText: {
+    fontWeight: "700",
+    fontSize: 14,
   },
   inlineButtonText: { color: "#fff", fontWeight: "700", fontSize: 14 },
   segment: { flexDirection: "row", gap: 10 },
