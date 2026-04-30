@@ -81,8 +81,8 @@ export function AuthLogo({ variant = "hero" }: AuthLogoProps) {
 
 const styles = StyleSheet.create({
   frame: {
-    width: 190,
-    height: 190,
+    width: 180,
+    height: 180,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -92,9 +92,9 @@ const styles = StyleSheet.create({
   },
   glowRing: {
     position: "absolute",
-    width: 184,
-    height: 184,
-    borderRadius: 92,
+    width: 174,
+    height: 174,
+    borderRadius: 87,
     backgroundColor: "rgba(247, 210, 107, 0.26)",
     shadowColor: "#d99b24",
     shadowOpacity: 0.55,
@@ -110,9 +110,9 @@ const styles = StyleSheet.create({
   },
   orbitRing: {
     position: "absolute",
-    width: 190,
-    height: 190,
-    borderRadius: 95,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
     borderWidth: 3,
     borderColor: "rgba(197, 142, 45, 0.12)",
     borderTopColor: "#f7d26b",
@@ -126,9 +126,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   shell: {
-    width: 176,
-    height: 176,
-    borderRadius: 88,
+    width: 168,
+    height: 168,
+    borderRadius: 84,
     borderWidth: 1,
     borderColor: "rgba(197, 142, 45, 0.24)",
     backgroundColor: "#ffffff",

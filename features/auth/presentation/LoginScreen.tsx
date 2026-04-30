@@ -128,7 +128,7 @@ export function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <AuthLogo />
+            <AuthLogo variant="compact" />
             <ThemedText type="title" style={styles.appTitle}>
               {t("appName")}
             </ThemedText>

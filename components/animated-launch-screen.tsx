@@ -1,443 +1,469 @@
 import { Image } from "expo-image";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Animated, {
   Easing,
-  Extrapolation,
   interpolate,
   runOnJS,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withRepeat,
+  withSpring,
   withSequence,
   withTiming,
 } from "react-native-reanimated";
 
 const logoSource = require("@/assets/images/flex-used-logo.png");
-const depthLayers = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
 
 type AnimatedLaunchScreenProps = {
   onFinish: () => void;
 };
 
-export function AnimatedLaunchScreen({ onFinish }: AnimatedLaunchScreenProps) {
-  const { width, height } = useWindowDimensions();
-  const reveal = useSharedValue(0);
-  const idle = useSharedValue(0);
-  const ring = useSharedValue(0);
-  const shine = useSharedValue(0);
-  const exit = useSharedValue(0);
+type ParticleConfig = {
+  phase: number;
+  xOffset: number;
+  yOffset: number;
+  size: number;
+};
 
-  const stageSize = Math.min(width * 0.9, 360);
-  const logoSize = Math.min(stageSize, height * 0.42);
-  const compact = height < 720;
-
-  useEffect(() => {
-    reveal.value = withTiming(1, {
-      duration: 1900,
-      easing: Easing.out(Easing.cubic),
-    });
-    idle.value = withRepeat(
-      withSequence(
-        withTiming(1, {
-          duration: 1800,
-          easing: Easing.inOut(Easing.cubic),
-        }),
-        withTiming(0, {
-          duration: 1800,
-          easing: Easing.inOut(Easing.cubic),
-        })
-      ),
-      -1,
-      false
-    );
-    ring.value = withRepeat(
-      withTiming(360, { duration: 5600, easing: Easing.linear }),
-      -1,
-      false
-    );
-    shine.value = withRepeat(
-      withTiming(1, {
-        duration: 2600,
-        easing: Easing.inOut(Easing.cubic),
-      }),
-      -1,
-      false
-    );
-    exit.value = withDelay(
-      6200,
-      withTiming(
-        1,
-        { duration: 760, easing: Easing.inOut(Easing.cubic) },
-        (finished) => {
-          if (finished) runOnJS(onFinish)();
-        }
-      )
-    );
-  }, [exit, idle, onFinish, reveal, ring, shine]);
-
-  const overlayStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(exit.value, [0, 1], [1, 0]),
-    transform: [{ scale: interpolate(exit.value, [0, 1], [1, 1.035]) }],
-  }));
-
-  const stageStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(reveal.value, [0, 0.16, 1], [0, 1, 1]),
-    transform: [
-      {
-        translateY:
-          interpolate(reveal.value, [0, 1], [38, 0], Extrapolation.CLAMP) -
-          interpolate(exit.value, [0, 1], [0, 18]),
-      },
-      {
-        scale: interpolate(
-          reveal.value,
-          [0, 0.72, 1],
-          [0.82, 1.05, 1],
-          Extrapolation.CLAMP
-        ),
-      },
-    ],
-  }));
-
-  const logoRigStyle = useAnimatedStyle(() => {
-    const revealY = interpolate(
-      reveal.value,
-      [0, 0.42, 0.72, 1],
-      [-86, 24, -7, 0],
-      Extrapolation.CLAMP
-    );
-    const revealX = interpolate(
-      reveal.value,
-      [0, 0.55, 1],
-      [38, -14, 0],
-      Extrapolation.CLAMP
-    );
-    const idleY = interpolate(idle.value, [0, 1], [-13, 13]);
-    const idleX = interpolate(idle.value, [0, 1], [7, -7]);
+function Particle({
+  config,
+  centerX,
+  centerY,
+  t,
+}: {
+  config: ParticleConfig;
+  centerX: number;
+  centerY: number;
+  t: SharedValue<number>;
+}) {
+  const style = useAnimatedStyle(() => {
+    const p = (t.value + config.phase) % 1;
+    const wobble = Math.sin((p + config.phase) * Math.PI * 2);
 
     return {
       transform: [
-        { perspective: 560 },
-        { rotateY: `${revealY + idleY * reveal.value}deg` },
-        { rotateX: `${revealX + idleX * reveal.value}deg` },
-        {
-          rotateZ: `${interpolate(
-            reveal.value,
-            [0, 1],
-            [-7, 0],
-            Extrapolation.CLAMP
-          )}deg`,
-        },
-        {
-          translateY: interpolate(idle.value, [0, 1], [4, -6]) * reveal.value,
-        },
-        {
-          scaleX: interpolate(
-            reveal.value,
-            [0, 0.52, 1],
-            [0.34, 1.08, 1],
-            Extrapolation.CLAMP
-          ),
-        },
-        {
-          scale: interpolate(
-            reveal.value,
-            [0, 0.75, 1],
-            [0.72, 1.08, 1],
-            Extrapolation.CLAMP
-          ),
-        },
+        { translateX: config.xOffset * (p * 1.12) + wobble * 6 },
+        { translateY: config.yOffset * (p * 0.86) - wobble * 8 },
+        { scale: interpolate(p, [0, 0.18, 0.7, 1], [0, 1.15, 1, 0]) },
       ],
+      opacity: interpolate(p, [0, 0.12, 0.88, 1], [0, 0.65, 0.65, 0]),
     };
   });
 
-  const frontLogoStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(reveal.value, [0, 0.18, 1], [0, 1, 1]),
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.particle,
+        {
+          width: config.size,
+          height: config.size,
+          borderRadius: config.size / 2,
+          left: centerX,
+          top: centerY,
+        },
+        style,
+      ]}
+    />
+  );
+}
+
+export function AnimatedLaunchScreen({ onFinish }: AnimatedLaunchScreenProps) {
+  const { width, height } = useWindowDimensions();
+  const isLarge = width > 768;
+  const logoSize = isLarge ? 200 : Math.min(width * 0.45, 180);
+  const centerX = width / 2;
+  const centerY = height / 2;
+
+  // Animation values
+  const progress = useSharedValue(0);
+  const ring1Rotation = useSharedValue(0);
+  const ring2Rotation = useSharedValue(0);
+  const ring1Tilt = useSharedValue(0);
+  const ring2Tilt = useSharedValue(0);
+  const floatY = useSharedValue(0);
+  const glowIntensity = useSharedValue(0);
+  const exitAnim = useSharedValue(0);
+
+  const particlesT = useSharedValue(0);
+  const particles = useMemo<ParticleConfig[]>(
+    () =>
+      Array.from({ length: 30 }, () => ({
+        phase: Math.random(),
+        xOffset: (Math.random() - 0.5) * 300,
+        yOffset: (Math.random() - 0.5) * 400,
+        size: 2 + Math.random() * 4,
+      })),
+    []
+  );
+
+  useEffect(() => {
+    // Main entrance
+    progress.value = withSequence(
+      withTiming(0.8, { duration: 1000, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
+      withSpring(1, { damping: 12, stiffness: 80 })
+    );
+
+    // Ring 1: Continuous rotation in 3D
+    ring1Rotation.value = withRepeat(
+      withTiming(360, { duration: 12000, easing: Easing.linear }),
+      -1,
+      false
+    );
+    
+    // Ring 2: Opposite direction rotation
+    ring2Rotation.value = withRepeat(
+      withTiming(-360, { duration: 15000, easing: Easing.linear }),
+      -1,
+      false
+    );
+    
+    // Ring tilts for 3D effect
+    ring1Tilt.value = withRepeat(
+      withSequence(
+        withTiming(15, { duration: 3000, easing: Easing.inOut(Easing.sin) }),
+        withTiming(-15, { duration: 3000, easing: Easing.inOut(Easing.sin) })
+      ),
+      -1,
+      true
+    );
+    
+    ring2Tilt.value = withRepeat(
+      withSequence(
+        withTiming(-10, { duration: 3500, easing: Easing.inOut(Easing.sin) }),
+        withTiming(10, { duration: 3500, easing: Easing.inOut(Easing.sin) })
+      ),
+      -1,
+      true
+    );
+    
+    // Floating animation
+    floatY.value = withRepeat(
+      withSequence(
+        withTiming(10, { duration: 3000, easing: Easing.inOut(Easing.sin) }),
+        withTiming(-10, { duration: 3000, easing: Easing.inOut(Easing.sin) })
+      ),
+      -1,
+      true
+    );
+    
+    // Glow pulse
+    glowIntensity.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.cubic) }),
+        withTiming(0.4, { duration: 2000, easing: Easing.inOut(Easing.cubic) })
+      ),
+      -1,
+      true
+    );
+
+    particlesT.value = withRepeat(
+      withTiming(1, { duration: 7200, easing: Easing.linear }),
+      -1,
+      false
+    );
+    
+    // Exit animation
+    exitAnim.value = withDelay(
+      6500,
+      withTiming(1, { duration: 600, easing: Easing.inOut(Easing.cubic) }, (finished) => {
+        if (finished) runOnJS(onFinish)();
+      })
+    );
+  }, [
+    exitAnim,
+    floatY,
+    glowIntensity,
+    onFinish,
+    particlesT,
+    progress,
+    ring1Rotation,
+    ring1Tilt,
+    ring2Rotation,
+    ring2Tilt,
+  ]);
+
+  // Container exit
+  const containerStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(exitAnim.value, [0, 1], [1, 0]),
+    transform: [{ scale: interpolate(exitAnim.value, [0, 1], [1, 0.95]) }],
+  }));
+
+  // Logo entrance animation
+  const logoContainerStyle = useAnimatedStyle(() => ({
     transform: [
-      {
-        translateX: interpolate(idle.value, [0, 1], [-2, 2]) * reveal.value,
-      },
-      {
-        translateY: interpolate(idle.value, [0, 1], [2, -3]) * reveal.value,
-      },
-      { scale: interpolate(idle.value, [0, 1], [0.992, 1.018]) },
+      { scale: interpolate(progress.value, [0, 0.5, 1], [0.3, 1.05, 1]) },
+      { translateY: interpolate(progress.value, [0, 1], [30, 0]) },
+    ],
+    opacity: interpolate(progress.value, [0, 0.3, 1], [0, 1, 1]),
+  }));
+
+  // Logo glow
+  const logoGlowStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0.3, 0.7, 1], [0, 0.6, 0.4]),
+    transform: [{ scale: 1 + interpolate(glowIntensity.value, [0.4, 1], [0, 0.1]) }],
+    shadowOpacity: interpolate(glowIntensity.value, [0.4, 1], [0.3, 0.8]),
+    shadowRadius: interpolate(glowIntensity.value, [0.4, 1], [20, 40]),
+  }));
+
+  // Ring 1 animation (outer ring)
+  const ring1Style = useAnimatedStyle(() => ({
+    transform: [
+      { perspective: 800 },
+      { rotateX: `${interpolate(ring1Tilt.value, [-15, 15], [-8, 8])}deg` },
+      { rotateY: `${interpolate(ring1Rotation.value % 360, [0, 360], [0, 360])}deg` },
+      { rotateZ: `${interpolate(ring1Tilt.value, [-15, 15], [-5, 5])}deg` },
+      { scale: interpolate(progress.value, [0, 1], [0.5, 1]) },
+      { translateY: interpolate(floatY.value, [-10, 10], [-5, 5]) },
+    ],
+    opacity: interpolate(progress.value, [0.2, 0.5, 1], [0, 0.7, 0.9]),
+  }));
+
+  // Ring 2 animation (inner ring)
+  const ring2Style = useAnimatedStyle(() => ({
+    transform: [
+      { perspective: 800 },
+      { rotateX: `${interpolate(ring2Tilt.value, [-10, 10], [-5, 5])}deg` },
+      { rotateY: `${interpolate(ring2Rotation.value % 360, [0, 360], [0, -360])}deg` },
+      { rotateZ: `${interpolate(ring2Tilt.value, [-10, 10], [3, -3])}deg` },
+      { scale: interpolate(progress.value, [0, 1], [0.3, 0.85]) },
+      { translateY: interpolate(floatY.value, [-10, 10], [5, -5]) },
+    ],
+    opacity: interpolate(progress.value, [0.3, 0.6, 1], [0, 0.6, 0.8]),
+  }));
+
+  // Floating logo animation
+  const logoStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: interpolate(floatY.value, [-10, 10], [-8, 8]) },
     ],
   }));
 
-  const logoDepthStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(reveal.value, [0, 0.34, 1], [0, 0.7, 1]),
+  // Text animations
+  const textContainerStyle = useAnimatedStyle(() => ({
     transform: [
-      {
-        translateX: interpolate(idle.value, [0, 1], [0, 5]) * reveal.value,
-      },
-      {
-        translateY: interpolate(idle.value, [0, 1], [4, -1]) * reveal.value,
-      },
+      { translateY: interpolate(progress.value, [0.4, 0.8, 1], [20, -5, 0]) },
+      { scale: interpolate(progress.value, [0.4, 1], [0.8, 1]) },
     ],
+    opacity: interpolate(progress.value, [0.4, 0.6, 1], [0, 0.8, 1]),
   }));
 
-  const ringStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(reveal.value, [0.2, 1], [0, 1], Extrapolation.CLAMP),
-    transform: [
-      { rotateX: "68deg" },
-      { rotateZ: `${ring.value}deg` },
-      { scale: interpolate(idle.value, [0, 1], [0.96, 1.03]) },
-    ],
-  }));
-
-  const counterRingStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(reveal.value, [0.3, 1], [0, 0.84], Extrapolation.CLAMP),
-    transform: [
-      { rotateX: "73deg" },
-      { rotateZ: `${-ring.value * 0.72}deg` },
-      { scale: interpolate(idle.value, [0, 1], [1.04, 0.97]) },
-    ],
-  }));
-
-  const shadowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(reveal.value, [0, 1], [0, 0.5]),
-    transform: [
-      { scaleX: interpolate(idle.value, [0, 1], [1.08, 0.9]) },
-      { scaleY: interpolate(idle.value, [0, 1], [0.84, 1]) },
-    ],
-  }));
-
-  const shineStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(shine.value, [0, 0.18, 0.68, 1], [0, 0.62, 0.5, 0]),
-    transform: [
-      { translateX: interpolate(shine.value, [0, 1], [-logoSize, logoSize]) },
-      { rotate: "-18deg" },
-    ],
-  }));
-
-  const titleStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(reveal.value, [0.55, 1], [0, 1], Extrapolation.CLAMP),
-    transform: [
-      {
-        translateY: interpolate(
-          reveal.value,
-          [0.55, 1],
-          [16, 0],
-          Extrapolation.CLAMP
-        ),
-      },
-    ],
-  }));
-
-  const loaderStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateX: interpolate(shine.value, [0, 1], [-58, 150]),
-      },
-    ],
+  const lineStyle = useAnimatedStyle(() => ({
+    width: interpolate(progress.value, [0.5, 0.8, 1], [0, 80, 100]),
   }));
 
   return (
-    <Animated.View
-      pointerEvents="auto"
-      style={[styles.overlay, overlayStyle]}>
-      <View style={styles.backdrop}>
-        <View style={[styles.lightPanel, styles.lightPanelTop]} />
-        <View style={[styles.lightPanel, styles.lightPanelBottom]} />
+    <Animated.View style={[styles.container, containerStyle]}>
+      {/* Dark gradient background */}
+      <View style={styles.background}>
+        <View style={styles.gradient1} />
+        <View style={styles.gradient2} />
       </View>
 
-      <Animated.View
-        style={[
-          styles.stage,
-          { width: stageSize, height: stageSize },
-          stageStyle,
-        ]}>
-        <Animated.View
-          style={[
-            styles.floorShadow,
-            {
-              width: logoSize * 0.78,
-              height: logoSize * 0.18,
-              borderRadius: logoSize * 0.09,
-              bottom: logoSize * 0.08,
-            },
-            shadowStyle,
-          ]}
+      {/* Particle effects */}
+      {particles.map((config, index) => (
+        <Particle
+          key={index}
+          config={config}
+          centerX={centerX}
+          centerY={centerY}
+          t={particlesT}
         />
+      ))}
 
-        <Animated.View
-          style={[
-            styles.orbitRing,
-            {
-              width: logoSize * 1.16,
-              height: logoSize * 1.16,
-              borderRadius: logoSize * 0.58,
-            },
-            ringStyle,
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.counterOrbitRing,
-            {
-              width: logoSize * 0.96,
-              height: logoSize * 0.96,
-              borderRadius: logoSize * 0.48,
-            },
-            counterRingStyle,
-          ]}
-        />
-
-        <Animated.View
-          style={[
-            styles.logoRig,
-            { width: logoSize, height: logoSize },
-            logoRigStyle,
-          ]}>
-          <Animated.View style={[styles.logoDepthStack, logoDepthStyle]}>
-            {depthLayers.map((layer) => (
-              <Image
-                key={layer}
-                source={logoSource}
-                style={[
-                  styles.logoLayer,
-                  {
-                    opacity: 0.045 + layer * 0.018,
-                    transform: [
-                      { translateX: layer * 2.4 },
-                      { translateY: layer * 2.9 },
-                      { scale: 1 - layer * 0.002 },
-                    ],
-                  },
-                ]}
-                contentFit="contain"
-              />
-            ))}
+      {/* Main content */}
+      <View style={styles.content}>
+        {/* Logo with 3D rings */}
+        <Animated.View style={[styles.logoArea, logoContainerStyle]}>
+          {/* Outer Ring */}
+          <Animated.View style={[styles.ring, styles.ringOuter, ring1Style]}>
+            <View style={[styles.ringSegment, styles.ringSegment1]} />
+            <View style={[styles.ringSegment, styles.ringSegment2]} />
+            <View style={[styles.ringSegment, styles.ringSegment3]} />
+            <View style={[styles.ringSegment, styles.ringSegment4]} />
           </Animated.View>
 
-          <Animated.View style={[styles.frontLogo, frontLogoStyle]}>
-            <Image source={logoSource} style={styles.logo} contentFit="contain" />
-            <Animated.View
-              style={[
-                styles.shine,
-                { width: logoSize * 0.22, height: logoSize * 0.84 },
-                shineStyle,
-              ]}
-            />
+          {/* Inner Ring */}
+          <Animated.View style={[styles.ring, styles.ringInner, ring2Style]}>
+            <View style={[styles.ringSegment, styles.ringSegment1]} />
+            <View style={[styles.ringSegment, styles.ringSegment2]} />
+            <View style={[styles.ringSegment, styles.ringSegment3]} />
+            <View style={[styles.ringSegment, styles.ringSegment4]} />
+          </Animated.View>
+
+          {/* Logo Glow */}
+          <Animated.View style={[styles.logoGlow, { width: logoSize * 1.2, height: logoSize * 1.2 }, logoGlowStyle]} />
+
+          {/* Logo Image */}
+          <Animated.View style={[styles.logoWrapper, logoStyle]}>
+            <Image source={logoSource} style={[styles.logo, { width: logoSize, height: logoSize }]} contentFit="contain" />
           </Animated.View>
         </Animated.View>
-      </Animated.View>
 
-      <Animated.View
-        style={[styles.copy, compact && styles.compactCopy, titleStyle]}>
-        <Text style={styles.brand}>FLEX USED</Text>
-        <View style={styles.loaderTrack}>
-          <Animated.View style={[styles.loaderFill, loaderStyle]} />
-        </View>
-      </Animated.View>
+        {/* Text Section */}
+        <Animated.View style={[styles.textSection, textContainerStyle]}>
+          <Text style={styles.brandText}>FLEX USED</Text>
+          <View style={styles.dividerContainer}>
+            <Animated.View style={[styles.divider, lineStyle]} />
+          </View>
+          <Text style={styles.marketText}>PREMIUM MARKETPLACE</Text>
+          
+          {/* Loading indicator */}
+          <View style={styles.loaderContainer}>
+            <View style={styles.loaderDot} />
+            <View style={styles.loaderDot} />
+            <View style={styles.loaderDot} />
+          </View>
+        </Animated.View>
+      </View>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  container: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 100,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#070503",
+    backgroundColor: "#FFF7ED",
   },
-  backdrop: {
+  background: {
     ...StyleSheet.absoluteFillObject,
-    overflow: "hidden",
   },
-  lightPanel: {
-    position: "absolute",
-    left: -70,
-    right: -70,
-    height: 170,
-    borderRadius: 24,
-    backgroundColor: "rgba(231, 163, 41, 0.1)",
-    transform: [{ rotate: "-16deg" }],
+  gradient1: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#FFF7ED",
   },
-  lightPanelTop: {
-    top: "18%",
+  gradient2: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(247, 199, 93, 0.16)",
   },
-  lightPanelBottom: {
-    bottom: "10%",
-    backgroundColor: "rgba(255, 231, 164, 0.06)",
-  },
-  stage: {
+  content: {
     alignItems: "center",
     justifyContent: "center",
   },
-  floorShadow: {
-    position: "absolute",
-    backgroundColor: "rgba(0, 0, 0, 0.62)",
-  },
-  orbitRing: {
-    position: "absolute",
-    borderWidth: 2,
-    borderColor: "rgba(247, 210, 107, 0.2)",
-    borderTopColor: "#ffe28b",
-    borderRightColor: "#b86b15",
-  },
-  counterOrbitRing: {
-    position: "absolute",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.16)",
-    borderLeftColor: "#f2b84f",
-    borderBottomColor: "rgba(117, 55, 6, 0.64)",
-  },
-  logoRig: {
+  logoArea: {
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 60,
   },
-  logoDepthStack: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  logoLayer: {
+  ring: {
     position: "absolute",
-    width: "100%",
-    height: "100%",
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    borderWidth: 1.5,
+    borderColor: "rgba(198, 140, 28, 0.42)",
   },
-  frontLogo: {
-    ...StyleSheet.absoluteFillObject,
+  ringOuter: {
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    borderColor: "rgba(198, 140, 28, 0.28)",
+  },
+  ringInner: {
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    borderColor: "rgba(198, 140, 28, 0.34)",
+  },
+  ringSegment: {
+    position: "absolute",
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#C68C1C",
+  },
+  ringSegment1: {
+    top: -4,
+    left: "50%",
+    marginLeft: -4,
+  },
+  ringSegment2: {
+    bottom: -4,
+    left: "50%",
+    marginLeft: -4,
+  },
+  ringSegment3: {
+    left: -4,
+    top: "50%",
+    marginTop: -4,
+  },
+  ringSegment4: {
+    right: -4,
+    top: "50%",
+    marginTop: -4,
+  },
+  logoGlow: {
+    position: "absolute",
+    borderRadius: 200,
+    backgroundColor: "rgba(247, 199, 93, 0.26)",
+    shadowColor: "#C68C1C",
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 30,
+    elevation: 15,
+  },
+  logoWrapper: {
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
+    zIndex: 10,
   },
   logo: {
-    width: "100%",
-    height: "100%",
+    width: 180,
+    height: 180,
   },
-  shine: {
+  particle: {
     position: "absolute",
-    backgroundColor: "rgba(255, 255, 255, 0.38)",
+    backgroundColor: "rgba(198, 140, 28, 0.38)",
+    shadowColor: "#C68C1C",
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
   },
-  copy: {
-    position: "absolute",
-    bottom: 78,
+  textSection: {
     alignItems: "center",
-    gap: 14,
+    marginTop: 20,
   },
-  compactCopy: {
-    bottom: 46,
-  },
-  brand: {
-    color: "#f9e6ae",
-    fontSize: 18,
+  brandText: {
+    fontSize: 28,
     fontWeight: "800",
-    letterSpacing: 0,
+    letterSpacing: 4,
+    color: "#7A4B0D",
+    textShadowColor: "rgba(198, 140, 28, 0.22)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+    marginBottom: 12,
   },
-  loaderTrack: {
-    width: 126,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: "rgba(249, 230, 174, 0.18)",
-    overflow: "hidden",
+  dividerContainer: {
+    width: 120,
+    height: 1,
+    marginBottom: 12,
+    alignItems: "center",
   },
-  loaderFill: {
-    width: 42,
-    height: 3,
+  divider: {
+    height: 1,
+    backgroundColor: "#C68C1C",
+    opacity: 0.55,
+  },
+  marketText: {
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: 3,
+    color: "rgba(122, 75, 13, 0.62)",
+    marginBottom: 24,
+  },
+  loaderContainer: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  loaderDot: {
+    width: 4,
+    height: 4,
     borderRadius: 2,
-    backgroundColor: "#f4c75f",
+    backgroundColor: "#C68C1C",
+    opacity: 0.34,
   },
 });

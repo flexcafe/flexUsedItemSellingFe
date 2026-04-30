@@ -9,7 +9,8 @@ const OUT_DIR = path.join(ROOT, "assets", "images");
 const OUT = {
   icon: path.join(OUT_DIR, "icon.png"), // iOS + general
   adaptiveForeground: path.join(OUT_DIR, "android-icon-foreground.png"), // Android adaptive
-  splash: path.join(OUT_DIR, "splash-icon.png"),
+  splashIcon: path.join(OUT_DIR, "splash-icon.png"),
+  splash: path.join(OUT_DIR, "splash.png"),
   favicon: path.join(OUT_DIR, "favicon.png"),
 };
 
@@ -57,10 +58,10 @@ async function main() {
     .png({ compressionLevel: 9 })
     .toFile(OUT.adaptiveForeground);
 
-  // Splash icon: same artwork, but we keep it a bit smaller so it has breathing room.
+  // Splash icon (legacy): keep it a bit smaller so it has breathing room.
   await image
     .clone()
-    .resize(600, 600, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .resize(600, 600, { fit: "contain" })
     .extend({
       top: 212,
       bottom: 212,
@@ -68,6 +69,49 @@ async function main() {
       right: 212,
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     }) // 1024x1024
+    .png({ compressionLevel: 9 })
+    .toFile(OUT.splashIcon);
+
+  // Full-bleed splash (more premium): soft warm gradient + vignette + sharpened logo.
+  const splashSize = 2048;
+  const base = await image
+    .clone()
+    .resize(splashSize, splashSize, { fit: "cover", position: "centre" })
+    .modulate({ brightness: 1.02, saturation: 1.06 })
+    .toBuffer();
+
+  const vignetteSvg = Buffer.from(`
+    <svg width="${splashSize}" height="${splashSize}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="g" cx="50%" cy="45%" r="75%">
+          <stop offset="0%" stop-color="#FFF7ED" stop-opacity="0"/>
+          <stop offset="55%" stop-color="#FFF7ED" stop-opacity="0.10"/>
+          <stop offset="100%" stop-color="#7A4B0D" stop-opacity="0.18"/>
+        </radialGradient>
+      </defs>
+      <rect x="0" y="0" width="100%" height="100%" fill="url(#g)"/>
+    </svg>
+  `);
+
+  const highlightSvg = Buffer.from(`
+    <svg width="${splashSize}" height="${splashSize}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="h" cx="50%" cy="40%" r="55%">
+          <stop offset="0%" stop-color="#F7D26B" stop-opacity="0.22"/>
+          <stop offset="70%" stop-color="#F7D26B" stop-opacity="0.06"/>
+          <stop offset="100%" stop-color="#F7D26B" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <rect x="0" y="0" width="100%" height="100%" fill="url(#h)"/>
+    </svg>
+  `);
+
+  await sharp(base)
+    .composite([
+      { input: highlightSvg, blend: "soft-light" },
+      { input: vignetteSvg, blend: "multiply" },
+    ])
+    .sharpen({ sigma: 0.6, m1: 0.9, m2: 1.8 })
     .png({ compressionLevel: 9 })
     .toFile(OUT.splash);
 
@@ -78,12 +122,12 @@ async function main() {
     .png({ compressionLevel: 9 })
     .toFile(OUT.favicon);
 
-  // eslint-disable-next-line no-console
+
   console.log("Generated assets:", OUT);
 }
 
 main().catch((err) => {
-  // eslint-disable-next-line no-console
+
   console.error(err);
   process.exit(1);
 });
