@@ -1,8 +1,8 @@
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
-const ACCESS_TOKEN_KEY = "flex_cafe_access_token";
-const REFRESH_TOKEN_KEY = "flex_cafe_refresh_token";
+const ACCESS_TOKEN_KEY = "flex_used_market_access_token";
+const REFRESH_TOKEN_KEY = "flex_used_market_refresh_token";
 
 async function setItem(key: string, value: string): Promise<void> {
   if (Platform.OS === "web") {

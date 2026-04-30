@@ -63,11 +63,15 @@ export function toRegisterRequestDto(
 ): RegisterRequestDto {
   if ("registrationType" in data) {
     return {
+      registrationType: data.registrationType,
       nickname: data.nickname,
       phone: data.phone,
       email: data.email,
       password: data.password,
       confirmPassword: data.confirmPassword,
+      ...(data.facebookId && data.facebookId.length > 0
+        ? { facebookId: data.facebookId }
+        : {}),
       kbzPayName: data.kbzPayName,
       kbzPayPhoneNumber: data.kbzPayPhoneNumber,
       gender: data.gender,

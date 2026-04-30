@@ -84,7 +84,7 @@ export function ProductListScreen() {
       <View style={styles.header}>
         <ThemedText type="title">Products</ThemedText>
         <ThemedText style={styles.subtitle}>
-          Manage your cafe menu items.
+          Manage your used-market listings.
         </ThemedText>
       </View>
 
@@ -99,7 +99,7 @@ export function ProductListScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <ThemedText style={{ opacity: 0.6 }}>
-              No products yet. Add your first menu item!
+              No products yet. Add your first listing!
             </ThemedText>
           </View>
         }

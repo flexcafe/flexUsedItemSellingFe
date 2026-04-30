@@ -8,15 +8,13 @@ import {
   type ReactNode,
 } from "react";
 
-import {
-  PreferencesStorage,
-  type AppLocale,
-} from "@/core/infrastructure/storage/PreferencesStorage";
+import type { AppLocale } from "@/core/domain/types/locale";
+import { useServices } from "./ServicesProvider";
 
 type Dictionary = Record<string, Record<AppLocale, string>>;
 
 const DICT: Dictionary = {
-  appName: { ko: "Flex Cafe", my: "Flex Cafe", zh: "Flex Cafe" },
+  appName: { ko: "Flex Used Market", my: "Flex Used Market", zh: "Flex Used Market" },
   signInSubtitle: {
     ko: "계정에 로그인하세요",
     my: "သင့်အကောင့်သို့ ဝင်ရောက်ပါ",
@@ -243,22 +241,23 @@ const LocaleContext = createContext<LocaleContextValue | null>(null);
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<AppLocale>("ko");
+  const { preferencesRepository } = useServices();
 
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const saved = await PreferencesStorage.getLocale();
+      const saved = await preferencesRepository.getLocale();
       if (mounted && saved) setLocaleState(saved);
     })();
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [preferencesRepository]);
 
   const setLocale = useCallback(async (next: AppLocale) => {
     setLocaleState(next);
-    await PreferencesStorage.setLocale(next);
-  }, []);
+    await preferencesRepository.setLocale(next);
+  }, [preferencesRepository]);
 
   const value = useMemo<LocaleContextValue>(
     () => ({
@@ -277,4 +276,3 @@ export function useLocale(): LocaleContextValue {
   if (!ctx) throw new Error("useLocale must be used within a LocaleProvider");
   return ctx;
 }
-

@@ -4,6 +4,10 @@ import type {
 import type { Product } from "@/core/domain/entities/Product";
 import type { ProductDto } from "@/core/application/dtos/ProductDto";
 import type { PaginationParams } from "@/core/domain/types";
+import type {
+  ProductCreateInput,
+  ProductUpdateInput,
+} from "@/core/domain/types/product";
 import { toProduct } from "@/core/application/mappers/ProductMapper";
 import type { HttpClient } from "../api/HttpClient";
 import { API_ENDPOINTS } from "../api/constants";
@@ -35,7 +39,7 @@ export class ApiProductRepository implements IProductRepository {
     }
   }
 
-  async create(data: Omit<ProductDto, "id">): Promise<Product> {
+  async create(data: ProductCreateInput): Promise<Product> {
     const dto = await this.http.post<ProductDto & { id: string }>(
       API_ENDPOINTS.PRODUCTS.CREATE,
       data
@@ -44,7 +48,7 @@ export class ApiProductRepository implements IProductRepository {
     return toProduct(dto);
   }
 
-  async update(id: string, data: Partial<ProductDto>): Promise<Product> {
+  async update(id: string, data: ProductUpdateInput): Promise<Product> {
     const dto = await this.http.patch<ProductDto & { id: string }>(
       API_ENDPOINTS.PRODUCTS.UPDATE(id),
       data

@@ -17,8 +17,8 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.content}>
-        <ThemedText type="subtitle">Flex Cafe</ThemedText>
-        <ThemedText>Your cafe management dashboard.</ThemedText>
+        <ThemedText type="subtitle">Flex Used Market</ThemedText>
+        <ThemedText>Your used-item marketplace dashboard.</ThemedText>
       </View>
 
       <View style={styles.logoutWrapper}>

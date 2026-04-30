@@ -1,39 +1,35 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import container from "@/core/infrastructure/di/container";
-import type { IProductService } from "@/core/domain/services/IProductService";
-import type { ProductDto } from "@/core/application/dtos/ProductDto";
 import type { PaginationParams } from "@/core/domain/types";
+import type {
+  ProductCreateInput,
+  ProductUpdateInput,
+} from "@/core/domain/types/product";
+import { useServices } from "../providers/ServicesProvider";
 
 const PRODUCTS_KEY = ["products"];
 
 export function useProducts(params?: PaginationParams) {
+  const { productService } = useServices();
   return useQuery({
     queryKey: [...PRODUCTS_KEY, params?.page, params?.limit],
-    queryFn: () => {
-      const service = container.resolve<IProductService>("productService");
-      return service.getAll(params);
-    },
+    queryFn: () => productService.getAll(params),
   });
 }
 
 export function useProduct(id: string | null) {
+  const { productService } = useServices();
   return useQuery({
     queryKey: [...PRODUCTS_KEY, id],
-    queryFn: () => {
-      const service = container.resolve<IProductService>("productService");
-      return service.getById(id!);
-    },
+    queryFn: () => productService.getById(id!),
     enabled: !!id,
   });
 }
 
 export function useCreateProduct() {
   const qc = useQueryClient();
+  const { productService } = useServices();
   return useMutation({
-    mutationFn: (data: Omit<ProductDto, "id">) => {
-      const service = container.resolve<IProductService>("productService");
-      return service.create(data);
-    },
+    mutationFn: (data: ProductCreateInput) => productService.create(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: PRODUCTS_KEY });
     },
@@ -42,11 +38,10 @@ export function useCreateProduct() {
 
 export function useUpdateProduct() {
   const qc = useQueryClient();
+  const { productService } = useServices();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<ProductDto> }) => {
-      const service = container.resolve<IProductService>("productService");
-      return service.update(id, data);
-    },
+    mutationFn: ({ id, data }: { id: string; data: ProductUpdateInput }) =>
+      productService.update(id, data),
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: PRODUCTS_KEY });
       qc.invalidateQueries({ queryKey: [...PRODUCTS_KEY, variables.id] });
@@ -56,11 +51,9 @@ export function useUpdateProduct() {
 
 export function useDeleteProduct() {
   const qc = useQueryClient();
+  const { productService } = useServices();
   return useMutation({
-    mutationFn: (id: string) => {
-      const service = container.resolve<IProductService>("productService");
-      return service.delete(id);
-    },
+    mutationFn: (id: string) => productService.delete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: PRODUCTS_KEY });
     },

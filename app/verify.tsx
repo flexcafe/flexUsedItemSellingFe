@@ -1,5 +1,5 @@
-import { VerificationScreen } from "@/features/auth/presentation/VerificationScreen";
+import { Redirect } from "expo-router";
 
 export default function VerifyPage() {
-  return <VerificationScreen />;
+  return <Redirect href="/(tabs)/profile" />;
 }

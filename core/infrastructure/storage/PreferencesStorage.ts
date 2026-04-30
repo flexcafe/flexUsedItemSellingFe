@@ -1,9 +1,9 @@
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
-export type AppLocale = "ko" | "my" | "zh";
+import type { AppLocale } from "@/core/domain/types/locale";
 
-const LOCALE_KEY = "flex_cafe_locale";
+const LOCALE_KEY = "flex_used_market_locale";
 
 async function setItem(key: string, value: string): Promise<void> {
   if (Platform.OS === "web") {

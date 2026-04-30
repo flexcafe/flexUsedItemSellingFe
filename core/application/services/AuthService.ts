@@ -1,5 +1,8 @@
 import type { IAuthService } from "@/core/domain/services/IAuthService";
-import type { IAuthRepository } from "@/core/domain/repositories/IAuthRepository";
+import type {
+  IAuthRepository,
+  UnauthorizedHandler,
+} from "@/core/domain/repositories/IAuthRepository";
 import type { AuthUser } from "@/core/domain/entities/User";
 import type {
   LoginCredentials,
@@ -9,6 +12,16 @@ import type {
 
 export class AuthService implements IAuthService {
   constructor(private readonly repo: IAuthRepository) {}
+
+  async bootstrap(): Promise<AuthUser | null> {
+    const hasToken = await this.repo.hasToken();
+    if (!hasToken) return null;
+    const user = await this.repo.getProfile();
+    if (!user) {
+      await this.repo.clearTokens();
+    }
+    return user;
+  }
 
   login(credentials: LoginCredentials): Promise<AuthUser | null> {
     return this.repo.login(credentials);
@@ -20,6 +33,14 @@ export class AuthService implements IAuthService {
 
   getProfile(): Promise<AuthUser | null> {
     return this.repo.getProfile();
+  }
+
+  logout(): Promise<void> {
+    return this.repo.clearTokens();
+  }
+
+  onUnauthorized(handler: UnauthorizedHandler): void {
+    this.repo.onUnauthorized(handler);
   }
 
   sendPhoneOtp(phone: string): Promise<void> {
