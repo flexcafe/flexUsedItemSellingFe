@@ -21,7 +21,6 @@ import type {
   Gender,
   MaritalStatus,
   RegisterInput,
-  RegistrationType,
 } from "@/core/domain/types/auth";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -87,8 +86,8 @@ export function RegisterScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
-  const [registrationType, setRegistrationType] =
-    useState<RegistrationType>("PHONE_ONLY");
+  // Registration method toggle removed for now (phone-only).
+  const registrationType = "PHONE_ONLY" as const;
   const [nickname, setNickname] = useState("");
   const [nicknameChecked, setNicknameChecked] = useState<null | boolean>(null);
   const [password, setPassword] = useState("");
@@ -97,7 +96,6 @@ export function RegisterScreen() {
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [facebookId, setFacebookId] = useState("");
   const [kbzPayName, setKbzPayName] = useState("");
   const [kbzPayPhoneNumber, setKbzPayPhoneNumber] = useState("");
   const [gender, setGender] = useState<Gender>("MALE");
@@ -117,7 +115,7 @@ export function RegisterScreen() {
 
   const schema = useMemo(() => {
     const base = z.object({
-      registrationType: z.enum(["PHONE_AND_FACEBOOK", "PHONE_ONLY"]),
+      registrationType: z.literal("PHONE_ONLY"),
       nickname: z.string().trim().min(2, t("nicknameTooShort")).max(30),
       password: z.string().min(8, t("passwordRequired")),
       confirmPassword: z.string(),
@@ -127,7 +125,6 @@ export function RegisterScreen() {
         .min(7, t("phoneRequired"))
         .regex(/^[+0-9\-\s]+$/, t("phoneRequired")),
       email: z.string().trim().email(t("emailInvalid")),
-      facebookId: z.string().optional(),
       kbzPayName: z.string().trim().min(1),
       kbzPayPhoneNumber: z
         .string()
@@ -144,13 +141,7 @@ export function RegisterScreen() {
       .refine((v) => v.password === v.confirmPassword, {
         path: ["confirmPassword"],
         message: t("passwordMismatch"),
-      })
-      .refine(
-        (v) =>
-          v.registrationType !== "PHONE_AND_FACEBOOK" ||
-          (v.facebookId?.trim().length ?? 0) > 0,
-        { path: ["facebookId"], message: t("facebookIdRequired") }
-      );
+      });
   }, [t]);
 
   // Normalize a Myanmar-style entry (e.g. "09-123-456") into "+9591234567" so
@@ -254,7 +245,6 @@ export function RegisterScreen() {
       confirmPassword,
       phone,
       email,
-      facebookId,
       kbzPayName,
       kbzPayPhoneNumber,
       gender,
@@ -296,9 +286,6 @@ export function RegisterScreen() {
       gpsLongitude: locationCoords.longitude,
       referralId: parsed.data.referralId,
     };
-    if (parsed.data.registrationType === "PHONE_AND_FACEBOOK") {
-      input.facebookId = parsed.data.facebookId?.trim();
-    }
 
     setIsSubmitting(true);
     try {
@@ -367,28 +354,6 @@ export function RegisterScreen() {
               {t("signUp")}
             </ThemedText>
             <View style={styles.backButton} />
-          </View>
-
-          {/* Registration method */}
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>{t("registrationMethod")}</ThemedText>
-            <Segmented<RegistrationType>
-              options={[
-                { value: "PHONE_ONLY", label: t("phoneOnly") },
-              ]}
-              value={registrationType}
-              onChange={setRegistrationType}
-              tint={colors.tint}
-              borderColor={colors.icon}
-              disabled={isSubmitting}
-            />
-            {registrationType === "PHONE_AND_FACEBOOK" && (
-              <View style={styles.hintRow}>
-                <ThemedText style={[styles.hint, { color: SUCCESS }]}>
-                  ✓ {t("phoneAndFacebook")}
-                </ThemedText>
-              </View>
-            )}
           </View>
 
           {/* Nickname */}
@@ -543,27 +508,6 @@ export function RegisterScreen() {
               <ThemedText style={styles.error}>{errors.email}</ThemedText>
             ) : null}
           </View>
-
-          {/* Facebook ID (conditional) */}
-          {registrationType === "PHONE_AND_FACEBOOK" && (
-            <View style={styles.field}>
-              <ThemedText style={styles.label}>{t("facebookId")}</ThemedText>
-              <TextInput
-                style={inputStyle(!!errors.facebookId)}
-                value={facebookId}
-                onChangeText={setFacebookId}
-                placeholder={t("facebookIdPlaceholder")}
-                placeholderTextColor={colors.icon}
-                keyboardType="number-pad"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!isSubmitting}
-              />
-              {errors.facebookId ? (
-                <ThemedText style={styles.error}>{errors.facebookId}</ThemedText>
-              ) : null}
-            </View>
-          )}
 
           {/* K-pay section */}
           <View style={[styles.section, { borderColor: colors.icon }]}>

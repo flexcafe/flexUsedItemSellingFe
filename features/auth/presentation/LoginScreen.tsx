@@ -11,20 +11,20 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { z } from "zod";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { z } from "zod";
 
 import { AuthLogo } from "@/components/auth-logo";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { useAuth } from "@/presentation/providers/AuthProvider";
-import { useLocale } from "@/presentation/providers/LocaleProvider";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAuth } from "@/presentation/providers/AuthProvider";
+import { useLocale } from "@/presentation/providers/LocaleProvider";
 
 export function LoginScreen() {
   const router = useRouter();
@@ -39,31 +39,22 @@ export function LoginScreen() {
     password: z.string().min(1, t("passwordRequired")),
   });
 
-  const facebookSchema = z.object({
-    mode: z.literal("facebook"),
-    facebookId: z.string().min(1, t("facebookIdRequired")),
-    password: z.string().min(1, t("passwordRequired")),
-  });
+  // Facebook login disabled for now (phone-only).
+  const loginSchema = phoneSchema;
 
-  const loginSchema = z.discriminatedUnion("mode", [phoneSchema, facebookSchema]);
-
-  const [mode, setMode] = useState<"phone" | "facebook">("phone");
+  const mode = "phone" as const;
   const [phone, setPhone] = useState("");
-  const [facebookId, setFacebookId] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{
     phone?: string;
-    facebookId?: string;
     password?: string;
   }>({});
 
   const handleLogin = async () => {
     setErrors({});
-    const result = loginSchema.safeParse(
-      mode === "phone" ? { mode, phone, password } : { mode, facebookId, password }
-    );
+    const result = loginSchema.safeParse({ mode, phone, password });
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((issue) => {
@@ -81,12 +72,10 @@ export function LoginScreen() {
         Alert.alert(t("loginFailedTitle"), t("loginFailedBody"));
       }
     } catch (e) {
-      const status = (e as { response?: { status?: number } })?.response?.status;
+      const status = (e as { response?: { status?: number } })?.response
+        ?.status;
       if (status === 400) {
-        Alert.alert(
-          t("invalidRequestTitle"),
-          t("invalidRequestBody")
-        );
+        Alert.alert(t("invalidRequestTitle"), t("invalidRequestBody"));
       } else if (status === 401) {
         Alert.alert(t("loginFailedTitle"), t("invalidCredsBody"));
       } else {
@@ -122,11 +111,13 @@ export function LoginScreen() {
     <ThemedView style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.keyboardView}>
+        style={styles.keyboardView}
+      >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}>
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.header}>
             <AuthLogo variant="compact" />
             <ThemedText type="title" style={styles.appTitle}>
@@ -138,88 +129,27 @@ export function LoginScreen() {
           </View>
 
           <View style={styles.form}>
-            <View style={styles.segment}>
-              <Pressable
-                onPress={() => setMode("phone")}
-                disabled={isSubmitting}
-                style={[
-                  styles.segmentItem,
-                  { borderColor: colors.icon },
-                  mode === "phone" && { backgroundColor: colors.tint },
-                ]}>
-                <ThemedText
-                  style={[
-                    styles.segmentText,
-                    mode === "phone" && { color: "#fff" },
-                  ]}>
-                  Phone
-                </ThemedText>
-              </Pressable>
-              <Pressable
-                onPress={() => setMode("facebook")}
-                disabled={isSubmitting}
-                style={[
-                  styles.segmentItem,
-                  { borderColor: colors.icon },
-                  mode === "facebook" && { backgroundColor: colors.tint },
-                ]}>
-                <ThemedText
-                  style={[
-                    styles.segmentText,
-                    mode === "facebook" && { color: "#fff" },
-                  ]}>
-                  Facebook ID
-                </ThemedText>
-              </Pressable>
-            </View>
-
             <View style={styles.field}>
-              <ThemedText style={styles.label}>
-                {mode === "phone" ? t("phone") : t("facebookId")}
-              </ThemedText>
-              {mode === "phone" ? (
-                <>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      { color: colors.text, borderColor: errors.phone ? "#e74c3c" : colors.icon },
-                    ]}
-                    value={phone}
-                    onChangeText={setPhone}
-                    placeholder="+959123456789"
-                    placeholderTextColor={colors.icon}
-                    keyboardType="phone-pad"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={!isSubmitting}
-                  />
-                  {errors.phone && (
-                    <ThemedText style={styles.error}>{errors.phone}</ThemedText>
-                  )}
-                </>
-              ) : (
-                <>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        color: colors.text,
-                        borderColor: errors.facebookId ? "#e74c3c" : colors.icon,
-                      },
-                    ]}
-                    value={facebookId}
-                    onChangeText={setFacebookId}
-                    placeholder="100012345678901"
-                    placeholderTextColor={colors.icon}
-                    keyboardType="number-pad"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={!isSubmitting}
-                  />
-                  {errors.facebookId && (
-                    <ThemedText style={styles.error}>{errors.facebookId}</ThemedText>
-                  )}
-                </>
+              <ThemedText style={styles.label}>{t("phone")}</ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    color: colors.text,
+                    borderColor: errors.phone ? "#e74c3c" : colors.icon,
+                  },
+                ]}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="+959123456789"
+                placeholderTextColor={colors.icon}
+                keyboardType="phone-pad"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!isSubmitting}
+              />
+              {errors.phone && (
+                <ThemedText style={styles.error}>{errors.phone}</ThemedText>
               )}
             </View>
 
@@ -230,7 +160,10 @@ export function LoginScreen() {
                   style={[
                     styles.input,
                     styles.passwordInput,
-                    { color: colors.text, borderColor: errors.password ? "#e74c3c" : colors.icon },
+                    {
+                      color: colors.text,
+                      borderColor: errors.password ? "#e74c3c" : colors.icon,
+                    },
                   ]}
                   value={password}
                   onChangeText={setPassword}
@@ -243,12 +176,17 @@ export function LoginScreen() {
                   onPress={() => setIsPasswordVisible((v) => !v)}
                   disabled={isSubmitting}
                   accessibilityRole="button"
-                  accessibilityLabel={isPasswordVisible ? t("hidePassword") : t("showPassword")}
+                  accessibilityLabel={
+                    isPasswordVisible ? t("hidePassword") : t("showPassword")
+                  }
                   style={({ pressed }) => [
                     styles.passwordToggle,
                     { opacity: pressed ? 0.7 : 1 },
-                  ]}>
-                  <ThemedText style={[styles.passwordToggleText, { color: colors.tint }]}>
+                  ]}
+                >
+                  <ThemedText
+                    style={[styles.passwordToggleText, { color: colors.tint }]}
+                  >
                     {isPasswordVisible ? t("hide") : t("show")}
                   </ThemedText>
                 </Pressable>
@@ -265,7 +203,8 @@ export function LoginScreen() {
                 isSubmitting && styles.buttonDisabled,
               ]}
               onPress={handleLogin}
-              disabled={isSubmitting}>
+              disabled={isSubmitting}
+            >
               {isSubmitting ? (
                 <ActivityIndicator color="#fff" />
               ) : (
@@ -279,7 +218,8 @@ export function LoginScreen() {
               </ThemedText>
               <Pressable
                 disabled={isSubmitting}
-                onPress={() => router.push("/(auth)/register" as Href)}>
+                onPress={() => router.push("/(auth)/register" as Href)}
+              >
                 <ThemedText style={[styles.signUpLink, { color: colors.tint }]}>
                   {t("signUp")}
                 </ThemedText>
@@ -295,7 +235,8 @@ export function LoginScreen() {
               styles.languageBar,
               { backgroundColor: colors.background, borderColor: colors.tint },
             ]}
-            onLayout={(e) => setLanguageWidth(e.nativeEvent.layout.width - 16)}>
+            onLayout={(e) => setLanguageWidth(e.nativeEvent.layout.width - 16)}
+          >
             <Animated.View
               style={[
                 styles.languagePill,
@@ -307,24 +248,33 @@ export function LoginScreen() {
             <Pressable
               disabled={isSubmitting}
               style={styles.flagButton}
-              onPress={() => setLocale("ko")}>
-              <ThemedText style={[styles.flag, locale === "ko" && styles.flagSelected]}>
+              onPress={() => setLocale("ko")}
+            >
+              <ThemedText
+                style={[styles.flag, locale === "ko" && styles.flagSelected]}
+              >
                 🇰🇷
               </ThemedText>
             </Pressable>
             <Pressable
               disabled={isSubmitting}
               style={styles.flagButton}
-              onPress={() => setLocale("my")}>
-              <ThemedText style={[styles.flag, locale === "my" && styles.flagSelected]}>
+              onPress={() => setLocale("my")}
+            >
+              <ThemedText
+                style={[styles.flag, locale === "my" && styles.flagSelected]}
+              >
                 🇲🇲
               </ThemedText>
             </Pressable>
             <Pressable
               disabled={isSubmitting}
               style={styles.flagButton}
-              onPress={() => setLocale("zh")}>
-              <ThemedText style={[styles.flag, locale === "zh" && styles.flagSelected]}>
+              onPress={() => setLocale("zh")}
+            >
+              <ThemedText
+                style={[styles.flag, locale === "zh" && styles.flagSelected]}
+              >
                 🇨🇳
               </ThemedText>
             </Pressable>
