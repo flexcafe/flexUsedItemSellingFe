@@ -1,4 +1,4 @@
-import { useRouter, type Href } from "expo-router";
+import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -81,7 +81,7 @@ function Segmented<T extends string>({
 
 export function RegisterScreen() {
   const router = useRouter();
-  const { register, sendPhoneOtp } = useAuth();
+  const { register } = useAuth();
   const { t } = useLocale();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -89,7 +89,6 @@ export function RegisterScreen() {
   // Registration method toggle removed for now (phone-only).
   const registrationType = "PHONE_ONLY" as const;
   const [nickname, setNickname] = useState("");
-  const [nicknameChecked, setNicknameChecked] = useState<null | boolean>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -109,7 +108,6 @@ export function RegisterScreen() {
   const [referralId, setReferralId] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sendingOtp, setSendingOtp] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -155,46 +153,6 @@ export function RegisterScreen() {
     if (digits.startsWith("09")) return `+959${digits.slice(2)}`;
     if (digits.startsWith("959")) return `+${digits}`;
     return `+${digits}`;
-  };
-
-  const handleCheckNickname = () => {
-    const trimmed = nickname.trim();
-    if (trimmed.length < 2) {
-      setNicknameChecked(false);
-      setErrors((e) => ({ ...e, nickname: t("nicknameTooShort") }));
-      return;
-    }
-    setErrors((e) => {
-      const next = { ...e };
-      delete next.nickname;
-      return next;
-    });
-    setNicknameChecked(true);
-  };
-
-  const handleSendOtp = async () => {
-    const normalized = normalizeMmPhone(phone);
-    if (!normalized || normalized.length < 8) {
-      setErrors((e) => ({ ...e, phone: t("phoneRequired") }));
-      return;
-    }
-    setSendingOtp(true);
-    try {
-      await sendPhoneOtp(normalized);
-      Alert.alert(t("otpSent"));
-    } catch (err) {
-      const status = (err as { response?: { status?: number } })?.response?.status;
-      if (status === 404) {
-        Alert.alert(
-          t("errorTitle"),
-          t("registerFailedBody")
-        );
-      } else {
-        Alert.alert(t("errorTitle"), t("genericErrorBody"));
-      }
-    } finally {
-      setSendingOtp(false);
-    }
   };
 
   const handleVerifyLocation = async () => {
@@ -300,11 +258,7 @@ export function RegisterScreen() {
         [
           {
             text: "OK",
-            onPress: () =>
-              router.replace({
-                pathname: "/verify",
-                params: { phone: input.phone, email: input.email },
-              } as unknown as Href),
+            onPress: () => router.replace("/(tabs)"),
           },
         ]
       );
@@ -359,35 +313,18 @@ export function RegisterScreen() {
           {/* Nickname */}
           <View style={styles.field}>
             <ThemedText style={styles.label}>{t("nickname")}</ThemedText>
-            <View style={styles.inlineRow}>
-              <TextInput
-                style={[inputStyle(!!errors.nickname), { flex: 1 }]}
-                value={nickname}
-                onChangeText={(v) => {
-                  setNickname(v);
-                  setNicknameChecked(null);
-                }}
-                placeholder={t("nicknamePlaceholder")}
-                placeholderTextColor={colors.icon}
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!isSubmitting}
-              />
-              <Pressable
-                onPress={handleCheckNickname}
-                disabled={isSubmitting}
-                style={[styles.inlineButton, { backgroundColor: colors.tint }]}>
-                <ThemedText style={styles.inlineButtonText}>
-                  {t("check")}
-                </ThemedText>
-              </Pressable>
-            </View>
+            <TextInput
+              style={inputStyle(!!errors.nickname)}
+              value={nickname}
+              onChangeText={setNickname}
+              placeholder={t("nicknamePlaceholder")}
+              placeholderTextColor={colors.icon}
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isSubmitting}
+            />
             {errors.nickname ? (
               <ThemedText style={styles.error}>{errors.nickname}</ThemedText>
-            ) : nicknameChecked ? (
-              <ThemedText style={[styles.hint, { color: SUCCESS }]}>
-                ✓ {t("nicknameAvailable")}
-              </ThemedText>
             ) : null}
           </View>
 
@@ -457,34 +394,20 @@ export function RegisterScreen() {
             ) : null}
           </View>
 
-          {/* Phone + send code */}
+          {/* Phone */}
           <View style={styles.field}>
             <ThemedText style={styles.label}>{t("phoneNumber")}</ThemedText>
-            <View style={styles.inlineRow}>
-              <TextInput
-                style={[inputStyle(!!errors.phone), { flex: 1 }]}
-                value={phone}
-                onChangeText={setPhone}
-                placeholder={t("phoneNumberPlaceholder")}
-                placeholderTextColor={colors.icon}
-                keyboardType="phone-pad"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!isSubmitting}
-              />
-              <Pressable
-                onPress={handleSendOtp}
-                disabled={isSubmitting || sendingOtp}
-                style={[styles.inlineButton, { backgroundColor: colors.tint }]}>
-                {sendingOtp ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <ThemedText style={styles.inlineButtonText}>
-                    {t("sendCode")}
-                  </ThemedText>
-                )}
-              </Pressable>
-            </View>
+            <TextInput
+              style={inputStyle(!!errors.phone)}
+              value={phone}
+              onChangeText={setPhone}
+              placeholder={t("phoneNumberPlaceholder")}
+              placeholderTextColor={colors.icon}
+              keyboardType="phone-pad"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isSubmitting}
+            />
             {errors.phone ? (
               <ThemedText style={styles.error}>{errors.phone}</ThemedText>
             ) : null}
@@ -728,23 +651,12 @@ const styles = StyleSheet.create({
   title: { fontSize: 22 },
   field: { gap: 6 },
   label: { fontWeight: "600", fontSize: 14 },
-  hintRow: { marginTop: 4 },
-  hint: { fontSize: 12 },
   input: {
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: Platform.OS === "ios" ? 14 : 10,
     fontSize: 15,
-  },
-  inlineRow: { flexDirection: "row", gap: 8, alignItems: "center" },
-  inlineButton: {
-    height: 44,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: 80,
   },
   passwordRow: {
     position: "relative",
@@ -764,7 +676,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 14,
   },
-  inlineButtonText: { color: "#fff", fontWeight: "700", fontSize: 14 },
   segment: { flexDirection: "row", gap: 10 },
   segmentItem: {
     flex: 1,

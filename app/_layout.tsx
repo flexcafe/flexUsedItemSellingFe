@@ -14,6 +14,11 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthProvider, useAuth } from "@/presentation/providers/AuthProvider";
 import { LocaleProvider } from "@/presentation/providers/LocaleProvider";
 import { QueryProvider } from "@/presentation/providers/QueryProvider";
+import { ServicesProvider } from "@/presentation/providers/ServicesProvider";
+import container from "@/core/infrastructure/di/container";
+import type { IAuthService } from "@/core/domain/services/IAuthService";
+import type { IProductService } from "@/core/domain/services/IProductService";
+import type { IPreferencesRepository } from "@/core/domain/repositories/IPreferencesRepository";
 
 function AuthGate() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -50,21 +55,30 @@ export default function RootLayout() {
     setShowLaunch(false);
   }, []);
 
+  const services = useState(() => ({
+    authService: container.resolve<IAuthService>("authService"),
+    productService: container.resolve<IProductService>("productService"),
+    preferencesRepository:
+      container.resolve<IPreferencesRepository>("preferencesRepository"),
+  }))[0];
+
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <QueryProvider>
-        <LocaleProvider>
-          <AuthProvider>
-            <View style={{ flex: 1 }}>
-              <AuthGate />
-              {showLaunch ? (
-                <AnimatedLaunchScreen onFinish={handleLaunchFinish} />
-              ) : null}
-            </View>
-            <StatusBar style="auto" />
-          </AuthProvider>
-        </LocaleProvider>
-      </QueryProvider>
+      <ServicesProvider services={services}>
+        <QueryProvider>
+          <LocaleProvider>
+            <AuthProvider>
+              <View style={{ flex: 1 }}>
+                <AuthGate />
+                {showLaunch ? (
+                  <AnimatedLaunchScreen onFinish={handleLaunchFinish} />
+                ) : null}
+              </View>
+              <StatusBar style="auto" />
+            </AuthProvider>
+          </LocaleProvider>
+        </QueryProvider>
+      </ServicesProvider>
     </ThemeProvider>
   );
 }

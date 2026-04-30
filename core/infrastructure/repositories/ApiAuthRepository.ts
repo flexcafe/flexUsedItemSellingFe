@@ -5,7 +5,10 @@ import {
   toRegisterRequestDto,
 } from "@/core/application/mappers/AuthMapper";
 import type { AuthUser } from "@/core/domain/entities/User";
-import type { IAuthRepository } from "@/core/domain/repositories/IAuthRepository";
+import type {
+  IAuthRepository,
+  UnauthorizedHandler,
+} from "@/core/domain/repositories/IAuthRepository";
 import type {
   LoginCredentials,
   RegisterData,
@@ -24,10 +27,14 @@ export class ApiAuthRepository implements IAuthRepository {
       API_ENDPOINTS.AUTH.LOGIN,
       body,
     );
-    return toAuthUser(
+    const user = toAuthUser(
       data,
       credentials.mode === "phone" ? credentials.phone : credentials.facebookId,
     );
+    if (user?.accessToken) {
+      await TokenStorage.setAccessToken(user.accessToken);
+    }
+    return user;
   }
 
   async register(data: RegisterData | RegisterInput): Promise<AuthUser | null> {
@@ -36,7 +43,11 @@ export class ApiAuthRepository implements IAuthRepository {
       API_ENDPOINTS.AUTH.REGISTER,
       body,
     );
-    return toAuthUser(res, body.email);
+    const user = toAuthUser(res, body.email);
+    if (user?.accessToken) {
+      await TokenStorage.setAccessToken(user.accessToken);
+    }
+    return user;
   }
 
   async getProfile(): Promise<AuthUser | null> {
@@ -49,6 +60,18 @@ export class ApiAuthRepository implements IAuthRepository {
     } catch {
       return null;
     }
+  }
+
+  hasToken(): Promise<boolean> {
+    return TokenStorage.hasToken();
+  }
+
+  clearTokens(): Promise<void> {
+    return TokenStorage.clearTokens();
+  }
+
+  onUnauthorized(handler: UnauthorizedHandler): void {
+    this.http.setOnUnauthorized(handler);
   }
 
   async sendPhoneOtp(phone: string): Promise<void> {

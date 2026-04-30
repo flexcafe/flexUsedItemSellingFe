@@ -14,10 +14,7 @@ import type {
   RegisterData,
   RegisterInput,
 } from "@/core/domain/types/auth";
-import type { IAuthService } from "@/core/domain/services/IAuthService";
-import { TokenStorage } from "@/core/infrastructure/storage/TokenStorage";
-import { HttpClient } from "@/core/infrastructure/api/HttpClient";
-import container from "@/core/infrastructure/di/container";
+import { useServices } from "./ServicesProvider";
 
 interface AuthState {
   user: AuthUser | null;
@@ -45,26 +42,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: false,
   });
   const queryClient = useQueryClient();
+  const { authService } = useServices();
 
   useEffect(() => {
-    const httpClient = container.resolve<HttpClient>("httpClient");
-    httpClient.setOnUnauthorized(() => {
+    authService.onUnauthorized(() => {
       setState({ user: null, isLoading: false, isAuthenticated: false });
       queryClient.clear();
     });
-  }, [queryClient]);
+  }, [authService, queryClient]);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const hasToken = await TokenStorage.hasToken();
-      if (!hasToken) {
-        if (mounted) setState({ user: null, isLoading: false, isAuthenticated: false });
-        return;
-      }
       try {
-        const authService = container.resolve<IAuthService>("authService");
-        const user = await authService.getProfile();
+        const user = await authService.bootstrap();
         if (mounted) {
           setState({
             user,
@@ -73,63 +64,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }
       } catch {
-        await TokenStorage.clearTokens();
         if (mounted) setState({ user: null, isLoading: false, isAuthenticated: false });
       }
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [authService]);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
-    const authService = container.resolve<IAuthService>("authService");
     const user = await authService.login(credentials);
     if (!user) return false;
 
-    await TokenStorage.setAccessToken(user.accessToken);
     setState({ user, isLoading: false, isAuthenticated: true });
     return true;
-  }, []);
+  }, [authService]);
 
   const register = useCallback(async (data: RegisterData | RegisterInput) => {
-    const authService = container.resolve<IAuthService>("authService");
     const user = await authService.register(data);
     if (!user) return false;
 
-    await TokenStorage.setAccessToken(user.accessToken);
     setState({ user, isLoading: false, isAuthenticated: true });
     return true;
-  }, []);
+  }, [authService]);
 
   const logout = useCallback(async () => {
-    await TokenStorage.clearTokens();
+    await authService.logout();
     queryClient.clear();
     setState({ user: null, isLoading: false, isAuthenticated: false });
-  }, [queryClient]);
+  }, [authService, queryClient]);
 
   const sendPhoneOtp = useCallback(async (phone: string) => {
-    const authService = container.resolve<IAuthService>("authService");
     await authService.sendPhoneOtp(phone);
-  }, []);
+  }, [authService]);
 
   const verifyPhoneOtp = useCallback(async (phone: string, code: string) => {
-    const authService = container.resolve<IAuthService>("authService");
     await authService.verifyPhoneOtp(phone, code);
-  }, []);
+  }, [authService]);
 
   const sendEmailVerification = useCallback(async (email: string) => {
-    const authService = container.resolve<IAuthService>("authService");
     await authService.sendEmailVerification(email);
-  }, []);
+  }, [authService]);
 
   const verifyEmail = useCallback(async (email: string, token: string) => {
-    const authService = container.resolve<IAuthService>("authService");
     await authService.verifyEmail(email, token);
-  }, []);
+  }, [authService]);
 
   const requestKbzPayVerification = useCallback(async (message: string) => {
-    const authService = container.resolve<IAuthService>("authService");
     await authService.requestKbzPayVerification(message);
-  }, []);
+  }, [authService]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

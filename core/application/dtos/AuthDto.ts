@@ -26,11 +26,13 @@ export interface LoginResponseDto extends AuthProfileDto {
 }
 
 export interface RegisterRequestDto {
+  registrationType?: "PHONE_AND_FACEBOOK" | "PHONE_ONLY";
   nickname: string;
   phone: string;
   email: string;
   password: string;
   confirmPassword: string;
+  facebookId?: string;
   kbzPayName: string;
   kbzPayPhoneNumber: string;
   gender: "MALE" | "FEMALE";

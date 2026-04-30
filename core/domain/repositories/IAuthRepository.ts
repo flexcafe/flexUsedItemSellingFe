@@ -5,10 +5,15 @@ import type {
   RegisterInput,
 } from "@/core/domain/types/auth";
 
+export type UnauthorizedHandler = () => void;
+
 export interface IAuthRepository {
   login(credentials: LoginCredentials): Promise<AuthUser | null>;
   register(data: RegisterData | RegisterInput): Promise<AuthUser | null>;
   getProfile(): Promise<AuthUser | null>;
+  hasToken(): Promise<boolean>;
+  clearTokens(): Promise<void>;
+  onUnauthorized(handler: UnauthorizedHandler): void;
 
   sendPhoneOtp(phone: string): Promise<void>;
   verifyPhoneOtp(phone: string, code: string): Promise<void>;

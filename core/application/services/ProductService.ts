@@ -2,7 +2,7 @@ import type { IProductService } from "@/core/domain/services/IProductService";
 import type { IProductRepository } from "@/core/domain/repositories/IProductRepository";
 import type { PaginationParams } from "@/core/domain/types";
 import type { Product } from "@/core/domain/entities/Product";
-import type { ProductDto } from "../dtos/ProductDto";
+import type { ProductCreateInput, ProductUpdateInput } from "@/core/domain/types/product";
 
 export class ProductService implements IProductService {
   constructor(private readonly repo: IProductRepository) {}
@@ -15,11 +15,11 @@ export class ProductService implements IProductService {
     return this.repo.getById(id);
   }
 
-  create(data: Omit<ProductDto, "id">): Promise<Product> {
+  create(data: ProductCreateInput): Promise<Product> {
     return this.repo.create(data);
   }
 
-  update(id: string, data: Partial<ProductDto>): Promise<Product> {
+  update(id: string, data: ProductUpdateInput): Promise<Product> {
     return this.repo.update(id, data);
   }
 

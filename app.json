@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "flex used market",
-    "slug": "flex-cafe-fe",
+    "name": "Flex Used Market",
+    "slug": "flex-used-market-fe",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "flexcafefe",
+    "scheme": "flexusedmarket",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -40,7 +40,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Flex Cafe to verify your registration region."
+          "locationWhenInUsePermission": "Allow Flex Used Market to verify your registration region."
         }
       ]
     ],
