@@ -1,16 +1,18 @@
 import type { AuthUser } from "@/core/domain/entities/User";
+import type { UnauthorizedHandler } from "@/core/domain/repositories/IAuthRepository";
 import type {
   LoginCredentials,
   RegisterData,
   RegisterInput,
 } from "@/core/domain/types/auth";
-import type { UnauthorizedHandler } from "@/core/domain/repositories/IAuthRepository";
 import type { VerificationActionResult } from "@/core/domain/types/verification";
 
 export interface IAuthService {
   bootstrap(): Promise<AuthUser | null>;
   login(credentials: LoginCredentials): Promise<AuthUser | null>;
-  register(data: RegisterData | RegisterInput): Promise<VerificationActionResult>;
+  register(
+    data: RegisterData | RegisterInput,
+  ): Promise<VerificationActionResult>;
   getProfile(): Promise<AuthUser | null>;
   logout(): Promise<void>;
   onUnauthorized(handler: UnauthorizedHandler): void;

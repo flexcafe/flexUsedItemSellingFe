@@ -72,10 +72,12 @@ export function LoginScreen() {
         Alert.alert(t("loginFailedTitle"), t("loginFailedBody"));
       }
     } catch (e) {
-      const status = (e as { response?: { status?: number; data?: { message?: unknown } } })
-        ?.response?.status;
-      const serverMessage = (e as { response?: { data?: { message?: unknown } } })?.response
-        ?.data?.message;
+      const status = (
+        e as { response?: { status?: number; data?: { message?: unknown } } }
+      )?.response?.status;
+      const serverMessage = (
+        e as { response?: { data?: { message?: unknown } } }
+      )?.response?.data?.message;
       if (status === 400) {
         Alert.alert(t("invalidRequestTitle"), t("invalidRequestBody"));
       } else if (status === 401) {
@@ -96,7 +98,7 @@ export function LoginScreen() {
                   params: { phone: result.data.phone },
                 } as unknown as Href),
             },
-          ]
+          ],
         );
       } else {
         Alert.alert(t("errorTitle"), t("genericErrorBody"));

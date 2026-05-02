@@ -1,3 +1,11 @@
+import type { AuthUser } from "@/core/domain/entities/User";
+import type {
+  LoginCredentials,
+  RegisterData,
+  RegisterInput,
+} from "@/core/domain/types/auth";
+import type { VerificationActionResult } from "@/core/domain/types/verification";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   createContext,
   useCallback,
@@ -7,14 +15,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import type { AuthUser } from "@/core/domain/entities/User";
-import type {
-  LoginCredentials,
-  RegisterData,
-  RegisterInput,
-} from "@/core/domain/types/auth";
-import type { VerificationActionResult } from "@/core/domain/types/verification";
 import { useServices } from "./ServicesProvider";
 
 interface AuthState {
@@ -25,7 +25,9 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   login: (credentials: LoginCredentials) => Promise<boolean>;
-  register: (data: RegisterData | RegisterInput) => Promise<VerificationActionResult>;
+  register: (
+    data: RegisterData | RegisterInput,
+  ) => Promise<VerificationActionResult>;
   logout: () => Promise<void>;
   sendPhoneOtp: (phone: string) => Promise<void>;
   verifyPhoneOtp: (phone: string, code: string) => Promise<void>;
@@ -65,23 +67,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }
       } catch {
-        if (mounted) setState({ user: null, isLoading: false, isAuthenticated: false });
+        if (mounted)
+          setState({ user: null, isLoading: false, isAuthenticated: false });
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [authService]);
 
-  const login = useCallback(async (credentials: LoginCredentials) => {
-    const user = await authService.login(credentials);
-    if (!user) return false;
+  const login = useCallback(
+    async (credentials: LoginCredentials) => {
+      const user = await authService.login(credentials);
+      if (!user) return false;
 
-    setState({ user, isLoading: false, isAuthenticated: true });
-    return true;
-  }, [authService]);
+      setState({ user, isLoading: false, isAuthenticated: true });
+      return true;
+    },
+    [authService],
+  );
 
-  const register = useCallback(async (data: RegisterData | RegisterInput) => {
-    return authService.register(data);
-  }, [authService]);
+  const register = useCallback(
+    async (data: RegisterData | RegisterInput) => {
+      return authService.register(data);
+    },
+    [authService],
+  );
 
   const logout = useCallback(async () => {
     await authService.logout();
@@ -89,25 +100,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ user: null, isLoading: false, isAuthenticated: false });
   }, [authService, queryClient]);
 
-  const sendPhoneOtp = useCallback(async (phone: string) => {
-    await authService.sendPhoneOtp(phone);
-  }, [authService]);
+  const sendPhoneOtp = useCallback(
+    async (phone: string) => {
+      await authService.sendPhoneOtp(phone);
+    },
+    [authService],
+  );
 
-  const verifyPhoneOtp = useCallback(async (phone: string, code: string) => {
-    await authService.verifyPhoneOtp(phone, code);
-  }, [authService]);
+  const verifyPhoneOtp = useCallback(
+    async (phone: string, code: string) => {
+      await authService.verifyPhoneOtp(phone, code);
+    },
+    [authService],
+  );
 
-  const sendEmailVerification = useCallback(async (email: string) => {
-    await authService.sendEmailVerification(email);
-  }, [authService]);
+  const sendEmailVerification = useCallback(
+    async (email: string) => {
+      await authService.sendEmailVerification(email);
+    },
+    [authService],
+  );
 
-  const verifyEmail = useCallback(async (email: string, token: string) => {
-    await authService.verifyEmail(email, token);
-  }, [authService]);
+  const verifyEmail = useCallback(
+    async (email: string, token: string) => {
+      await authService.verifyEmail(email, token);
+    },
+    [authService],
+  );
 
-  const requestKbzPayVerification = useCallback(async (message: string) => {
-    await authService.requestKbzPayVerification(message);
-  }, [authService]);
+  const requestKbzPayVerification = useCallback(
+    async (message: string) => {
+      await authService.requestKbzPayVerification(message);
+    },
+    [authService],
+  );
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -131,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sendEmailVerification,
       verifyEmail,
       requestKbzPayVerification,
-    ]
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

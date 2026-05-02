@@ -1,9 +1,9 @@
-import type { IAuthService } from "@/core/domain/services/IAuthService";
+import type { AuthUser } from "@/core/domain/entities/User";
 import type {
   IAuthRepository,
   UnauthorizedHandler,
 } from "@/core/domain/repositories/IAuthRepository";
-import type { AuthUser } from "@/core/domain/entities/User";
+import type { IAuthService } from "@/core/domain/services/IAuthService";
 import type {
   LoginCredentials,
   RegisterData,
@@ -28,7 +28,9 @@ export class AuthService implements IAuthService {
     return this.repo.login(credentials);
   }
 
-  register(data: RegisterData | RegisterInput): Promise<VerificationActionResult> {
+  register(
+    data: RegisterData | RegisterInput,
+  ): Promise<VerificationActionResult> {
     return this.repo.register(data);
   }
 
