@@ -1,5 +1,5 @@
 import { Redirect } from "expo-router";
 
 export default function VerifyPage() {
-  return <Redirect href="/(tabs)/profile" />;
+  return <Redirect href="/(auth)/verify" />;
 }

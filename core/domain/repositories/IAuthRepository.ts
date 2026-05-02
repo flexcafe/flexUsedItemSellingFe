@@ -4,12 +4,13 @@ import type {
   RegisterData,
   RegisterInput,
 } from "@/core/domain/types/auth";
+import type { VerificationActionResult } from "@/core/domain/types/verification";
 
 export type UnauthorizedHandler = () => void;
 
 export interface IAuthRepository {
   login(credentials: LoginCredentials): Promise<AuthUser | null>;
-  register(data: RegisterData | RegisterInput): Promise<AuthUser | null>;
+  register(data: RegisterData | RegisterInput): Promise<VerificationActionResult>;
   getProfile(): Promise<AuthUser | null>;
   hasToken(): Promise<boolean>;
   clearTokens(): Promise<void>;

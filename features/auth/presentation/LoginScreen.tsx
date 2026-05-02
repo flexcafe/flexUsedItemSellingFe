@@ -72,12 +72,32 @@ export function LoginScreen() {
         Alert.alert(t("loginFailedTitle"), t("loginFailedBody"));
       }
     } catch (e) {
-      const status = (e as { response?: { status?: number } })?.response
-        ?.status;
+      const status = (e as { response?: { status?: number; data?: { message?: unknown } } })
+        ?.response?.status;
+      const serverMessage = (e as { response?: { data?: { message?: unknown } } })?.response
+        ?.data?.message;
       if (status === 400) {
         Alert.alert(t("invalidRequestTitle"), t("invalidRequestBody"));
       } else if (status === 401) {
         Alert.alert(t("loginFailedTitle"), t("invalidCredsBody"));
+      } else if (status === 403) {
+        Alert.alert(
+          t("errorTitle"),
+          typeof serverMessage === "string"
+            ? serverMessage
+            : "Phone and email verification are required before login",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Verify",
+              onPress: () =>
+                router.push({
+                  pathname: "/(auth)/verify",
+                  params: { phone: result.data.phone },
+                } as unknown as Href),
+            },
+          ]
+        );
       } else {
         Alert.alert(t("errorTitle"), t("genericErrorBody"));
       }

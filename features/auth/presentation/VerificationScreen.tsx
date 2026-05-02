@@ -25,6 +25,7 @@ export function VerificationScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ phone?: string; email?: string }>();
   const {
+    login,
     sendPhoneOtp,
     verifyPhoneOtp,
     sendEmailVerification,
@@ -42,6 +43,7 @@ export function VerificationScreen() {
   const [otpCode, setOtpCode] = useState("");
   const [email, setEmail] = useState(initialEmail);
   const [emailToken, setEmailToken] = useState("");
+  const [password, setPassword] = useState("");
   const [kbzMessage, setKbzMessage] = useState(
     "Please verify my KBZPay quickly. I already transferred."
   );
@@ -136,6 +138,46 @@ export function VerificationScreen() {
     }
   };
 
+  const handleFinish = async () => {
+    if (!phoneVerified || !emailVerified) return;
+    if (!phone.trim() || !password.trim()) {
+      Alert.alert(t("errorTitle"), t("passwordRequired"));
+      return;
+    }
+
+    setBusy("finish", true);
+    try {
+      const ok = await login({ mode: "phone", phone: phone.trim(), password: password.trim() });
+      if (!ok) {
+        Alert.alert(t("loginFailedTitle"), t("loginFailedBody"));
+        return;
+      }
+      router.replace("/(tabs)");
+    } catch (err) {
+      const status = (err as { response?: { status?: number; data?: { message?: unknown } } })
+        ?.response?.status;
+      const serverMessage = (err as { response?: { data?: { message?: unknown } } })?.response
+        ?.data?.message;
+      if (status === 403) {
+        Alert.alert(
+          t("errorTitle"),
+          typeof serverMessage === "string"
+            ? serverMessage
+            : "Phone and email verification are required before login"
+        );
+      } else if (status === 401) {
+        Alert.alert(t("loginFailedTitle"), t("invalidCredsBody"));
+      } else {
+        Alert.alert(
+          t("errorTitle"),
+          typeof serverMessage === "string" ? serverMessage : t("genericErrorBody")
+        );
+      }
+    } finally {
+      setBusy("finish", false);
+    }
+  };
+
   const inputStyle = {
     color: colors.text,
     borderColor: colors.icon,
@@ -149,7 +191,7 @@ export function VerificationScreen() {
         style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled">
+          keyboardShouldPersistTaps="always">
           <ThemedText type="title" style={styles.title}>
             {t("verification")}
           </ThemedText>
@@ -354,15 +396,38 @@ export function VerificationScreen() {
           </View>
 
           <Pressable
-            onPress={() => router.replace("/(tabs)")}
+            onPress={handleFinish}
+            disabled={!phoneVerified || !emailVerified || loading.finish}
             style={[
               styles.continueButton,
               { borderColor: colors.tint, backgroundColor: colors.tint },
+              (!phoneVerified || !emailVerified || loading.finish) && { opacity: 0.6 },
             ]}>
-            <ThemedText style={styles.primaryButtonText}>
-              {t("continueToApp")}
-            </ThemedText>
+            {loading.finish ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <ThemedText style={styles.primaryButtonText}>
+                {t("continueToApp")}
+              </ThemedText>
+            )}
           </Pressable>
+
+          <View style={[styles.card, { borderColor: colors.icon }]}>
+            <ThemedText style={styles.cardTitle}>Login to finish</ThemedText>
+            <TextInput
+              style={[styles.input, inputStyle]}
+              value={password}
+              onChangeText={setPassword}
+              placeholder={t("password")}
+              placeholderTextColor={colors.icon}
+              secureTextEntry
+              autoCapitalize="none"
+              editable={!loading.finish}
+            />
+            <ThemedText style={{ opacity: 0.7, fontSize: 12 }}>
+              Enter your password to get an access token after verification.
+            </ThemedText>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </ThemedView>

@@ -25,8 +25,11 @@ export interface LoginResponseDto extends AuthProfileDto {
   user?: AuthProfileDto;
 }
 
+export interface VerificationActionResultDto {
+  action: string;
+}
+
 export interface RegisterRequestDto {
-  registrationType?: "PHONE_AND_FACEBOOK" | "PHONE_ONLY";
   nickname: string;
   phone: string;
   email: string;

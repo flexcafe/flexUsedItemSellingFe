@@ -9,6 +9,7 @@ import type {
   RegisterData,
   RegisterInput,
 } from "@/core/domain/types/auth";
+import type { VerificationActionResult } from "@/core/domain/types/verification";
 
 export class AuthService implements IAuthService {
   constructor(private readonly repo: IAuthRepository) {}
@@ -27,7 +28,7 @@ export class AuthService implements IAuthService {
     return this.repo.login(credentials);
   }
 
-  register(data: RegisterData | RegisterInput): Promise<AuthUser | null> {
+  register(data: RegisterData | RegisterInput): Promise<VerificationActionResult> {
     return this.repo.register(data);
   }
 
