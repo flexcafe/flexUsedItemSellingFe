@@ -41,14 +41,18 @@ export class ApiAuthRepository implements IAuthRepository {
     return user;
   }
 
-  async register(data: RegisterData | RegisterInput): Promise<VerificationActionResult> {
+  async register(
+    data: RegisterData | RegisterInput,
+  ): Promise<VerificationActionResult> {
     const body = toRegisterRequestDto(data);
     const res = await this.http.post<VerificationActionResultDto>(
       API_ENDPOINTS.AUTH.REGISTER,
       body,
     );
     const action =
-      typeof res?.action === "string" ? res.action : "REGISTRATION_PENDING_VERIFICATION";
+      typeof res?.action === "string"
+        ? res.action
+        : "REGISTRATION_PENDING_VERIFICATION";
     return { action: action as VerificationActionResult["action"] };
   }
 

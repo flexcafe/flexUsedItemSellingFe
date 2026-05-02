@@ -1,4 +1,10 @@
+import * as Location from "expo-location";
 import { useRouter } from "expo-router";
+import {
+  isValidPhoneNumber,
+  parsePhoneNumberFromString,
+  type CountryCode,
+} from "libphonenumber-js";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -11,24 +17,18 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { z } from "zod";
-import * as Location from "expo-location";
 import { WebView } from "react-native-webview";
-import {
-  isValidPhoneNumber,
-  parsePhoneNumberFromString,
-  type CountryCode,
-} from "libphonenumber-js";
+import { z } from "zod";
 
 import { AuthLogo } from "@/components/auth-logo";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { Colors } from "@/constants/theme";
 import type {
   Gender,
   MaritalStatus,
   RegisterInput,
 } from "@/core/domain/types/auth";
-import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
@@ -82,12 +82,15 @@ function getPasswordStrength(password: string): PasswordStrength {
   let score = 0;
   if (length >= 8) score += 1;
   if (length >= 12) score += 1;
-  const variety = [hasLower, hasUpper, hasNumber, hasSymbol].filter(Boolean).length;
+  const variety = [hasLower, hasUpper, hasNumber, hasSymbol].filter(
+    Boolean,
+  ).length;
   if (variety >= 2) score += 1;
   if (variety >= 3) score += 1;
 
   const final = Math.min(4, score) as 0 | 1 | 2 | 3 | 4;
-  if (final === 0) return { score: 0, label: "Very weak", color: "#ef4444", tips };
+  if (final === 0)
+    return { score: 0, label: "Very weak", color: "#ef4444", tips };
   if (final === 1) return { score: 1, label: "Weak", color: "#f97316", tips };
   if (final === 2) return { score: 2, label: "Okay", color: "#eab308", tips };
   if (final === 3) return { score: 3, label: "Strong", color: "#22c55e", tips };
@@ -138,12 +141,11 @@ function Segmented<T extends string>({
               styles.segmentItem,
               { borderColor },
               selected && { backgroundColor: tint, borderColor: tint },
-            ]}>
+            ]}
+          >
             <ThemedText
-              style={[
-                styles.segmentText,
-                selected && { color: "#fff" },
-              ]}>
+              style={[styles.segmentText, selected && { color: "#fff" }]}
+            >
               {opt.label}
             </ThemedText>
           </Pressable>
@@ -166,9 +168,10 @@ export function RegisterScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
+    useState(false);
   const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>(
-    PHONE_COUNTRIES[0]!
+    PHONE_COUNTRIES[0]!,
   );
   const [isPhoneCountryOpen, setIsPhoneCountryOpen] = useState(false);
   const [phone, setPhone] = useState("");
@@ -180,7 +183,7 @@ export function RegisterScreen() {
   const [maritalStatus, setMaritalStatus] = useState<MaritalStatus>("SINGLE");
   const [region, setRegion] = useState("");
   const [locationCoords, setLocationCoords] = useState<LocationCoords | null>(
-    null
+    null,
   );
   const [regionAuto, setRegionAuto] = useState(true);
   const [referralId, setReferralId] = useState("");
@@ -191,7 +194,7 @@ export function RegisterScreen() {
   const pw = useMemo(() => getPasswordStrength(password), [password]);
   const emailOk = useMemo(
     () => z.string().trim().email().safeParse(email).success,
-    [email]
+    [email],
   );
 
   const schema = useMemo(() => {
@@ -205,7 +208,11 @@ export function RegisterScreen() {
       kbzPayName: z.string().trim().min(1),
       kbzPayPhoneNumber: z.string().trim().min(3),
       gender: z.enum(["MALE", "FEMALE"]),
-      age: z.coerce.number().int().min(14, t("ageInvalid")).max(120, t("ageInvalid")),
+      age: z.coerce
+        .number()
+        .int()
+        .min(14, t("ageInvalid"))
+        .max(120, t("ageInvalid")),
       maritalStatus: z.enum(["SINGLE", "MARRIED"]),
       region: z.string().trim().min(1),
       referralId: z.string().trim().optional(),
@@ -220,14 +227,17 @@ export function RegisterScreen() {
           const normalized = normalizePhone(v.phone, phoneCountry.code);
           return isValidPhoneNumber(normalized, phoneCountry.code);
         },
-        { path: ["phone"], message: t("phoneRequired") }
+        { path: ["phone"], message: t("phoneRequired") },
       )
       .refine(
         (v) => {
-          const normalized = normalizePhone(v.kbzPayPhoneNumber, phoneCountry.code);
+          const normalized = normalizePhone(
+            v.kbzPayPhoneNumber,
+            phoneCountry.code,
+          );
           return isValidPhoneNumber(normalized, phoneCountry.code);
         },
-        { path: ["kbzPayPhoneNumber"], message: t("phoneRequired") }
+        { path: ["kbzPayPhoneNumber"], message: t("phoneRequired") },
       );
   }, [t, phoneCountry.code]);
 
@@ -389,7 +399,10 @@ export function RegisterScreen() {
       password: parsed.data.password,
       confirmPassword: parsed.data.confirmPassword,
       kbzPayName: parsed.data.kbzPayName,
-      kbzPayPhoneNumber: normalizePhone(parsed.data.kbzPayPhoneNumber, phoneCountry.code),
+      kbzPayPhoneNumber: normalizePhone(
+        parsed.data.kbzPayPhoneNumber,
+        phoneCountry.code,
+      ),
       gender: parsed.data.gender,
       age: parsed.data.age,
       maritalStatus: parsed.data.maritalStatus,
@@ -422,26 +435,22 @@ export function RegisterScreen() {
       } else if (status === 400) {
         Alert.alert(
           t("invalidRequestTitle"),
-          serverMessage ?? t("registerFailedBody")
+          serverMessage ?? t("registerFailedBody"),
         );
       } else {
         // Backend can create user, then fail on SMS/email sending. If that happens,
         // send user to verification where they can resend OTP/token.
-        Alert.alert(
-          t("errorTitle"),
-          serverMessage ?? t("genericErrorBody"),
-          [
-            { text: "Cancel", style: "cancel" },
-            {
-              text: "Verify",
-              onPress: () =>
-                router.replace({
-                  pathname: "/(auth)/verify",
-                  params: { phone: input.phone, email: input.email },
-                }),
-            },
-          ]
-        );
+        Alert.alert(t("errorTitle"), serverMessage ?? t("genericErrorBody"), [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Verify",
+            onPress: () =>
+              router.replace({
+                pathname: "/(auth)/verify",
+                params: { phone: input.phone, email: input.email },
+              }),
+          },
+        ]);
       }
     } finally {
       setIsSubmitting(false);
@@ -461,10 +470,12 @@ export function RegisterScreen() {
     <ThemedView style={styles.screen}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}>
+        style={{ flex: 1 }}
+      >
         <ScrollView
           contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled">
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.brandArea}>
             <AuthLogo variant="compact" />
           </View>
@@ -473,7 +484,8 @@ export function RegisterScreen() {
             <Pressable
               onPress={() => router.back()}
               hitSlop={12}
-              style={styles.backButton}>
+              style={styles.backButton}
+            >
               <ThemedText style={{ fontSize: 22 }}>‹</ThemedText>
             </Pressable>
             <ThemedText type="title" style={styles.title}>
@@ -517,12 +529,17 @@ export function RegisterScreen() {
                 onPress={() => setIsPasswordVisible((v) => !v)}
                 disabled={isSubmitting}
                 accessibilityRole="button"
-                accessibilityLabel={isPasswordVisible ? t("hidePassword") : t("showPassword")}
+                accessibilityLabel={
+                  isPasswordVisible ? t("hidePassword") : t("showPassword")
+                }
                 style={({ pressed }) => [
                   styles.passwordToggle,
                   { opacity: pressed ? 0.7 : 1 },
-                ]}>
-                <ThemedText style={[styles.passwordToggleText, { color: colors.tint }]}>
+                ]}
+              >
+                <ThemedText
+                  style={[styles.passwordToggleText, { color: colors.tint }]}
+                >
                   {isPasswordVisible ? t("hide") : t("show")}
                 </ThemedText>
               </Pressable>
@@ -546,7 +563,9 @@ export function RegisterScreen() {
                   />
                 </View>
                 <View style={styles.strengthRow}>
-                  <ThemedText style={[styles.strengthLabel, { color: pw.color }]}>
+                  <ThemedText
+                    style={[styles.strengthLabel, { color: pw.color }]}
+                  >
                     {pw.label}
                   </ThemedText>
                   <ThemedText style={styles.strengthHint}>
@@ -565,7 +584,10 @@ export function RegisterScreen() {
             <ThemedText style={styles.label}>{t("confirmPassword")}</ThemedText>
             <View style={styles.passwordRow}>
               <TextInput
-                style={[inputStyle(!!errors.confirmPassword), styles.passwordInput]}
+                style={[
+                  inputStyle(!!errors.confirmPassword),
+                  styles.passwordInput,
+                ]}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 placeholder={t("confirmPasswordPlaceholder")}
@@ -578,19 +600,26 @@ export function RegisterScreen() {
                 disabled={isSubmitting}
                 accessibilityRole="button"
                 accessibilityLabel={
-                  isConfirmPasswordVisible ? t("hidePassword") : t("showPassword")
+                  isConfirmPasswordVisible
+                    ? t("hidePassword")
+                    : t("showPassword")
                 }
                 style={({ pressed }) => [
                   styles.passwordToggle,
                   { opacity: pressed ? 0.7 : 1 },
-                ]}>
-                <ThemedText style={[styles.passwordToggleText, { color: colors.tint }]}>
+                ]}
+              >
+                <ThemedText
+                  style={[styles.passwordToggleText, { color: colors.tint }]}
+                >
                   {isConfirmPasswordVisible ? t("hide") : t("show")}
                 </ThemedText>
               </Pressable>
             </View>
             {errors.confirmPassword ? (
-              <ThemedText style={styles.error}>{errors.confirmPassword}</ThemedText>
+              <ThemedText style={styles.error}>
+                {errors.confirmPassword}
+              </ThemedText>
             ) : null}
           </View>
 
@@ -603,10 +632,15 @@ export function RegisterScreen() {
                 disabled={isSubmitting}
                 style={[
                   styles.dialPicker,
-                  { borderColor: colors.icon, backgroundColor: colors.background },
+                  {
+                    borderColor: colors.icon,
+                    backgroundColor: colors.background,
+                  },
                 ]}
               >
-                <ThemedText style={styles.dialText}>{phoneCountry.dialCode}</ThemedText>
+                <ThemedText style={styles.dialText}>
+                  {phoneCountry.dialCode}
+                </ThemedText>
                 <ThemedText style={styles.dialChevron}>▾</ThemedText>
               </Pressable>
               <TextInput
@@ -666,7 +700,9 @@ export function RegisterScreen() {
                 editable={!isSubmitting}
               />
               {errors.kbzPayName ? (
-                <ThemedText style={styles.error}>{errors.kbzPayName}</ThemedText>
+                <ThemedText style={styles.error}>
+                  {errors.kbzPayName}
+                </ThemedText>
               ) : null}
             </View>
 
@@ -693,7 +729,8 @@ export function RegisterScreen() {
               style={[
                 styles.warningBox,
                 { backgroundColor: WARNING_BG, borderColor: WARNING_BORDER },
-              ]}>
+              ]}
+            >
               <ThemedText style={[styles.warningText, { color: WARNING_TEXT }]}>
                 ⚠ {t("kPayWarning")}
               </ThemedText>
@@ -774,12 +811,17 @@ export function RegisterScreen() {
                   onMessage={(e) => {
                     if (isSubmitting) return;
                     try {
-                      const data = JSON.parse(e.nativeEvent.data) as LocationCoords;
+                      const data = JSON.parse(
+                        e.nativeEvent.data,
+                      ) as LocationCoords;
                       if (
                         typeof data?.latitude === "number" &&
                         typeof data?.longitude === "number"
                       ) {
-                        applyCoords({ latitude: data.latitude, longitude: data.longitude });
+                        applyCoords({
+                          latitude: data.latitude,
+                          longitude: data.longitude,
+                        });
                       }
                     } catch {
                       // ignore malformed messages
@@ -790,7 +832,10 @@ export function RegisterScreen() {
                 <View
                   style={[
                     styles.mapPlaceholder,
-                    { borderColor: colors.icon, backgroundColor: colors.background },
+                    {
+                      borderColor: colors.icon,
+                      backgroundColor: colors.background,
+                    },
                   ]}
                 >
                   <ThemedText style={{ opacity: 0.7, textAlign: "center" }}>
@@ -808,12 +853,14 @@ export function RegisterScreen() {
                   borderColor: locationCoords ? SUCCESS : colors.tint,
                   backgroundColor: locationCoords ? SUCCESS : "transparent",
                 },
-              ]}>
+              ]}
+            >
               <ThemedText
                 style={{
                   color: locationCoords ? "#fff" : colors.tint,
                   fontWeight: "600",
-                }}>
+                }}
+              >
                 {locationCoords
                   ? `✓ ${t("regionVerified")}`
                   : isLocating
@@ -854,11 +901,14 @@ export function RegisterScreen() {
               styles.submitButton,
               { backgroundColor: colors.tint },
               isSubmitting && { opacity: 0.7 },
-            ]}>
+            ]}
+          >
             {isSubmitting ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <ThemedText style={styles.submitText}>{t("signUpCta")}</ThemedText>
+              <ThemedText style={styles.submitText}>
+                {t("signUpCta")}
+              </ThemedText>
             )}
           </Pressable>
 
@@ -901,10 +951,14 @@ export function RegisterScreen() {
                     selected && { borderColor: colors.tint },
                   ]}
                 >
-                  <ThemedText style={styles.pickerDial}>{c.dialCode}</ThemedText>
+                  <ThemedText style={styles.pickerDial}>
+                    {c.dialCode}
+                  </ThemedText>
                   <ThemedText style={styles.pickerCode}>{c.code}</ThemedText>
                   {selected ? (
-                    <ThemedText style={{ color: colors.tint, fontWeight: "700" }}>
+                    <ThemedText
+                      style={{ color: colors.tint, fontWeight: "700" }}
+                    >
                       ✓
                     </ThemedText>
                   ) : null}

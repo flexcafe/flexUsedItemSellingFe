@@ -10,7 +10,9 @@ export type UnauthorizedHandler = () => void;
 
 export interface IAuthRepository {
   login(credentials: LoginCredentials): Promise<AuthUser | null>;
-  register(data: RegisterData | RegisterInput): Promise<VerificationActionResult>;
+  register(
+    data: RegisterData | RegisterInput,
+  ): Promise<VerificationActionResult>;
   getProfile(): Promise<AuthUser | null>;
   hasToken(): Promise<boolean>;
   clearTokens(): Promise<void>;

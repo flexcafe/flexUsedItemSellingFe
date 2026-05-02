@@ -13,7 +13,7 @@ import type {
 } from "../dtos/AuthDto";
 
 export function toLoginRequestDto(
-  credentials: LoginCredentials
+  credentials: LoginCredentials,
 ): LoginRequestDto {
   if (credentials.mode === "phone") {
     return { phone: credentials.phone, password: credentials.password };
@@ -36,7 +36,7 @@ function getAuthProfile(dto: LoginResponseDto): AuthProfileDto | undefined {
 export function toAuthUser(
   dto: LoginResponseDto,
   fallbackEmail?: string,
-  fallbackAccessToken?: string
+  fallbackAccessToken?: string,
 ): AuthUser | null {
   const token =
     dto.access_token ??
@@ -59,7 +59,7 @@ export function toAuthUser(
 }
 
 export function toRegisterRequestDto(
-  data: RegisterData | RegisterInput
+  data: RegisterData | RegisterInput,
 ): RegisterRequestDto {
   if ("registrationType" in data) {
     return {
@@ -86,6 +86,6 @@ export function toRegisterRequestDto(
   }
 
   throw new Error(
-    "RegisterData is missing fields required by the backend registration API"
+    "RegisterData is missing fields required by the backend registration API",
   );
 }

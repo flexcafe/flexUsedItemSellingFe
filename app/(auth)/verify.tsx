@@ -3,4 +3,3 @@ import { VerificationScreen } from "@/features/auth/presentation/VerificationScr
 export default function VerifyPage() {
   return <VerificationScreen />;
 }
-
