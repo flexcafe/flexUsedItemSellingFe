@@ -14,7 +14,11 @@ import { useServices } from "./ServicesProvider";
 type Dictionary = Record<string, Record<AppLocale, string>>;
 
 const DICT: Dictionary = {
-  appName: { ko: "Flex Used Market", my: "Flex Used Market", zh: "Flex Used Market" },
+  appName: {
+    ko: "Flex Used Market",
+    my: "Flex Used Market",
+    zh: "Flex Used Market",
+  },
   signInSubtitle: {
     ko: "계정에 로그인하세요",
     my: "သင့်အကောင့်သို့ ဝင်ရောက်ပါ",
@@ -26,7 +30,11 @@ const DICT: Dictionary = {
   show: { ko: "보기", my: "ပြရန်", zh: "显示" },
   hide: { ko: "숨기기", my: "ဖျောက်ရန်", zh: "隐藏" },
   showPassword: { ko: "비밀번호 보기", my: "စကားဝှက် ပြရန်", zh: "显示密码" },
-  hidePassword: { ko: "비밀번호 숨기기", my: "စကားဝှက် ဖျောက်ရန်", zh: "隐藏密码" },
+  hidePassword: {
+    ko: "비밀번호 숨기기",
+    my: "စကားဝှက် ဖျောက်ရန်",
+    zh: "隐藏密码",
+  },
   signIn: { ko: "로그인", my: "ဝင်မည်", zh: "登录" },
   phoneMode: { ko: "전화번호", my: "ဖုန်း", zh: "手机号" },
   facebookMode: { ko: "페이스북", my: "ဖေ့စ်ဘွတ်", zh: "Facebook" },
@@ -61,20 +69,40 @@ const DICT: Dictionary = {
     my: "တစ်ခုခု မှားသွားပါသည်။ ပြန်လည်ကြိုးစားပါ။",
     zh: "出了点问题，请重试。",
   },
-  phoneRequired: { ko: "전화번호를 입력하세요", my: "ဖုန်းနံပါတ် လိုအပ်သည်", zh: "请输入手机号" },
+  phoneRequired: {
+    ko: "전화번호를 입력하세요",
+    my: "ဖုန်းနံပါတ် လိုအပ်သည်",
+    zh: "请输入手机号",
+  },
   facebookIdRequired: {
     ko: "Facebook ID를 입력하세요",
     my: "Facebook ID လိုအပ်သည်",
     zh: "请输入 Facebook ID",
   },
-  passwordRequired: { ko: "비밀번호를 입력하세요", my: "စကားဝှက် လိုအပ်သည်", zh: "请输入密码" },
+  passwordRequired: {
+    ko: "비밀번호를 입력하세요",
+    my: "စကားဝှက် လိုအပ်သည်",
+    zh: "请输入密码",
+  },
 
   // Register screen
   signUp: { ko: "회원가입", my: "စာရင်းသွင်းရန်", zh: "注册" },
   signUpCta: { ko: "가입하기", my: "စာရင်းသွင်းမည်", zh: "立即注册" },
-  haveAccount: { ko: "이미 계정이 있으신가요?", my: "အကောင့်ရှိပြီးလား?", zh: "已有账号?" },
-  noAccount: { ko: "계정이 없으신가요?", my: "အကောင့်မရှိသေးပါလား?", zh: "还没有账号?" },
-  registrationMethod: { ko: "가입 방법", my: "စာရင်းသွင်းနည်း", zh: "注册方式" },
+  haveAccount: {
+    ko: "이미 계정이 있으신가요?",
+    my: "အကောင့်ရှိပြီးလား?",
+    zh: "已有账号?",
+  },
+  noAccount: {
+    ko: "계정이 없으신가요?",
+    my: "အကောင့်မရှိသေးပါလား?",
+    zh: "还没有账号?",
+  },
+  registrationMethod: {
+    ko: "가입 방법",
+    my: "စာရင်းသွင်းနည်း",
+    zh: "注册方式",
+  },
   both: { ko: "둘다", my: "နှစ်ခုလုံး", zh: "两者" },
   phoneOnly: { ko: "전화", my: "ဖုန်းသာ", zh: "仅手机号" },
   phoneAndFacebook: {
@@ -83,15 +111,27 @@ const DICT: Dictionary = {
     zh: "需要 Facebook 与手机号",
   },
   nickname: { ko: "닉네임", my: "အမည်ခေါ်", zh: "昵称" },
-  nicknamePlaceholder: { ko: "닉네임을 입력하세요", my: "အမည်ခေါ်ကို ရိုက်ထည့်ပါ", zh: "请输入昵称" },
+  nicknamePlaceholder: {
+    ko: "닉네임을 입력하세요",
+    my: "အမည်ခေါ်ကို ရိုက်ထည့်ပါ",
+    zh: "请输入昵称",
+  },
   check: { ko: "확인", my: "စစ်ဆေးရန်", zh: "检查" },
-  nicknameAvailable: { ko: "사용 가능한 닉네임입니다", my: "အသုံးပြုနိုင်သော အမည်", zh: "可以使用" },
+  nicknameAvailable: {
+    ko: "사용 가능한 닉네임입니다",
+    my: "အသုံးပြုနိုင်သော အမည်",
+    zh: "可以使用",
+  },
   nicknameTooShort: {
     ko: "닉네임은 2자 이상이어야 합니다",
     my: "အမည်သည် စာလုံး၂လုံးအနည်းဆုံးရှိရမည်",
     zh: "昵称至少需要 2 个字符",
   },
-  confirmPassword: { ko: "비밀번호 확인", my: "စကားဝှက်အတည်ပြုရန်", zh: "确认密码" },
+  confirmPassword: {
+    ko: "비밀번호 확인",
+    my: "စကားဝှက်အတည်ပြုရန်",
+    zh: "确认密码",
+  },
   confirmPasswordPlaceholder: {
     ko: "비밀번호를 다시 입력하세요",
     my: "စကားဝှက်ကို ပြန်လည်ရိုက်ထည့်ပါ",
@@ -103,23 +143,43 @@ const DICT: Dictionary = {
     zh: "两次密码不一致",
   },
   phoneNumber: { ko: "전화번호", my: "ဖုန်းနံပါတ်", zh: "手机号码" },
-  phoneNumberPlaceholder: { ko: "09-XXXX-XXXX", my: "09-XXXX-XXXX", zh: "09-XXXX-XXXX" },
+  phoneNumberPlaceholder: {
+    ko: "09-XXXX-XXXX",
+    my: "09-XXXX-XXXX",
+    zh: "09-XXXX-XXXX",
+  },
   sendCode: { ko: "전송", my: "ပို့မည်", zh: "发送" },
   emailAddress: { ko: "이메일 주소", my: "အီးမေးလ်လိပ်စာ", zh: "电子邮箱" },
-  emailPlaceholder: { ko: "example@email.com", my: "example@email.com", zh: "example@email.com" },
+  emailPlaceholder: {
+    ko: "example@email.com",
+    my: "example@email.com",
+    zh: "example@email.com",
+  },
   emailInvalid: {
     ko: "올바른 이메일 주소를 입력하세요",
     my: "မှန်ကန်သော အီးမေးလ်ထည့်ပါ",
     zh: "请输入有效的邮箱地址",
   },
-  kPayRegistration: { ko: "K-pay 등록", my: "K-pay မှတ်ပုံတင်", zh: "K-pay 注册信息" },
-  kPayName: { ko: "K-pay 등록 이름", my: "K-pay မှတ်ပုံတင်အမည်", zh: "K-pay 注册姓名" },
+  kPayRegistration: {
+    ko: "K-pay 등록",
+    my: "K-pay မှတ်ပုံတင်",
+    zh: "K-pay 注册信息",
+  },
+  kPayName: {
+    ko: "K-pay 등록 이름",
+    my: "K-pay မှတ်ပုံတင်အမည်",
+    zh: "K-pay 注册姓名",
+  },
   kPayNamePlaceholder: {
     ko: "K-pay에 등록된 이름을 입력하세요",
     my: "K-pay တွင်မှတ်ပုံတင်ထားသော အမည်ကိုထည့်ပါ",
     zh: "请输入 K-pay 注册的姓名",
   },
-  kPayPhone: { ko: "K-pay 등록 전화번호", my: "K-pay မှတ်ပုံတင်ဖုန်း", zh: "K-pay 注册手机号" },
+  kPayPhone: {
+    ko: "K-pay 등록 전화번호",
+    my: "K-pay မှတ်ပုံတင်ဖုန်း",
+    zh: "K-pay 注册手机号",
+  },
   kPayWarning: {
     ko: "실제 이름과 번호가 K-pay 등록 정보와 다르면 입금 및 출금(대금 및 포인트)이 안됩니다",
     my: "အမည်နှင့်ဖုန်းနံပါတ်သည် K-pay မှတ်ပုံတင်ချက်နှင့်မတူပါက ငွေထည့်/ထုတ် (ငွေနှင့် ပွိုင့်) မလုပ်နိုင်ပါ",
@@ -144,8 +204,16 @@ const DICT: Dictionary = {
     my: "ဒေသအတည်ပြုရန် နှိပ်ပါ",
     zh: "点击验证您的位置",
   },
-  regionVerified: { ko: "지역 인증 완료", my: "ဒေသအတည်ပြုပြီးပြီ", zh: "地区已验证" },
-  regionPlaceholder: { ko: "지역명을 입력하세요", my: "ဒေသအမည်ထည့်ပါ", zh: "请输入地区名称" },
+  regionVerified: {
+    ko: "지역 인증 완료",
+    my: "ဒေသအတည်ပြုပြီးပြီ",
+    zh: "地区已验证",
+  },
+  regionPlaceholder: {
+    ko: "지역명을 입력하세요",
+    my: "ဒေသအမည်ထည့်ပါ",
+    zh: "请输入地区名称",
+  },
   referralId: { ko: "추천인 코드", my: "အကြံပြုသူ ID", zh: "推荐人代码" },
   optional: { ko: "선택사항", my: "ရွေးချယ်", zh: "选填" },
   referralPlaceholder: {
@@ -186,11 +254,27 @@ const DICT: Dictionary = {
 
   // Verification screen
   verification: { ko: "본인 인증", my: "အတည်ပြုခြင်း", zh: "身份验证" },
-  phoneVerification: { ko: "전화번호 인증", my: "ဖုန်းနံပါတ်အတည်ပြုခြင်း", zh: "手机号验证" },
-  emailVerification: { ko: "이메일 인증", my: "အီးမေးလ်အတည်ပြုခြင်း", zh: "邮箱验证" },
-  kbzPayVerification: { ko: "K-pay 인증 요청", my: "K-pay အတည်ပြုတောင်းဆိုရန်", zh: "K-pay 验证" },
+  phoneVerification: {
+    ko: "전화번호 인증",
+    my: "ဖုန်းနံပါတ်အတည်ပြုခြင်း",
+    zh: "手机号验证",
+  },
+  emailVerification: {
+    ko: "이메일 인증",
+    my: "အီးမေးလ်အတည်ပြုခြင်း",
+    zh: "邮箱验证",
+  },
+  kbzPayVerification: {
+    ko: "K-pay 인증 요청",
+    my: "K-pay အတည်ပြုတောင်းဆိုရန်",
+    zh: "K-pay 验证",
+  },
   otpCode: { ko: "인증 코드", my: "အတည်ပြုကုဒ်", zh: "验证码" },
-  otpPlaceholder: { ko: "6자리 코드 입력", my: "ဂဏန်း ၆ လုံးထည့်ပါ", zh: "请输入 6 位验证码" },
+  otpPlaceholder: {
+    ko: "6자리 코드 입력",
+    my: "ဂဏန်း ၆ လုံးထည့်ပါ",
+    zh: "请输入 6 位验证码",
+  },
   verify: { ko: "인증하기", my: "အတည်ပြုမည်", zh: "验证" },
   sendEmailVerificationButton: {
     ko: "인증 메일 보내기",
@@ -214,17 +298,37 @@ const DICT: Dictionary = {
     my: "အုပ်ချုပ်သူထံသို့ မက်ဆေ့ချ်",
     zh: "发送给管理员的消息",
   },
-  requestVerification: { ko: "인증 요청", my: "အတည်ပြုတောင်းဆိုမည်", zh: "请求验证" },
+  requestVerification: {
+    ko: "인증 요청",
+    my: "အတည်ပြုတောင်းဆိုမည်",
+    zh: "请求验证",
+  },
   continueToApp: { ko: "앱으로 이동", my: "Appသို့ သွားမည်", zh: "进入应用" },
-  otpSent: { ko: "인증 코드를 전송했습니다", my: "အတည်ပြုကုဒ်ကို ပို့ပြီး", zh: "验证码已发送" },
-  otpVerified: { ko: "전화번호가 인증되었습니다", my: "ဖုန်းနံပါတ် အတည်ပြုပြီး", zh: "手机号已验证" },
+  otpSent: {
+    ko: "인증 코드를 전송했습니다",
+    my: "အတည်ပြုကုဒ်ကို ပို့ပြီး",
+    zh: "验证码已发送",
+  },
+  otpVerified: {
+    ko: "전화번호가 인증되었습니다",
+    my: "ဖုန်းနံပါတ် အတည်ပြုပြီး",
+    zh: "手机号已验证",
+  },
   emailSent: {
     ko: "이메일 인증 링크를 전송했습니다",
     my: "အီးမေးလ် အတည်ပြုလင့်ခ် ပို့ပြီး",
     zh: "验证链接已发送到邮箱",
   },
-  emailVerified: { ko: "이메일이 인증되었습니다", my: "အီးမေးလ် အတည်ပြုပြီး", zh: "邮箱已验证" },
-  kbzPayRequested: { ko: "K-pay 인증이 요청되었습니다", my: "K-pay အတည်ပြု တောင်းဆိုပြီး", zh: "K-pay 验证已请求" },
+  emailVerified: {
+    ko: "이메일이 인증되었습니다",
+    my: "အီးမေးလ် အတည်ပြုပြီး",
+    zh: "邮箱已验证",
+  },
+  kbzPayRequested: {
+    ko: "K-pay 인증이 요청되었습니다",
+    my: "K-pay အတည်ပြု တောင်းဆိုပြီး",
+    zh: "K-pay 验证已请求",
+  },
 };
 
 function t(key: keyof typeof DICT, locale: AppLocale): string {
@@ -254,10 +358,13 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     };
   }, [preferencesRepository]);
 
-  const setLocale = useCallback(async (next: AppLocale) => {
-    setLocaleState(next);
-    await preferencesRepository.setLocale(next);
-  }, [preferencesRepository]);
+  const setLocale = useCallback(
+    async (next: AppLocale) => {
+      setLocaleState(next);
+      await preferencesRepository.setLocale(next);
+    },
+    [preferencesRepository],
+  );
 
   const value = useMemo<LocaleContextValue>(
     () => ({
@@ -265,10 +372,12 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
       setLocale,
       t: (key) => t(key, locale),
     }),
-    [locale, setLocale]
+    [locale, setLocale],
   );
 
-  return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
+  return (
+    <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>
+  );
 }
 
 export function useLocale(): LocaleContextValue {

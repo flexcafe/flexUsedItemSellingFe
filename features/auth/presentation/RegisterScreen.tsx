@@ -13,6 +13,12 @@ import {
 } from "react-native";
 import { z } from "zod";
 import * as Location from "expo-location";
+import { WebView } from "react-native-webview";
+import {
+  isValidPhoneNumber,
+  parsePhoneNumberFromString,
+  type CountryCode,
+} from "libphonenumber-js";
 
 import { AuthLogo } from "@/components/auth-logo";
 import { ThemedText } from "@/components/themed-text";
@@ -35,6 +41,74 @@ const WARNING_TEXT = "#C2410C";
 
 type SegmentOption<T extends string> = { value: T; label: string };
 type LocationCoords = { latitude: number; longitude: number };
+
+type PhoneCountry = {
+  code: CountryCode;
+  dialCode: string;
+  label: string;
+  flag: string;
+};
+
+const PHONE_COUNTRIES: PhoneCountry[] = [
+  { code: "MM", dialCode: "+95", label: "Myanmar", flag: "🇲🇲" },
+  { code: "KR", dialCode: "+82", label: "Korea", flag: "🇰🇷" },
+  { code: "CN", dialCode: "+86", label: "China", flag: "🇨🇳" },
+];
+
+type PasswordStrength = {
+  score: 0 | 1 | 2 | 3 | 4;
+  label: "Very weak" | "Weak" | "Okay" | "Strong" | "Very strong";
+  color: string;
+  tips: string[];
+};
+
+function getPasswordStrength(password: string): PasswordStrength {
+  const value = password ?? "";
+  const tips: string[] = [];
+
+  const length = value.length;
+  const hasLower = /[a-z]/.test(value);
+  const hasUpper = /[A-Z]/.test(value);
+  const hasNumber = /\d/.test(value);
+  const hasSymbol = /[^A-Za-z0-9]/.test(value);
+
+  if (length < 8) tips.push("Use at least 8 characters");
+  if (!hasUpper) tips.push("Add an uppercase letter");
+  if (!hasLower) tips.push("Add a lowercase letter");
+  if (!hasNumber) tips.push("Add a number");
+  if (!hasSymbol) tips.push("Add a symbol");
+
+  // Simple scoring (0..4): length + character variety.
+  let score = 0;
+  if (length >= 8) score += 1;
+  if (length >= 12) score += 1;
+  const variety = [hasLower, hasUpper, hasNumber, hasSymbol].filter(Boolean).length;
+  if (variety >= 2) score += 1;
+  if (variety >= 3) score += 1;
+
+  const final = Math.min(4, score) as 0 | 1 | 2 | 3 | 4;
+  if (final === 0) return { score: 0, label: "Very weak", color: "#ef4444", tips };
+  if (final === 1) return { score: 1, label: "Weak", color: "#f97316", tips };
+  if (final === 2) return { score: 2, label: "Okay", color: "#eab308", tips };
+  if (final === 3) return { score: 3, label: "Strong", color: "#22c55e", tips };
+  return { score: 4, label: "Very strong", color: "#16a34a", tips };
+}
+
+function normalizePhone(raw: string, country: CountryCode): string {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) return trimmed;
+
+  // Handle Myanmar "09..." input as a convenience.
+  if (country === "MM") {
+    const digits = trimmed.replace(/\D/g, "");
+    if (digits.startsWith("09")) return `+959${digits.slice(2)}`;
+    if (digits.startsWith("959")) return `+${digits}`;
+  }
+
+  const parsed = parsePhoneNumberFromString(trimmed, country);
+  if (!parsed) return trimmed;
+  return parsed.number; // E.164
+}
 
 function Segmented<T extends string>({
   options,
@@ -93,6 +167,10 @@ export function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
+  const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>(
+    PHONE_COUNTRIES[0]!
+  );
+  const [isPhoneCountryOpen, setIsPhoneCountryOpen] = useState(false);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [kbzPayName, setKbzPayName] = useState("");
@@ -101,15 +179,20 @@ export function RegisterScreen() {
   const [age, setAge] = useState("");
   const [maritalStatus, setMaritalStatus] = useState<MaritalStatus>("SINGLE");
   const [region, setRegion] = useState("");
-  const [regionVerified, setRegionVerified] = useState(false);
   const [locationCoords, setLocationCoords] = useState<LocationCoords | null>(
     null
   );
+  const [regionAuto, setRegionAuto] = useState(true);
   const [referralId, setReferralId] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const pw = useMemo(() => getPasswordStrength(password), [password]);
+  const emailOk = useMemo(
+    () => z.string().trim().email().safeParse(email).success,
+    [email]
+  );
 
   const schema = useMemo(() => {
     const base = z.object({
@@ -117,18 +200,10 @@ export function RegisterScreen() {
       nickname: z.string().trim().min(2, t("nicknameTooShort")).max(30),
       password: z.string().min(8, t("passwordRequired")),
       confirmPassword: z.string(),
-      phone: z
-        .string()
-        .trim()
-        .min(7, t("phoneRequired"))
-        .regex(/^[+0-9\-\s]+$/, t("phoneRequired")),
+      phone: z.string().trim().min(3, t("phoneRequired")),
       email: z.string().trim().email(t("emailInvalid")),
       kbzPayName: z.string().trim().min(1),
-      kbzPayPhoneNumber: z
-        .string()
-        .trim()
-        .min(7)
-        .regex(/^[+0-9\-\s]+$/),
+      kbzPayPhoneNumber: z.string().trim().min(3),
       gender: z.enum(["MALE", "FEMALE"]),
       age: z.coerce.number().int().min(14, t("ageInvalid")).max(120, t("ageInvalid")),
       maritalStatus: z.enum(["SINGLE", "MARRIED"]),
@@ -139,34 +214,57 @@ export function RegisterScreen() {
       .refine((v) => v.password === v.confirmPassword, {
         path: ["confirmPassword"],
         message: t("passwordMismatch"),
-      });
-  }, [t]);
+      })
+      .refine(
+        (v) => {
+          const normalized = normalizePhone(v.phone, phoneCountry.code);
+          return isValidPhoneNumber(normalized, phoneCountry.code);
+        },
+        { path: ["phone"], message: t("phoneRequired") }
+      )
+      .refine(
+        (v) => {
+          const normalized = normalizePhone(v.kbzPayPhoneNumber, phoneCountry.code);
+          return isValidPhoneNumber(normalized, phoneCountry.code);
+        },
+        { path: ["kbzPayPhoneNumber"], message: t("phoneRequired") }
+      );
+  }, [t, phoneCountry.code]);
 
-  // Normalize a Myanmar-style entry (e.g. "09-123-456") into "+9591234567" so
-  // it matches the backend's expected format. Falls back to the raw value if
-  // it already starts with a "+" or does not begin with a leading "09".
-  const normalizeMmPhone = (raw: string): string => {
-    const trimmed = raw.trim();
-    if (!trimmed) return trimmed;
-    if (trimmed.startsWith("+")) return trimmed.replace(/[\s-]/g, "");
-    const digits = trimmed.replace(/\D/g, "");
-    if (digits.startsWith("09")) return `+959${digits.slice(2)}`;
-    if (digits.startsWith("959")) return `+${digits}`;
-    return `+${digits}`;
+  const applyCoords = async (coords: LocationCoords) => {
+    setLocationCoords(coords);
+    setErrors((e) => {
+      const next = { ...e };
+      delete next.region;
+      return next;
+    });
+
+    if (!regionAuto) return;
+    try {
+      const list = await Location.reverseGeocodeAsync({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      });
+      const first = list?.[0];
+      const candidate =
+        first?.district ||
+        first?.city ||
+        first?.subregion ||
+        first?.region ||
+        first?.country;
+      if (candidate && candidate.trim().length > 0) {
+        setRegion(candidate.trim());
+      }
+    } catch {
+      // ignore reverse geocode failures; user can type region manually
+    }
   };
 
-  const handleVerifyLocation = async () => {
-    if (region.trim().length === 0) {
-      setErrors((e) => ({ ...e, region: t("regionVerify") }));
-      return;
-    }
-
+  const handleUseCurrentLocation = async () => {
     setIsLocating(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        setRegionVerified(false);
-        setLocationCoords(null);
         setErrors((e) => ({ ...e, region: t("regionVerify") }));
         return;
       }
@@ -174,25 +272,81 @@ export function RegisterScreen() {
       const position = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
-      setLocationCoords({
+      await applyCoords({
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
       });
-      setRegionVerified(true);
-      setErrors((e) => {
-        const next = { ...e };
-        delete next.region;
-        return next;
-      });
     } catch {
-      setRegionVerified(false);
-      setLocationCoords(null);
       setErrors((e) => ({ ...e, region: t("regionVerify") }));
       Alert.alert(t("errorTitle"), t("genericErrorBody"));
     } finally {
       setIsLocating(false);
     }
   };
+  const leafletHtml = useMemo(() => {
+    if (!locationCoords) return "";
+
+    const { latitude, longitude } = locationCoords;
+    const tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+    // Leaflet + OSM tiles in a WebView works in Expo Go (no native map module).
+    return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <style>
+      html, body { height: 100%; margin: 0; padding: 0; }
+      #map { height: 100%; width: 100%; }
+      .leaflet-control-attribution { font-size: 10px; }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script>
+      (function () {
+        var lat = ${latitude};
+        var lng = ${longitude};
+        var map = L.map('map', { zoomControl: true }).setView([lat, lng], 16);
+
+        L.tileLayer('${tileUrl}', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        var marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+
+        function send(lat, lng) {
+          try {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ latitude: lat, longitude: lng }));
+          } catch (e) {}
+        }
+
+        map.on('click', function (e) {
+          marker.setLatLng(e.latlng);
+          send(e.latlng.lat, e.latlng.lng);
+        });
+
+        marker.on('dragend', function () {
+          var p = marker.getLatLng();
+          send(p.lat, p.lng);
+        });
+      })();
+    </script>
+  </body>
+</html>`;
+  }, [locationCoords]);
 
   const handleSubmit = async () => {
     setErrors({});
@@ -222,7 +376,7 @@ export function RegisterScreen() {
       return;
     }
 
-    if (!regionVerified || !locationCoords) {
+    if (!locationCoords) {
       setErrors({ region: t("regionVerify") });
       return;
     }
@@ -230,12 +384,12 @@ export function RegisterScreen() {
     const input: RegisterInput = {
       registrationType: parsed.data.registrationType,
       nickname: parsed.data.nickname,
-      phone: normalizeMmPhone(parsed.data.phone),
-      email: parsed.data.email,
+      phone: normalizePhone(parsed.data.phone, phoneCountry.code),
+      email: parsed.data.email.trim().toLowerCase(),
       password: parsed.data.password,
       confirmPassword: parsed.data.confirmPassword,
       kbzPayName: parsed.data.kbzPayName,
-      kbzPayPhoneNumber: normalizeMmPhone(parsed.data.kbzPayPhoneNumber),
+      kbzPayPhoneNumber: normalizePhone(parsed.data.kbzPayPhoneNumber, phoneCountry.code),
       gender: parsed.data.gender,
       age: parsed.data.age,
       maritalStatus: parsed.data.maritalStatus,
@@ -247,29 +401,47 @@ export function RegisterScreen() {
 
     setIsSubmitting(true);
     try {
-      const ok = await register(input);
-      if (!ok) {
-        Alert.alert(t("registerFailedTitle"), t("registerFailedBody"));
-        return;
-      }
-      Alert.alert(
-        t("registerSuccessTitle"),
-        t("registerSuccessBody"),
-        [
-          {
-            text: "OK",
-            onPress: () => router.replace("/(tabs)"),
-          },
-        ]
-      );
+      await register(input);
+      // Go straight to verification so users can complete OTP/email flow.
+      router.replace({
+        pathname: "/(auth)/verify",
+        params: { phone: input.phone, email: input.email },
+      });
     } catch (err) {
-      const status = (err as { response?: { status?: number } })?.response?.status;
+      const e = err as {
+        response?: { status?: number; data?: { message?: unknown } };
+      };
+      const status = e?.response?.status;
+      const serverMessage =
+        typeof e?.response?.data?.message === "string"
+          ? e.response.data.message
+          : undefined;
+
       if (status === 409) {
         Alert.alert(t("registerFailedTitle"), t("registerConflictBody"));
       } else if (status === 400) {
-        Alert.alert(t("invalidRequestTitle"), t("registerFailedBody"));
+        Alert.alert(
+          t("invalidRequestTitle"),
+          serverMessage ?? t("registerFailedBody")
+        );
       } else {
-        Alert.alert(t("errorTitle"), t("genericErrorBody"));
+        // Backend can create user, then fail on SMS/email sending. If that happens,
+        // send user to verification where they can resend OTP/token.
+        Alert.alert(
+          t("errorTitle"),
+          serverMessage ?? t("genericErrorBody"),
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Verify",
+              onPress: () =>
+                router.replace({
+                  pathname: "/(auth)/verify",
+                  params: { phone: input.phone, email: input.email },
+                }),
+            },
+          ]
+        );
       }
     } finally {
       setIsSubmitting(false);
@@ -355,6 +527,34 @@ export function RegisterScreen() {
                 </ThemedText>
               </Pressable>
             </View>
+            {password.length > 0 ? (
+              <View style={styles.strengthWrap}>
+                <View
+                  style={[
+                    styles.strengthTrack,
+                    { backgroundColor: colors.icon + "20" },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.strengthFill,
+                      {
+                        width: `${((pw.score + 1) / 5) * 100}%`,
+                        backgroundColor: pw.color,
+                      },
+                    ]}
+                  />
+                </View>
+                <View style={styles.strengthRow}>
+                  <ThemedText style={[styles.strengthLabel, { color: pw.color }]}>
+                    {pw.label}
+                  </ThemedText>
+                  <ThemedText style={styles.strengthHint}>
+                    {pw.tips.length > 0 ? pw.tips[0] : "Looks good"}
+                  </ThemedText>
+                </View>
+              </View>
+            ) : null}
             {errors.password ? (
               <ThemedText style={styles.error}>{errors.password}</ThemedText>
             ) : null}
@@ -397,17 +597,30 @@ export function RegisterScreen() {
           {/* Phone */}
           <View style={styles.field}>
             <ThemedText style={styles.label}>{t("phoneNumber")}</ThemedText>
-            <TextInput
-              style={inputStyle(!!errors.phone)}
-              value={phone}
-              onChangeText={setPhone}
-              placeholder={t("phoneNumberPlaceholder")}
-              placeholderTextColor={colors.icon}
-              keyboardType="phone-pad"
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!isSubmitting}
-            />
+            <View style={styles.phoneRow}>
+              <Pressable
+                onPress={() => setIsPhoneCountryOpen(true)}
+                disabled={isSubmitting}
+                style={[
+                  styles.dialPicker,
+                  { borderColor: colors.icon, backgroundColor: colors.background },
+                ]}
+              >
+                <ThemedText style={styles.dialText}>{phoneCountry.dialCode}</ThemedText>
+                <ThemedText style={styles.dialChevron}>▾</ThemedText>
+              </Pressable>
+              <TextInput
+                style={[inputStyle(!!errors.phone), styles.phoneInput]}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder={t("phoneNumberPlaceholder")}
+                placeholderTextColor={colors.icon}
+                keyboardType="phone-pad"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!isSubmitting}
+              />
+            </View>
             {errors.phone ? (
               <ThemedText style={styles.error}>{errors.phone}</ThemedText>
             ) : null}
@@ -427,6 +640,9 @@ export function RegisterScreen() {
               autoCorrect={false}
               editable={!isSubmitting}
             />
+            {!errors.email && email.trim().length > 0 && !emailOk ? (
+              <ThemedText style={styles.error}>{t("emailInvalid")}</ThemedText>
+            ) : null}
             {errors.email ? (
               <ThemedText style={styles.error}>{errors.email}</ThemedText>
             ) : null}
@@ -542,29 +758,67 @@ export function RegisterScreen() {
               value={region}
               onChangeText={(v) => {
                 setRegion(v);
-                setRegionVerified(false);
-                setLocationCoords(null);
+                setRegionAuto(false);
               }}
               placeholder={t("regionPlaceholder")}
               placeholderTextColor={colors.icon}
               editable={!isSubmitting}
             />
+            <View style={styles.mapWrap}>
+              {locationCoords ? (
+                <WebView
+                  key={`${locationCoords.latitude},${locationCoords.longitude}`}
+                  style={styles.map}
+                  originWhitelist={["*"]}
+                  source={{ html: leafletHtml }}
+                  onMessage={(e) => {
+                    if (isSubmitting) return;
+                    try {
+                      const data = JSON.parse(e.nativeEvent.data) as LocationCoords;
+                      if (
+                        typeof data?.latitude === "number" &&
+                        typeof data?.longitude === "number"
+                      ) {
+                        applyCoords({ latitude: data.latitude, longitude: data.longitude });
+                      }
+                    } catch {
+                      // ignore malformed messages
+                    }
+                  }}
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.mapPlaceholder,
+                    { borderColor: colors.icon, backgroundColor: colors.background },
+                  ]}
+                >
+                  <ThemedText style={{ opacity: 0.7, textAlign: "center" }}>
+                    {t("regionVerify")}
+                  </ThemedText>
+                </View>
+              )}
+            </View>
             <Pressable
-              onPress={handleVerifyLocation}
+              onPress={handleUseCurrentLocation}
               disabled={isSubmitting || isLocating}
               style={[
                 styles.regionButton,
                 {
-                  borderColor: regionVerified ? SUCCESS : colors.tint,
-                  backgroundColor: regionVerified ? SUCCESS : "transparent",
+                  borderColor: locationCoords ? SUCCESS : colors.tint,
+                  backgroundColor: locationCoords ? SUCCESS : "transparent",
                 },
               ]}>
               <ThemedText
                 style={{
-                  color: regionVerified ? "#fff" : colors.tint,
+                  color: locationCoords ? "#fff" : colors.tint,
                   fontWeight: "600",
                 }}>
-                {regionVerified ? `✓ ${t("regionVerified")}` : `📍 ${t("regionVerify")}`}
+                {locationCoords
+                  ? `✓ ${t("regionVerified")}`
+                  : isLocating
+                    ? "Locating..."
+                    : `📍 ${t("regionVerify")}`}
               </ThemedText>
             </Pressable>
             {errors.region ? (
@@ -620,6 +874,46 @@ export function RegisterScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      {isPhoneCountryOpen ? (
+        <View style={styles.pickerOverlay}>
+          <Pressable
+            style={styles.pickerBackdrop}
+            onPress={() => setIsPhoneCountryOpen(false)}
+          />
+          <View
+            style={[
+              styles.pickerSheet,
+              { backgroundColor: colors.background, borderColor: colors.icon },
+            ]}
+          >
+            <ThemedText style={styles.pickerTitle}>Choose country</ThemedText>
+            {PHONE_COUNTRIES.map((c) => {
+              const selected = c.code === phoneCountry.code;
+              return (
+                <Pressable
+                  key={c.code}
+                  onPress={() => {
+                    setPhoneCountry(c);
+                    setIsPhoneCountryOpen(false);
+                  }}
+                  style={[
+                    styles.pickerRow,
+                    selected && { borderColor: colors.tint },
+                  ]}
+                >
+                  <ThemedText style={styles.pickerDial}>{c.dialCode}</ThemedText>
+                  <ThemedText style={styles.pickerCode}>{c.code}</ThemedText>
+                  {selected ? (
+                    <ThemedText style={{ color: colors.tint, fontWeight: "700" }}>
+                      ✓
+                    </ThemedText>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
     </ThemedView>
   );
 }
@@ -676,6 +970,108 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 14,
   },
+  phoneRow: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "center",
+  },
+  dialPicker: {
+    height: 48,
+    minWidth: 88,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderRadius: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  dialText: {
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  dialChevron: {
+    fontSize: 16,
+    opacity: 0.65,
+  },
+  phoneInput: {
+    flex: 1,
+  },
+  pickerOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: "flex-end",
+  },
+  pickerBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  pickerSheet: {
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 22,
+    gap: 10,
+  },
+  pickerTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    marginBottom: 2,
+  },
+  pickerRow: {
+    borderWidth: 1,
+    borderColor: "transparent",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  pickerDial: {
+    fontSize: 15,
+    fontWeight: "800",
+    width: 68,
+  },
+  pickerCode: {
+    fontSize: 13,
+    opacity: 0.7,
+    flex: 1,
+  },
+  strengthWrap: {
+    marginTop: 8,
+    gap: 6,
+  },
+  strengthTrack: {
+    height: 8,
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  strengthFill: {
+    height: "100%",
+    borderRadius: 999,
+  },
+  strengthRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+  },
+  strengthLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  strengthHint: {
+    fontSize: 12,
+    opacity: 0.7,
+    flex: 1,
+    textAlign: "right",
+  },
   segment: { flexDirection: "row", gap: 10 },
   segmentItem: {
     flex: 1,
@@ -698,6 +1094,24 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   warningText: { fontSize: 12, lineHeight: 18 },
+  mapWrap: {
+    marginTop: 10,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  map: {
+    height: 220,
+    width: "100%",
+  },
+  mapPlaceholder: {
+    height: 220,
+    width: "100%",
+    borderWidth: 1,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
   regionButton: {
     borderWidth: 1,
     borderRadius: 10,

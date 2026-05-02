@@ -1,4 +1,7 @@
-import type { LoginResponseDto } from "@/core/application/dtos/AuthDto";
+import type {
+  LoginResponseDto,
+  VerificationActionResultDto,
+} from "@/core/application/dtos/AuthDto";
 import {
   toAuthUser,
   toLoginRequestDto,
@@ -14,6 +17,7 @@ import type {
   RegisterData,
   RegisterInput,
 } from "@/core/domain/types/auth";
+import type { VerificationActionResult } from "@/core/domain/types/verification";
 import type { HttpClient } from "../api/HttpClient";
 import { API_ENDPOINTS } from "../api/constants";
 import { TokenStorage } from "../storage/TokenStorage";
@@ -37,17 +41,15 @@ export class ApiAuthRepository implements IAuthRepository {
     return user;
   }
 
-  async register(data: RegisterData | RegisterInput): Promise<AuthUser | null> {
+  async register(data: RegisterData | RegisterInput): Promise<VerificationActionResult> {
     const body = toRegisterRequestDto(data);
-    const res = await this.http.post<LoginResponseDto>(
+    const res = await this.http.post<VerificationActionResultDto>(
       API_ENDPOINTS.AUTH.REGISTER,
       body,
     );
-    const user = toAuthUser(res, body.email);
-    if (user?.accessToken) {
-      await TokenStorage.setAccessToken(user.accessToken);
-    }
-    return user;
+    const action =
+      typeof res?.action === "string" ? res.action : "REGISTRATION_PENDING_VERIFICATION";
+    return { action: action as VerificationActionResult["action"] };
   }
 
   async getProfile(): Promise<AuthUser | null> {

@@ -14,6 +14,7 @@ import type {
   RegisterData,
   RegisterInput,
 } from "@/core/domain/types/auth";
+import type { VerificationActionResult } from "@/core/domain/types/verification";
 import { useServices } from "./ServicesProvider";
 
 interface AuthState {
@@ -24,7 +25,7 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   login: (credentials: LoginCredentials) => Promise<boolean>;
-  register: (data: RegisterData | RegisterInput) => Promise<boolean>;
+  register: (data: RegisterData | RegisterInput) => Promise<VerificationActionResult>;
   logout: () => Promise<void>;
   sendPhoneOtp: (phone: string) => Promise<void>;
   verifyPhoneOtp: (phone: string, code: string) => Promise<void>;
@@ -79,11 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [authService]);
 
   const register = useCallback(async (data: RegisterData | RegisterInput) => {
-    const user = await authService.register(data);
-    if (!user) return false;
-
-    setState({ user, isLoading: false, isAuthenticated: true });
-    return true;
+    return authService.register(data);
   }, [authService]);
 
   const logout = useCallback(async () => {

@@ -63,7 +63,6 @@ export function toRegisterRequestDto(
 ): RegisterRequestDto {
   if ("registrationType" in data) {
     return {
-      registrationType: data.registrationType,
       nickname: data.nickname,
       phone: data.phone,
       email: data.email,
