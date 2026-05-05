@@ -33,6 +33,10 @@ function getAuthProfile(dto: LoginResponseDto): AuthProfileDto | undefined {
   return undefined;
 }
 
+function toSafeString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
 export function toAuthUser(
   dto: LoginResponseDto,
   fallbackEmail?: string,
@@ -51,9 +55,15 @@ export function toAuthUser(
   const user = getAuthProfile(dto);
   return {
     id: user?.id ?? "",
-    email: user?.email ?? fallbackEmail ?? "",
+    email: toSafeString(user?.email) || fallbackEmail || "",
+    phone: user?.phone ?? "",
     name: user?.name ?? user?.nickname ?? null,
     role: normalizeRole(user?.role),
+    isPhoneVerified: Boolean(user?.isPhoneVerified),
+    isEmailVerified: Boolean(user?.isEmailVerified),
+    kbzPayVerificationStatus:
+      typeof user?.kbzPay?.status === "string" ? user.kbzPay.status : null,
+    isKbzPayVerified: Boolean(user?.kbzPay?.isVerified),
     accessToken: token,
   };
 }

@@ -10,6 +10,7 @@ import { ActivityIndicator, View } from "react-native";
 import "react-native-reanimated";
 
 import { AnimatedLaunchScreen } from "@/components/animated-launch-screen";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthProvider, useAuth } from "@/presentation/providers/AuthProvider";
 import { LocaleProvider } from "@/presentation/providers/LocaleProvider";
@@ -70,6 +71,7 @@ export default function RootLayout() {
             <AuthProvider>
               <View style={{ flex: 1 }}>
                 <AuthGate />
+                <LanguageSwitcher />
                 {showLaunch ? (
                   <AnimatedLaunchScreen onFinish={handleLaunchFinish} />
                 ) : null}

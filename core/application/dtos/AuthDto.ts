@@ -11,6 +11,12 @@ export interface AuthProfileDto {
   nickname?: string | null;
   phone?: string;
   role?: string;
+  isPhoneVerified?: boolean;
+  isEmailVerified?: boolean;
+  kbzPay?: {
+    status?: string | null;
+    isVerified?: boolean;
+  } | null;
 }
 
 export interface LoginResponseDto extends AuthProfileDto {
