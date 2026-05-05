@@ -329,6 +329,53 @@ const DICT: Dictionary = {
     my: "K-pay အတည်ပြု တောင်းဆိုပြီး",
     zh: "K-pay 验证已请求",
   },
+  profileTitle: { ko: "프로필", my: "ပရိုဖိုင်", zh: "个人资料" },
+  profileMemberFallback: {
+    ko: "Flex Used Market 회원",
+    my: "Flex Used Market အဖွဲ့ဝင်",
+    zh: "Flex Used Market 用户",
+  },
+  profileEmailFallback: {
+    ko: "이메일 없음",
+    my: "အီးမေးလ် မရှိပါ",
+    zh: "暂无邮箱",
+  },
+  profileStatusVerified: { ko: "인증 완료", my: "အတည်ပြုပြီး", zh: "已验证" },
+  profileStatusNotVerified: {
+    ko: "미인증",
+    my: "မအတည်ပြုရသေး",
+    zh: "未验证",
+  },
+  profileStatusRequested: {
+    ko: "요청됨",
+    my: "တောင်းဆိုထားသည်",
+    zh: "已请求",
+  },
+  profileVerifiedHint: {
+    ko: "이미 인증이 완료되었습니다.",
+    my: "အတည်ပြုခြင်း ပြီးစီးပြီးဖြစ်သည်။",
+    zh: "已完成验证。",
+  },
+  signOutButton: { ko: "로그아웃", my: "ထွက်မည်", zh: "退出登录" },
+  tabsHome: { ko: "홈", my: "ပင်မ", zh: "首页" },
+  tabsProducts: { ko: "상품", my: "ပစ္စည်းများ", zh: "商品" },
+  tabsExplore: { ko: "탐색", my: "စူးစမ်း", zh: "探索" },
+  tabsProfile: { ko: "프로필", my: "ပရိုဖိုင်", zh: "个人资料" },
+  homeWelcome: { ko: "환영합니다", my: "ကြိုဆိုပါသည်", zh: "欢迎" },
+  homeBrandTitle: { ko: "Flex Used Market", my: "Flex Used Market", zh: "Flex Used Market" },
+  homeDashboardSubtitle: {
+    ko: "중고거래 대시보드입니다.",
+    my: "အသုံးပြုပြီး ပစ္စည်း စျေးကွက် ဒက်ရှ်ဘုတ်",
+    zh: "你的二手市场仪表板。",
+  },
+  loginPasswordLabel: { ko: "비밀번호", my: "စကားဝှက်", zh: "密码" },
+  loginVerifyRequiredFallback: {
+    ko: "로그인 전에 전화와 이메일 인증이 필요합니다",
+    my: "ဝင်ရန်မီ ဖုန်းနှင့် အီးမေးလ် အတည်ပြုရန်လိုအပ်သည်",
+    zh: "登录前需要完成手机和邮箱验证",
+  },
+  actionCancel: { ko: "취소", my: "မလုပ်တော့", zh: "取消" },
+  actionVerify: { ko: "인증", my: "အတည်ပြု", zh: "验证" },
 };
 
 function t(key: keyof typeof DICT, locale: AppLocale): string {

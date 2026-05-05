@@ -1,3 +1,4 @@
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -25,12 +26,10 @@ export function VerificationScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ phone?: string; email?: string }>();
   const {
-    login,
     sendPhoneOtp,
     verifyPhoneOtp,
     sendEmailVerification,
     verifyEmail,
-    requestKbzPayVerification,
   } = useAuth();
   const { t } = useLocale();
   const colorScheme = useColorScheme();
@@ -43,14 +42,9 @@ export function VerificationScreen() {
   const [otpCode, setOtpCode] = useState("");
   const [email, setEmail] = useState(initialEmail);
   const [emailToken, setEmailToken] = useState("");
-  const [password, setPassword] = useState("");
-  const [kbzMessage, setKbzMessage] = useState(
-    "Please verify my KBZPay quickly. I already transferred."
-  );
 
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
-  const [kbzRequested, setKbzRequested] = useState(false);
 
   const [loading, setLoading] = useState<Record<string, boolean>>({});
 
@@ -122,60 +116,12 @@ export function VerificationScreen() {
     }
   };
 
-  const handleKbzPay = async () => {
-    setBusy("kbz", true);
-    try {
-      await requestKbzPayVerification(
-        kbzMessage.trim() ||
-          "Please verify my KBZPay quickly. I already transferred."
-      );
-      setKbzRequested(true);
-      Alert.alert(t("kbzPayRequested"));
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setBusy("kbz", false);
-    }
-  };
-
-  const handleFinish = async () => {
-    if (!phoneVerified || !emailVerified) return;
-    if (!phone.trim() || !password.trim()) {
-      Alert.alert(t("errorTitle"), t("passwordRequired"));
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
       return;
     }
-
-    setBusy("finish", true);
-    try {
-      const ok = await login({ mode: "phone", phone: phone.trim(), password: password.trim() });
-      if (!ok) {
-        Alert.alert(t("loginFailedTitle"), t("loginFailedBody"));
-        return;
-      }
-      router.replace("/(tabs)");
-    } catch (err) {
-      const status = (err as { response?: { status?: number; data?: { message?: unknown } } })
-        ?.response?.status;
-      const serverMessage = (err as { response?: { data?: { message?: unknown } } })?.response
-        ?.data?.message;
-      if (status === 403) {
-        Alert.alert(
-          t("errorTitle"),
-          typeof serverMessage === "string"
-            ? serverMessage
-            : "Phone and email verification are required before login"
-        );
-      } else if (status === 401) {
-        Alert.alert(t("loginFailedTitle"), t("invalidCredsBody"));
-      } else {
-        Alert.alert(
-          t("errorTitle"),
-          typeof serverMessage === "string" ? serverMessage : t("genericErrorBody")
-        );
-      }
-    } finally {
-      setBusy("finish", false);
-    }
+    router.replace("/(auth)/login");
   };
 
   const inputStyle = {
@@ -192,9 +138,20 @@ export function VerificationScreen() {
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="always">
-          <ThemedText type="title" style={styles.title}>
-            {t("verification")}
-          </ThemedText>
+          <View style={styles.headerRow}>
+            <Pressable
+              accessibilityLabel="Go back"
+              accessibilityRole="button"
+              hitSlop={12}
+              onPress={handleBack}
+              style={styles.backButton}>
+              <MaterialIcons name="arrow-back" size={24} color={colors.text} />
+            </Pressable>
+            <ThemedText type="title" style={styles.title}>
+              {t("verification")}
+            </ThemedText>
+            <View style={styles.backButton} />
+          </View>
 
           {/* Phone OTP */}
           <View style={[styles.card, { borderColor: colors.icon }]}>
@@ -284,24 +241,6 @@ export function VerificationScreen() {
               autoCapitalize="none"
               editable={!emailVerified}
             />
-            <Pressable
-              onPress={handleResendEmail}
-              disabled={loading.sendEmail || emailVerified || !email.trim()}
-              style={[
-                styles.outlineButton,
-                { borderColor: colors.tint },
-                (loading.sendEmail || emailVerified || !email.trim()) && {
-                  opacity: 0.5,
-                },
-              ]}>
-              {loading.sendEmail ? (
-                <ActivityIndicator color={colors.tint} />
-              ) : (
-                <ThemedText style={[styles.outlineButtonText, { color: colors.tint }]}>
-                  {t("sendEmailVerificationButton")}
-                </ThemedText>
-              )}
-            </Pressable>
             <TextInput
               style={[styles.input, inputStyle]}
               value={emailToken}
@@ -351,83 +290,8 @@ export function VerificationScreen() {
             </Pressable>
           </View>
 
-          {/* KBZPay */}
-          <View style={[styles.card, { borderColor: colors.icon }]}>
-            <View style={styles.cardHeader}>
-              <ThemedText style={styles.cardTitle}>
-                {t("kbzPayVerification")}
-              </ThemedText>
-              {kbzRequested && (
-                <ThemedText style={[styles.badge, { color: SUCCESS }]}>
-                  ✓ {t("kbzPayRequested")}
-                </ThemedText>
-              )}
-            </View>
-            <TextInput
-              style={[
-                styles.input,
-                inputStyle,
-                { minHeight: 90, textAlignVertical: "top" },
-              ]}
-              value={kbzMessage}
-              onChangeText={setKbzMessage}
-              placeholder={t("kbzPayMessagePlaceholder")}
-              placeholderTextColor={colors.icon}
-              multiline
-              editable={!kbzRequested}
-            />
-            <Pressable
-              onPress={handleKbzPay}
-              disabled={loading.kbz || kbzRequested}
-              style={[
-                styles.primaryButton,
-                styles.fullWidthButton,
-                { backgroundColor: colors.tint },
-                (loading.kbz || kbzRequested) && { opacity: 0.6 },
-              ]}>
-              {loading.kbz ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <ThemedText style={styles.primaryButtonText}>
-                  {t("requestVerification")}
-                </ThemedText>
-              )}
-            </Pressable>
-          </View>
 
-          <Pressable
-            onPress={handleFinish}
-            disabled={!phoneVerified || !emailVerified || loading.finish}
-            style={[
-              styles.continueButton,
-              { borderColor: colors.tint, backgroundColor: colors.tint },
-              (!phoneVerified || !emailVerified || loading.finish) && { opacity: 0.6 },
-            ]}>
-            {loading.finish ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <ThemedText style={styles.primaryButtonText}>
-                {t("continueToApp")}
-              </ThemedText>
-            )}
-          </Pressable>
 
-          <View style={[styles.card, { borderColor: colors.icon }]}>
-            <ThemedText style={styles.cardTitle}>Login to finish</ThemedText>
-            <TextInput
-              style={[styles.input, inputStyle]}
-              value={password}
-              onChangeText={setPassword}
-              placeholder={t("password")}
-              placeholderTextColor={colors.icon}
-              secureTextEntry
-              autoCapitalize="none"
-              editable={!loading.finish}
-            />
-            <ThemedText style={{ opacity: 0.7, fontSize: 12 }}>
-              Enter your password to get an access token after verification.
-            </ThemedText>
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
@@ -442,7 +306,19 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     gap: 18,
   },
-  title: { fontSize: 22, marginBottom: 4 },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: { fontSize: 22 },
   card: {
     borderWidth: 1,
     borderRadius: 12,
@@ -450,12 +326,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
+    gap: 4,
   },
   cardTitle: { fontSize: 16, fontWeight: "700" },
-  badge: { fontSize: 12, fontWeight: "600" },
+  badge: {
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 16,
+    width: "100%",
+  },
   input: {
     borderWidth: 1,
     borderRadius: 10,
@@ -474,21 +354,5 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: { color: "#fff", fontWeight: "700", fontSize: 14 },
   fullWidthButton: { width: "100%", height: 48 },
-  outlineButton: {
-    width: "100%",
-    height: 48,
-    borderRadius: 10,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  outlineButtonText: { fontWeight: "700", fontSize: 15 },
   linkButton: { alignItems: "center", paddingVertical: 6 },
-  continueButton: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginTop: 8,
-  },
 });

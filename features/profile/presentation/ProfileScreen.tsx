@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -24,6 +24,7 @@ export function ProfileScreen() {
   const {
     user,
     logout,
+    refreshProfile,
     sendPhoneOtp,
     verifyPhoneOtp,
     sendEmailVerification,
@@ -36,14 +37,14 @@ export function ProfileScreen() {
 
   const sampleName = user?.name?.trim()
     ? user.name.trim()
-    : "Flex Used Market Member";
+    : t("profileMemberFallback");
   const sampleEmail = user?.email?.trim()
     ? user.email.trim()
-    : "member@flexusedmarket.app";
+    : t("profileEmailFallback");
   const sampleRole = user?.role?.toUpperCase() ?? "CUSTOMER";
   const sampleId = user?.id ? String(user.id) : "USR-SAMPLE-1024";
 
-  const [phone, setPhone] = useState("+959123456789");
+  const [phone, setPhone] = useState(user?.phone?.trim() || "+959123456789");
   const [otpCode, setOtpCode] = useState("");
   const [email, setEmail] = useState(sampleEmail);
   const [emailToken, setEmailToken] = useState("");
@@ -51,9 +52,11 @@ export function ProfileScreen() {
     "Please verify my KBZPay quickly. I already transferred."
   );
 
-  const [phoneVerified, setPhoneVerified] = useState(false);
-  const [emailVerified, setEmailVerified] = useState(false);
-  const [kbzRequested, setKbzRequested] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(Boolean(user?.isPhoneVerified));
+  const [emailVerified, setEmailVerified] = useState(Boolean(user?.isEmailVerified));
+  const [kbzRequested, setKbzRequested] = useState(
+    user?.kbzPayVerificationStatus === "REQUESTED"
+  );
   const [loading, setLoading] = useState<Record<string, boolean>>({});
 
   const initials = useMemo(() => {
@@ -65,6 +68,14 @@ export function ProfileScreen() {
 
   const setBusy = (key: string, value: boolean) =>
     setLoading((prev) => ({ ...prev, [key]: value }));
+
+  useEffect(() => {
+    setPhone(user?.phone?.trim() || "+959123456789");
+    setEmail(user?.email?.trim() || "member@flexusedmarket.app");
+    setPhoneVerified(Boolean(user?.isPhoneVerified));
+    setEmailVerified(Boolean(user?.isEmailVerified));
+    setKbzRequested(user?.kbzPayVerificationStatus === "REQUESTED");
+  }, [user]);
 
   const normalizePhone = (raw: string): string => {
     const trimmed = raw.trim();
@@ -112,7 +123,8 @@ export function ProfileScreen() {
     setBusy("verifyOtp", true);
     try {
       await verifyPhoneOtp(normalized, otpCode.trim());
-      setPhoneVerified(true);
+      const latest = await refreshProfile();
+      setPhoneVerified(Boolean(latest?.isPhoneVerified));
       Alert.alert(t("otpVerified"));
     } catch (err) {
       handleError(err);
@@ -139,7 +151,8 @@ export function ProfileScreen() {
     setBusy("verifyEmail", true);
     try {
       await verifyEmail(email.trim(), emailToken.trim());
-      setEmailVerified(true);
+      const latest = await refreshProfile();
+      setEmailVerified(Boolean(latest?.isEmailVerified));
       Alert.alert(t("emailVerified"));
     } catch (err) {
       handleError(err);
@@ -154,7 +167,10 @@ export function ProfileScreen() {
       await requestKbzPayVerification(
         kbzMessage.trim() || "Please verify my KBZPay quickly. I already transferred."
       );
-      setKbzRequested(true);
+      const latest = await refreshProfile();
+      setKbzRequested(
+        latest?.kbzPayVerificationStatus === "REQUESTED" || Boolean(latest?.isKbzPayVerified)
+      );
       Alert.alert(t("kbzPayRequested"));
     } catch (err) {
       handleError(err);
@@ -169,6 +185,14 @@ export function ProfileScreen() {
     backgroundColor: colors.background,
   } as const;
 
+  const phoneStatusText = phoneVerified ? t("profileStatusVerified") : t("profileStatusNotVerified");
+  const emailStatusText = emailVerified ? t("profileStatusVerified") : t("profileStatusNotVerified");
+  const kbzStatusText = user?.isKbzPayVerified
+    ? t("profileStatusVerified")
+    : kbzRequested
+      ? t("profileStatusRequested")
+      : t("profileStatusNotVerified");
+
   return (
     <ThemedView style={styles.screen}>
       <KeyboardAvoidingView
@@ -178,7 +202,7 @@ export function ProfileScreen() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled">
           <ThemedText type="title" style={styles.title}>
-            Profile
+            {t("profileTitle")}
           </ThemedText>
 
           <View style={[styles.card, { borderColor: colors.icon }]}>
@@ -199,9 +223,9 @@ export function ProfileScreen() {
           <View style={[styles.card, { borderColor: colors.icon }]}>
             <View style={styles.cardHeader}>
               <ThemedText style={styles.cardTitle}>{t("phoneVerification")}</ThemedText>
-              {phoneVerified ? (
-                <ThemedText style={[styles.badge, { color: SUCCESS }]}>Verified</ThemedText>
-              ) : null}
+              <ThemedText style={[styles.badge, { color: phoneVerified ? SUCCESS : colors.icon }]}>
+                {phoneStatusText}
+              </ThemedText>
             </View>
             <TextInput
               style={[styles.input, inputStyle]}
@@ -213,52 +237,58 @@ export function ProfileScreen() {
               autoCapitalize="none"
               editable={!phoneVerified}
             />
-            <View style={styles.inlineRow}>
-              <TextInput
-                style={[styles.input, inputStyle, { flex: 1 }]}
-                value={otpCode}
-                onChangeText={(v) => setOtpCode(v.replace(/\D/g, ""))}
-                placeholder={t("otpPlaceholder")}
-                placeholderTextColor={colors.icon}
-                keyboardType="number-pad"
-                maxLength={6}
-                editable={!phoneVerified}
-              />
-              <Pressable
-                onPress={handleVerifyOtp}
-                disabled={loading.verifyOtp || phoneVerified}
-                style={[
-                  styles.primaryButton,
-                  { backgroundColor: colors.tint },
-                  (loading.verifyOtp || phoneVerified) && { opacity: 0.6 },
-                ]}>
-                {loading.verifyOtp ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <ThemedText style={styles.primaryButtonText}>{t("verify")}</ThemedText>
-                )}
-              </Pressable>
-            </View>
-            <Pressable
-              onPress={handleSendOtp}
-              disabled={loading.sendOtp || phoneVerified}
-              style={styles.linkButton}>
-              {loading.sendOtp ? (
-                <ActivityIndicator color={colors.tint} size="small" />
-              ) : (
-                <ThemedText style={{ color: colors.tint, fontWeight: "600" }}>
-                  {t("resend")}
-                </ThemedText>
-              )}
-            </Pressable>
+            {!phoneVerified ? (
+              <>
+                <View style={styles.inlineRow}>
+                  <TextInput
+                    style={[styles.input, inputStyle, { flex: 1 }]}
+                    value={otpCode}
+                    onChangeText={(v) => setOtpCode(v.replace(/\D/g, ""))}
+                    placeholder={t("otpPlaceholder")}
+                    placeholderTextColor={colors.icon}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    editable={!phoneVerified}
+                  />
+                  <Pressable
+                    onPress={handleVerifyOtp}
+                    disabled={loading.verifyOtp || phoneVerified}
+                    style={[
+                      styles.primaryButton,
+                      { backgroundColor: colors.tint },
+                      (loading.verifyOtp || phoneVerified) && { opacity: 0.6 },
+                    ]}>
+                    {loading.verifyOtp ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <ThemedText style={styles.primaryButtonText}>{t("verify")}</ThemedText>
+                    )}
+                  </Pressable>
+                </View>
+                <Pressable
+                  onPress={handleSendOtp}
+                  disabled={loading.sendOtp || phoneVerified}
+                  style={styles.linkButton}>
+                  {loading.sendOtp ? (
+                    <ActivityIndicator color={colors.tint} size="small" />
+                  ) : (
+                    <ThemedText style={{ color: colors.tint, fontWeight: "600" }}>
+                      {t("resend")}
+                    </ThemedText>
+                  )}
+                </Pressable>
+              </>
+            ) : (
+              <ThemedText style={styles.profileSub}>{t("profileVerifiedHint")}</ThemedText>
+            )}
           </View>
 
           <View style={[styles.card, { borderColor: colors.icon }]}>
             <View style={styles.cardHeader}>
               <ThemedText style={styles.cardTitle}>{t("emailVerification")}</ThemedText>
-              {emailVerified ? (
-                <ThemedText style={[styles.badge, { color: SUCCESS }]}>Verified</ThemedText>
-              ) : null}
+              <ThemedText style={[styles.badge, { color: emailVerified ? SUCCESS : colors.icon }]}>
+                {emailStatusText}
+              </ThemedText>
             </View>
             <TextInput
               style={[styles.input, inputStyle]}
@@ -270,61 +300,71 @@ export function ProfileScreen() {
               autoCapitalize="none"
               editable={!emailVerified}
             />
-            <Pressable
-              onPress={handleSendEmail}
-              disabled={loading.sendEmail || emailVerified || !email.trim()}
-              style={[
-                styles.outlineButton,
-                { borderColor: colors.tint },
-                (loading.sendEmail || emailVerified || !email.trim()) && { opacity: 0.5 },
-              ]}>
-              {loading.sendEmail ? (
-                <ActivityIndicator color={colors.tint} />
-              ) : (
-                <ThemedText style={[styles.outlineButtonText, { color: colors.tint }]}>
-                  {t("sendEmailVerificationButton")}
-                </ThemedText>
-              )}
-            </Pressable>
-            <TextInput
-              style={[styles.input, inputStyle]}
-              value={emailToken}
-              onChangeText={setEmailToken}
-              placeholder={t("emailTokenPlaceholder")}
-              placeholderTextColor={colors.icon}
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!emailVerified}
-            />
-            <Pressable
-              onPress={handleVerifyEmail}
-              disabled={
-                loading.verifyEmail || emailVerified || !email.trim() || !emailToken.trim()
-              }
-              style={[
-                styles.primaryButton,
-                styles.fullWidthButton,
-                { backgroundColor: colors.tint },
-                (loading.verifyEmail || emailVerified || !email.trim() || !emailToken.trim()) && {
-                  opacity: 0.6,
-                },
-              ]}>
-              {loading.verifyEmail ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <ThemedText style={styles.primaryButtonText}>
-                  {t("verifyEmailButton")}
-                </ThemedText>
-              )}
-            </Pressable>
+            {!emailVerified ? (
+              <>
+                <Pressable
+                  onPress={handleSendEmail}
+                  disabled={loading.sendEmail || emailVerified || !email.trim()}
+                  style={[
+                    styles.outlineButton,
+                    { borderColor: colors.tint },
+                    (loading.sendEmail || emailVerified || !email.trim()) && { opacity: 0.5 },
+                  ]}>
+                  {loading.sendEmail ? (
+                    <ActivityIndicator color={colors.tint} />
+                  ) : (
+                    <ThemedText style={[styles.outlineButtonText, { color: colors.tint }]}>
+                      {t("sendEmailVerificationButton")}
+                    </ThemedText>
+                  )}
+                </Pressable>
+                <TextInput
+                  style={[styles.input, inputStyle]}
+                  value={emailToken}
+                  onChangeText={setEmailToken}
+                  placeholder={t("emailTokenPlaceholder")}
+                  placeholderTextColor={colors.icon}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!emailVerified}
+                />
+                <Pressable
+                  onPress={handleVerifyEmail}
+                  disabled={
+                    loading.verifyEmail || emailVerified || !email.trim() || !emailToken.trim()
+                  }
+                  style={[
+                    styles.primaryButton,
+                    styles.fullWidthButton,
+                    { backgroundColor: colors.tint },
+                    (loading.verifyEmail || emailVerified || !email.trim() || !emailToken.trim()) && {
+                      opacity: 0.6,
+                    },
+                  ]}>
+                  {loading.verifyEmail ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <ThemedText style={styles.primaryButtonText}>
+                      {t("verifyEmailButton")}
+                    </ThemedText>
+                  )}
+                </Pressable>
+              </>
+            ) : (
+              <ThemedText style={styles.profileSub}>{t("profileVerifiedHint")}</ThemedText>
+            )}
           </View>
 
           <View style={[styles.card, { borderColor: colors.icon }]}>
             <View style={styles.cardHeader}>
               <ThemedText style={styles.cardTitle}>{t("kbzPayVerification")}</ThemedText>
-              {kbzRequested ? (
-                <ThemedText style={[styles.badge, { color: SUCCESS }]}>Requested</ThemedText>
-              ) : null}
+              <ThemedText
+                style={[
+                  styles.badge,
+                  { color: user?.isKbzPayVerified || kbzRequested ? SUCCESS : colors.icon },
+                ]}>
+                {kbzStatusText}
+              </ThemedText>
             </View>
             <TextInput
               style={[
@@ -364,7 +404,9 @@ export function ProfileScreen() {
               styles.signOutButton,
               { borderColor: colors.tint, backgroundColor: colors.background },
             ]}>
-            <ThemedText style={[styles.signOutText, { color: colors.tint }]}>Sign Out</ThemedText>
+            <ThemedText style={[styles.signOutText, { color: colors.tint }]}>
+              {t("signOutButton")}
+            </ThemedText>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -408,12 +450,16 @@ const styles = StyleSheet.create({
   profileName: { fontSize: 16, fontWeight: "700" },
   profileSub: { fontSize: 13, opacity: 0.72 },
   cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
+    gap: 4,
   },
   cardTitle: { fontSize: 16, fontWeight: "700" },
-  badge: { fontSize: 12, fontWeight: "700" },
+  badge: {
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 16,
+    width: "100%",
+  },
   input: {
     borderWidth: 1,
     borderRadius: 10,

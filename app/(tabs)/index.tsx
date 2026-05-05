@@ -3,27 +3,29 @@ import { StyleSheet, View } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useAuth } from "@/presentation/providers/AuthProvider";
+import { useLocale } from "@/presentation/providers/LocaleProvider";
 
 export default function HomeScreen() {
   const { user, logout } = useAuth();
+  const { t } = useLocale();
 
   return (
     <ThemedView style={styles.container}>
       <View style={styles.header}>
         <ThemedText type="title">
-          Welcome{user?.name ? `, ${user.name}` : ""}!
+          {t("homeWelcome")}{user?.name ? `, ${user.name}` : ""}!
         </ThemedText>
         <ThemedText style={styles.subtitle}>{user?.email}</ThemedText>
       </View>
 
       <View style={styles.content}>
-        <ThemedText type="subtitle">Flex Used Market</ThemedText>
-        <ThemedText>Your used-item marketplace dashboard.</ThemedText>
+        <ThemedText type="subtitle">{t("homeBrandTitle")}</ThemedText>
+        <ThemedText>{t("homeDashboardSubtitle")}</ThemedText>
       </View>
 
       <View style={styles.logoutWrapper}>
         <ThemedText type="link" onPress={logout} style={styles.logoutText}>
-          Sign Out
+          {t("signOutButton")}
         </ThemedText>
       </View>
     </ThemedView>

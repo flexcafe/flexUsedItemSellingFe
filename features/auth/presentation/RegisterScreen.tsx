@@ -17,10 +17,16 @@ import {
   TextInput,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { WebView } from "react-native-webview";
 import { z } from "zod";
 
 import { AuthLogo } from "@/components/auth-logo";
+import { PhoneNumberInput } from "@/components/phone-number-input";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
@@ -158,7 +164,7 @@ function Segmented<T extends string>({
 export function RegisterScreen() {
   const router = useRouter();
   const { register } = useAuth();
-  const { t } = useLocale();
+  const { locale, setLocale, t } = useLocale();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
@@ -173,7 +179,9 @@ export function RegisterScreen() {
   const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>(
     PHONE_COUNTRIES[0]!,
   );
-  const [isPhoneCountryOpen, setIsPhoneCountryOpen] = useState(false);
+  const [kbzPayPhoneCountry, setKbzPayPhoneCountry] = useState<PhoneCountry>(
+    PHONE_COUNTRIES[0]!,
+  );
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [kbzPayName, setKbzPayName] = useState("");
@@ -191,6 +199,7 @@ export function RegisterScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [languageWidth, setLanguageWidth] = useState(0);
   const pw = useMemo(() => getPasswordStrength(password), [password]);
   const emailOk = useMemo(
     () => z.string().trim().email().safeParse(email).success,
@@ -233,13 +242,13 @@ export function RegisterScreen() {
         (v) => {
           const normalized = normalizePhone(
             v.kbzPayPhoneNumber,
-            phoneCountry.code,
+            kbzPayPhoneCountry.code,
           );
-          return isValidPhoneNumber(normalized, phoneCountry.code);
+          return isValidPhoneNumber(normalized, kbzPayPhoneCountry.code);
         },
         { path: ["kbzPayPhoneNumber"], message: t("phoneRequired") },
       );
-  }, [t, phoneCountry.code]);
+  }, [t, phoneCountry.code, kbzPayPhoneCountry.code]);
 
   const applyCoords = async (coords: LocationCoords) => {
     setLocationCoords(coords);
@@ -358,6 +367,24 @@ export function RegisterScreen() {
 </html>`;
   }, [locationCoords]);
 
+  const langIndex = locale === "ko" ? 0 : locale === "my" ? 1 : 2;
+  const pillX = useSharedValue(0);
+  const pillStyle = useAnimatedStyle(() => {
+    const w = languageWidth > 0 ? languageWidth / 3 : 0;
+    return {
+      width: w,
+      transform: [{ translateX: pillX.value }],
+    };
+  }, [languageWidth]);
+
+  if (languageWidth > 0) {
+    const w = languageWidth / 3;
+    const target = w * langIndex;
+    if (pillX.value !== target) {
+      pillX.value = withTiming(target, { duration: 420 });
+    }
+  }
+
   const handleSubmit = async () => {
     setErrors({});
     const parsed = schema.safeParse({
@@ -401,7 +428,7 @@ export function RegisterScreen() {
       kbzPayName: parsed.data.kbzPayName,
       kbzPayPhoneNumber: normalizePhone(
         parsed.data.kbzPayPhoneNumber,
-        phoneCountry.code,
+        kbzPayPhoneCountry.code,
       ),
       gender: parsed.data.gender,
       age: parsed.data.age,
@@ -455,6 +482,27 @@ export function RegisterScreen() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleAgeChange = (value: string) => {
+    const digits = value.replace(/[^0-9]/g, "").slice(0, 3);
+    setAge(digits);
+
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (!digits) {
+        delete next.age;
+        return next;
+      }
+
+      const n = Number(digits);
+      if (n < 14 || n > 120) {
+        next.age = t("ageInvalid");
+      } else {
+        delete next.age;
+      }
+      return next;
+    });
   };
 
   const inputStyle = (hasError?: boolean) => [
@@ -626,35 +674,15 @@ export function RegisterScreen() {
           {/* Phone */}
           <View style={styles.field}>
             <ThemedText style={styles.label}>{t("phoneNumber")}</ThemedText>
-            <View style={styles.phoneRow}>
-              <Pressable
-                onPress={() => setIsPhoneCountryOpen(true)}
-                disabled={isSubmitting}
-                style={[
-                  styles.dialPicker,
-                  {
-                    borderColor: colors.icon,
-                    backgroundColor: colors.background,
-                  },
-                ]}
-              >
-                <ThemedText style={styles.dialText}>
-                  {phoneCountry.dialCode}
-                </ThemedText>
-                <ThemedText style={styles.dialChevron}>▾</ThemedText>
-              </Pressable>
-              <TextInput
-                style={[inputStyle(!!errors.phone), styles.phoneInput]}
-                value={phone}
-                onChangeText={setPhone}
-                placeholder={t("phoneNumberPlaceholder")}
-                placeholderTextColor={colors.icon}
-                keyboardType="phone-pad"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!isSubmitting}
-              />
-            </View>
+            <PhoneNumberInput
+              value={phone}
+              onChangeText={setPhone}
+              selectedCountry={phoneCountry}
+              onCountryChange={setPhoneCountry}
+              placeholder={t("phoneNumberPlaceholder")}
+              error={!!errors.phone}
+              editable={!isSubmitting}
+            />
             {errors.phone ? (
               <ThemedText style={styles.error}>{errors.phone}</ThemedText>
             ) : null}
@@ -708,14 +736,13 @@ export function RegisterScreen() {
 
             <View style={styles.field}>
               <ThemedText style={styles.label}>{t("kPayPhone")}</ThemedText>
-              <TextInput
-                style={inputStyle(!!errors.kbzPayPhoneNumber)}
+              <PhoneNumberInput
                 value={kbzPayPhoneNumber}
                 onChangeText={setKbzPayPhoneNumber}
+                selectedCountry={kbzPayPhoneCountry}
+                onCountryChange={setKbzPayPhoneCountry}
                 placeholder={t("phoneNumberPlaceholder")}
-                placeholderTextColor={colors.icon}
-                keyboardType="phone-pad"
-                autoCapitalize="none"
+                error={!!errors.kbzPayPhoneNumber}
                 editable={!isSubmitting}
               />
               {errors.kbzPayPhoneNumber ? (
@@ -759,7 +786,7 @@ export function RegisterScreen() {
             <TextInput
               style={inputStyle(!!errors.age)}
               value={age}
-              onChangeText={(v) => setAge(v.replace(/[^0-9]/g, ""))}
+              onChangeText={handleAgeChange}
               placeholder={t("agePlaceholder")}
               placeholderTextColor={colors.icon}
               keyboardType="number-pad"
@@ -923,52 +950,59 @@ export function RegisterScreen() {
             </Pressable>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
-      {isPhoneCountryOpen ? (
-        <View style={styles.pickerOverlay}>
-          <Pressable
-            style={styles.pickerBackdrop}
-            onPress={() => setIsPhoneCountryOpen(false)}
-          />
+        <View pointerEvents="box-none" style={styles.languageDock}>
           <View
             style={[
-              styles.pickerSheet,
-              { backgroundColor: colors.background, borderColor: colors.icon },
+              styles.languageBar,
+              { backgroundColor: colors.background, borderColor: colors.tint },
             ]}
+            onLayout={(e) => setLanguageWidth(e.nativeEvent.layout.width - 16)}
           >
-            <ThemedText style={styles.pickerTitle}>Choose country</ThemedText>
-            {PHONE_COUNTRIES.map((c) => {
-              const selected = c.code === phoneCountry.code;
-              return (
-                <Pressable
-                  key={c.code}
-                  onPress={() => {
-                    setPhoneCountry(c);
-                    setIsPhoneCountryOpen(false);
-                  }}
-                  style={[
-                    styles.pickerRow,
-                    selected && { borderColor: colors.tint },
-                  ]}
-                >
-                  <ThemedText style={styles.pickerDial}>
-                    {c.dialCode}
-                  </ThemedText>
-                  <ThemedText style={styles.pickerCode}>{c.code}</ThemedText>
-                  {selected ? (
-                    <ThemedText
-                      style={{ color: colors.tint, fontWeight: "700" }}
-                    >
-                      ✓
-                    </ThemedText>
-                  ) : null}
-                </Pressable>
-              );
-            })}
+            <Animated.View
+              style={[
+                styles.languagePill,
+                { backgroundColor: colors.tint },
+                pillStyle,
+              ]}
+            />
+
+            <Pressable
+              disabled={isSubmitting}
+              style={styles.flagButton}
+              onPress={() => setLocale("ko")}
+            >
+              <ThemedText
+                style={[styles.flag, locale === "ko" && styles.flagSelected]}
+              >
+                {"\uD83C\uDDF0\uD83C\uDDF7"}
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              disabled={isSubmitting}
+              style={styles.flagButton}
+              onPress={() => setLocale("my")}
+            >
+              <ThemedText
+                style={[styles.flag, locale === "my" && styles.flagSelected]}
+              >
+                {"\uD83C\uDDF2\uD83C\uDDF2"}
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              disabled={isSubmitting}
+              style={styles.flagButton}
+              onPress={() => setLocale("zh")}
+            >
+              <ThemedText
+                style={[styles.flag, locale === "zh" && styles.flagSelected]}
+              >
+                {"\uD83C\uDDE8\uD83C\uDDF3"}
+              </ThemedText>
+            </Pressable>
           </View>
         </View>
-      ) : null}
-    </ThemedView>
+      </KeyboardAvoidingView>
+      </ThemedView>
   );
 }
 
@@ -977,7 +1011,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     paddingTop: 42,
-    paddingBottom: 40,
+    paddingBottom: 96,
     gap: 18,
   },
   brandArea: {
@@ -1190,4 +1224,47 @@ const styles = StyleSheet.create({
   },
   footerText: { fontSize: 14, opacity: 0.7 },
   footerLink: { fontSize: 14, fontWeight: "700" },
+  languageDock: {
+    position: "absolute",
+    left: 24,
+    right: 24,
+    bottom: 18,
+  },
+  languageBar: {
+    height: 56,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    position: "relative",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  languagePill: {
+    position: "absolute",
+    left: 8,
+    top: 8,
+    bottom: 8,
+    borderRadius: 12,
+  },
+  flagButton: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  flag: {
+    fontSize: 22,
+    opacity: 0.95,
+  },
+  flagSelected: {
+    color: "#fff",
+    opacity: 1,
+  },
 });
+

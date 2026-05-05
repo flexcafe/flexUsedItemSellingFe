@@ -25,6 +25,7 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   login: (credentials: LoginCredentials) => Promise<boolean>;
+  refreshProfile: () => Promise<AuthUser | null>;
   register: (
     data: RegisterData | RegisterInput,
   ) => Promise<VerificationActionResult>;
@@ -87,6 +88,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [authService],
   );
 
+  const refreshProfile = useCallback(async () => {
+    const user = await authService.getProfile();
+    setState({
+      user,
+      isLoading: false,
+      isAuthenticated: user !== null,
+    });
+    return user;
+  }, [authService]);
+
   const register = useCallback(
     async (data: RegisterData | RegisterInput) => {
       return authService.register(data);
@@ -139,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       ...state,
       login,
+      refreshProfile,
       register,
       logout,
       sendPhoneOtp,
@@ -150,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [
       state,
       login,
+      refreshProfile,
       register,
       logout,
       sendPhoneOtp,

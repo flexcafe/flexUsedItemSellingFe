@@ -1,4 +1,5 @@
 import { useRouter, type Href } from "expo-router";
+import { parsePhoneNumberFromString } from "libphonenumber-js";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -19,12 +20,31 @@ import Animated, {
 import { z } from "zod";
 
 import { AuthLogo } from "@/components/auth-logo";
+import {
+  PHONE_COUNTRIES,
+  PhoneNumberInput,
+  type PhoneCountry,
+} from "@/components/phone-number-input";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
+
+function normalizePhone(raw: string, countryCode: PhoneCountry["code"]): string {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) return trimmed;
+
+  if (countryCode === "MM") {
+    const digits = trimmed.replace(/\D/g, "");
+    if (digits.startsWith("09")) return `+959${digits.slice(2)}`;
+    if (digits.startsWith("959")) return `+${digits}`;
+  }
+
+  const parsed = parsePhoneNumberFromString(trimmed, countryCode);
+  return parsed?.number ?? trimmed;
+}
 
 export function LoginScreen() {
   const router = useRouter();
@@ -43,6 +63,9 @@ export function LoginScreen() {
   const loginSchema = phoneSchema;
 
   const mode = "phone" as const;
+  const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>(
+    PHONE_COUNTRIES[0]!,
+  );
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -54,7 +77,12 @@ export function LoginScreen() {
 
   const handleLogin = async () => {
     setErrors({});
-    const result = loginSchema.safeParse({ mode, phone, password });
+    const normalizedPhone = normalizePhone(phone, phoneCountry.code);
+    const result = loginSchema.safeParse({
+      mode,
+      phone: normalizedPhone,
+      password,
+    });
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((issue) => {
@@ -87,11 +115,11 @@ export function LoginScreen() {
           t("errorTitle"),
           typeof serverMessage === "string"
             ? serverMessage
-            : "Phone and email verification are required before login",
+            : t("loginVerifyRequiredFallback"),
           [
-            { text: "Cancel", style: "cancel" },
+            { text: t("actionCancel"), style: "cancel" },
             {
-              text: "Verify",
+              text: t("actionVerify"),
               onPress: () =>
                 router.push({
                   pathname: "/(auth)/verify",
@@ -142,7 +170,7 @@ export function LoginScreen() {
         >
           <View style={styles.header}>
             <AuthLogo variant="compact" />
-            <ThemedText type="title" style={styles.appTitle}>
+            <ThemedText numberOfLines={1} type="title" style={styles.appTitle}>
               {t("appName")}
             </ThemedText>
             <ThemedText style={styles.subtitle}>
@@ -153,21 +181,13 @@ export function LoginScreen() {
           <View style={styles.form}>
             <View style={styles.field}>
               <ThemedText style={styles.label}>{t("phone")}</ThemedText>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    color: colors.text,
-                    borderColor: errors.phone ? "#e74c3c" : colors.icon,
-                  },
-                ]}
+              <PhoneNumberInput
                 value={phone}
                 onChangeText={setPhone}
-                placeholder="+959123456789"
-                placeholderTextColor={colors.icon}
-                keyboardType="phone-pad"
-                autoCapitalize="none"
-                autoCorrect={false}
+                selectedCountry={phoneCountry}
+                onCountryChange={setPhoneCountry}
+                placeholder={t("phoneNumberPlaceholder")}
+                error={!!errors.phone}
                 editable={!isSubmitting}
               />
               {errors.phone && (
@@ -176,7 +196,7 @@ export function LoginScreen() {
             </View>
 
             <View style={styles.field}>
-              <ThemedText style={styles.label}>Password</ThemedText>
+              <ThemedText style={styles.label}>{t("loginPasswordLabel")}</ThemedText>
               <View style={styles.passwordRow}>
                 <TextInput
                   style={[
@@ -329,6 +349,8 @@ const styles = StyleSheet.create({
   },
   appTitle: {
     marginTop: 8,
+    fontSize: 26,
+    lineHeight: 30,
   },
   subtitle: {
     opacity: 0.6,
