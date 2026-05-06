@@ -2,11 +2,13 @@ import { createContext, useContext, type ReactNode } from "react";
 
 import type { IAuthService } from "@/core/domain/services/IAuthService";
 import type { IProductService } from "@/core/domain/services/IProductService";
+import type { IProfileService } from "@/core/domain/services/IProfileService";
 import type { IPreferencesRepository } from "@/core/domain/repositories/IPreferencesRepository";
 
 export interface AppServices {
   authService: IAuthService;
   productService: IProductService;
+  profileService: IProfileService;
   preferencesRepository: IPreferencesRepository;
 }
 

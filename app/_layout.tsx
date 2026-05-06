@@ -19,6 +19,7 @@ import { ServicesProvider } from "@/presentation/providers/ServicesProvider";
 import container from "@/core/infrastructure/di/container";
 import type { IAuthService } from "@/core/domain/services/IAuthService";
 import type { IProductService } from "@/core/domain/services/IProductService";
+import type { IProfileService } from "@/core/domain/services/IProfileService";
 import type { IPreferencesRepository } from "@/core/domain/repositories/IPreferencesRepository";
 
 function AuthGate() {
@@ -59,6 +60,7 @@ export default function RootLayout() {
   const services = useState(() => ({
     authService: container.resolve<IAuthService>("authService"),
     productService: container.resolve<IProductService>("productService"),
+    profileService: container.resolve<IProfileService>("profileService"),
     preferencesRepository:
       container.resolve<IPreferencesRepository>("preferencesRepository"),
   }))[0];
