@@ -16,6 +16,13 @@ export interface AuthProfileDto {
   kbzPay?: {
     status?: string | null;
     isVerified?: boolean;
+    adminPhoneForTransfer?: string | null;
+    adminNote?: string | null;
+    message?: string | null;
+    kbzTransactionId?: string | null;
+    transactionId?: string | null;
+    requestedAt?: string | null;
+    verifyRequestedAt?: string | null;
   } | null;
 }
 
@@ -72,5 +79,9 @@ export interface EmailVerifyRequestDto {
 }
 
 export interface KbzPayVerificationRequestDto {
-  message: string;
+  message?: string;
+}
+
+export interface KbzPaySubmitTransactionRequestDto {
+  kbzTransactionId: string;
 }

@@ -11,5 +11,9 @@ export interface AuthUser {
   isEmailVerified: boolean;
   kbzPayVerificationStatus: string | null;
   isKbzPayVerified: boolean;
+  kbzPayAdminPhoneForTransfer: string | null;
+  kbzPayAdminNote: string | null;
+  kbzPayTransactionId: string | null;
+  kbzPayRequestedAt: string | null;
   accessToken: string;
 }

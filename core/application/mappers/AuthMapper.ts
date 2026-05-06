@@ -64,6 +64,24 @@ export function toAuthUser(
     kbzPayVerificationStatus:
       typeof user?.kbzPay?.status === "string" ? user.kbzPay.status : null,
     isKbzPayVerified: Boolean(user?.kbzPay?.isVerified),
+    kbzPayAdminPhoneForTransfer:
+      typeof user?.kbzPay?.adminPhoneForTransfer === "string"
+        ? user.kbzPay.adminPhoneForTransfer
+        : null,
+    kbzPayAdminNote:
+      typeof user?.kbzPay?.adminNote === "string" ? user.kbzPay.adminNote : null,
+    kbzPayTransactionId:
+      typeof user?.kbzPay?.kbzTransactionId === "string"
+        ? user.kbzPay.kbzTransactionId
+        : typeof user?.kbzPay?.transactionId === "string"
+          ? user.kbzPay.transactionId
+          : null,
+    kbzPayRequestedAt:
+      typeof user?.kbzPay?.verifyRequestedAt === "string"
+        ? user.kbzPay.verifyRequestedAt
+        : typeof user?.kbzPay?.requestedAt === "string"
+          ? user.kbzPay.requestedAt
+          : null,
     accessToken: token,
   };
 }
