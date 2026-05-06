@@ -451,6 +451,136 @@ const DICT: Dictionary = {
     my: "အတည်ပြုခြင်း ပြီးစီးပြီးဖြစ်သည်။",
     zh: "已完成验证。",
   },
+  rewardMyProfile: {
+    ko: "My Profile (본인정보)",
+    my: "My Profile (본인정보)",
+    zh: "My Profile (본인정보)",
+  },
+  rewardMyPoints: {
+    ko: "My Points (내 포인트)",
+    my: "My Points (내 포인트)",
+    zh: "My Points (내 포인트)",
+  },
+  rewardCashoutHint: {
+    ko: "Cash withdrawal available from 5,000 points (5,000 포인트부터 현금으로 인출 가능)",
+    my: "Cash withdrawal available from 5,000 points (5,000 포인트부터 현금으로 인출 가능)",
+    zh: "Cash withdrawal available from 5,000 points (5,000 포인트부터 현금으로 인출 가능)",
+  },
+  rewardWithdrawalAmount: {
+    ko: "Withdrawal Amount (인출 금액)",
+    my: "Withdrawal Amount (인출 금액)",
+    zh: "Withdrawal Amount (인출 금액)",
+  },
+  rewardWithdrawalPlaceholder: {
+    ko: "Enter amount (금액 입력)",
+    my: "Enter amount (금액 입력)",
+    zh: "Enter amount (금액 입력)",
+  },
+  rewardRequestWithdrawal: {
+    ko: "Request Withdrawal (인출 요청)",
+    my: "Request Withdrawal (인출 요청)",
+    zh: "Request Withdrawal (인출 요청)",
+  },
+  rewardTransactionStats: {
+    ko: "Transaction Stats (거래 통계)",
+    my: "Transaction Stats (거래 통계)",
+    zh: "Transaction Stats (거래 통계)",
+  },
+  rewardTotalTransactions: {
+    ko: "Total Transactions (총 거래 수)",
+    my: "Total Transactions (총 거래 수)",
+    zh: "Total Transactions (총 거래 수)",
+  },
+  rewardCompletedSales: {
+    ko: "Completed Sales (판매 완료)",
+    my: "Completed Sales (판매 완료)",
+    zh: "Completed Sales (판매 완료)",
+  },
+  rewardCompletedPurchases: {
+    ko: "Completed Purchases (구매 완료)",
+    my: "Completed Purchases (구매 완료)",
+    zh: "Completed Purchases (구매 완료)",
+  },
+  rewardRankSystem: {
+    ko: "Rank System (회원 등급 체계)",
+    my: "Rank System (회원 등급 체계)",
+    zh: "Rank System (회원 등급 체계)",
+  },
+  rewardCurrentRank: {
+    ko: "Current rank",
+    my: "Current rank",
+    zh: "Current rank",
+  },
+  rewardNextRank: {
+    ko: "Next rank",
+    my: "Next rank",
+    zh: "Next rank",
+  },
+  rewardAvailablePoints: {
+    ko: "Available withdrawal points",
+    my: "Available withdrawal points",
+    zh: "Available withdrawal points",
+  },
+  rewardPendingWithdrawal: {
+    ko: "Pending withdrawal",
+    my: "Pending withdrawal",
+    zh: "Pending withdrawal",
+  },
+  rewardWithdrawalHistory: {
+    ko: "Withdrawal History",
+    my: "Withdrawal History",
+    zh: "Withdrawal History",
+  },
+  rewardNoWithdrawals: {
+    ko: "No withdrawal requests yet.",
+    my: "No withdrawal requests yet.",
+    zh: "No withdrawal requests yet.",
+  },
+  rewardWithdrawalRequested: {
+    ko: "Withdrawal request submitted.",
+    my: "Withdrawal request submitted.",
+    zh: "Withdrawal request submitted.",
+  },
+  rewardWithdrawalKbzRequired: {
+    ko: "Verify KBZPay before requesting withdrawal.",
+    my: "Verify KBZPay before requesting withdrawal.",
+    zh: "Verify KBZPay before requesting withdrawal.",
+  },
+  rewardWithdrawalMin: {
+    ko: "You need at least 5,000 available points to request cash withdrawal.",
+    my: "You need at least 5,000 available points to request cash withdrawal.",
+    zh: "You need at least 5,000 available points to request cash withdrawal.",
+  },
+  rewardWithdrawalAmountRequired: {
+    ko: "Enter a withdrawal amount.",
+    my: "Enter a withdrawal amount.",
+    zh: "Enter a withdrawal amount.",
+  },
+  rewardWithdrawalAmountTooHigh: {
+    ko: "Amount cannot exceed available withdrawal points.",
+    my: "Amount cannot exceed available withdrawal points.",
+    zh: "Amount cannot exceed available withdrawal points.",
+  },
+  rewardWithdrawalFailed: {
+    ko: "Withdrawal request failed. Please try again.",
+    my: "Withdrawal request failed. Please try again.",
+    zh: "Withdrawal request failed. Please try again.",
+  },
+  rewardRetry: {
+    ko: "Retry",
+    my: "Retry",
+    zh: "Retry",
+  },
+  rewardMaxRank: {
+    ko: "Highest rank reached",
+    my: "Highest rank reached",
+    zh: "Highest rank reached",
+  },
+  rewardPointsToNext: {
+    ko: "points to next rank",
+    my: "points to next rank",
+    zh: "points to next rank",
+  },
   signOutButton: { ko: "로그아웃", my: "ထွက်မည်", zh: "退出登录" },
   tabsHome: { ko: "홈", my: "ပင်မ", zh: "首页" },
   tabsProducts: { ko: "상품", my: "ပစ္စည်းများ", zh: "商品" },
@@ -527,6 +657,5 @@ export function useLocale(): LocaleContextValue {
   if (!ctx) throw new Error("useLocale must be used within a LocaleProvider");
   return ctx;
 }
-
 
 

@@ -21,6 +21,11 @@ export const API_ENDPOINTS = {
     KBZPAY_REQUEST: "/v1/client/auth/kbzpay/request-verification",
     KBZPAY_SUBMIT_TRANSACTION: "/v1/client/auth/kbzpay/submit-transaction",
   },
+  PROFILE: {
+    POINTS: "/v1/client/profile/points",
+    STATS: "/v1/client/profile/stats",
+    WITHDRAWALS: "/v1/client/profile/withdrawals",
+  },
   PRODUCTS: {
     LIST: "/v1/products",
     BY_ID: (id: string) => `/v1/products/${id}`,
