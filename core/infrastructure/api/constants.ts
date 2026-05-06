@@ -19,6 +19,7 @@ export const API_ENDPOINTS = {
     EMAIL_SEND: "/v1/client/auth/email/send-verification",
     EMAIL_VERIFY: "/v1/client/auth/email/verify",
     KBZPAY_REQUEST: "/v1/client/auth/kbzpay/request-verification",
+    KBZPAY_SUBMIT_TRANSACTION: "/v1/client/auth/kbzpay/submit-transaction",
   },
   PRODUCTS: {
     LIST: "/v1/products",

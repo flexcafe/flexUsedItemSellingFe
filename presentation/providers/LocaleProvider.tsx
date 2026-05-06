@@ -298,6 +298,11 @@ const DICT: Dictionary = {
     my: "အုပ်ချုပ်သူထံသို့ မက်ဆေ့ချ်",
     zh: "发送给管理员的消息",
   },
+  kbzPayRequestIntro: {
+    ko: "Ask admin to send the KBZPay transfer instruction.",
+    my: "Ask admin to send the KBZPay transfer instruction.",
+    zh: "Ask admin to send the KBZPay transfer instruction.",
+  },
   requestVerification: {
     ko: "인증 요청",
     my: "အတည်ပြုတောင်းဆိုမည်",
@@ -328,6 +333,96 @@ const DICT: Dictionary = {
     ko: "K-pay 인증이 요청되었습니다",
     my: "K-pay အတည်ပြု တောင်းဆိုပြီး",
     zh: "K-pay 验证已请求",
+  },
+  kbzPayPendingHint: {
+    ko: "Transfer exactly 100 MMK, then submit your transaction number.",
+    my: "Transfer exactly 100 MMK, then submit your transaction number.",
+    zh: "Transfer exactly 100 MMK, then submit your transaction number.",
+  },
+  kbzPayStatusPendingInstruction: {
+    ko: "Pending admin instruction",
+    my: "Pending admin instruction",
+    zh: "Pending admin instruction",
+  },
+  kbzPayStatusInstructionReady: {
+    ko: "Instruction sent",
+    my: "Instruction sent",
+    zh: "Instruction sent",
+  },
+  kbzPayStatusTransactionSubmitted: {
+    ko: "Transaction submitted",
+    my: "Transaction submitted",
+    zh: "Transaction submitted",
+  },
+  kbzPayWaitInstructionHint: {
+    ko: "Wait for admin transfer instruction.",
+    my: "Wait for admin transfer instruction.",
+    zh: "Wait for admin transfer instruction.",
+  },
+  kbzPayAmountLabel: {
+    ko: "Transfer amount",
+    my: "Transfer amount",
+    zh: "Transfer amount",
+  },
+  kbzPayAmountValue: {
+    ko: "100 MMK",
+    my: "100 MMK",
+    zh: "100 MMK",
+  },
+  kbzPayAdminPhoneLabel: {
+    ko: "Admin Phone For Transfer",
+    my: "Admin Phone For Transfer",
+    zh: "Admin Phone For Transfer",
+  },
+  kbzPayAdminNoteLabel: {
+    ko: "Admin Note",
+    my: "Admin Note",
+    zh: "Admin Note",
+  },
+  kbzPayTxnIdLabel: {
+    ko: "KBZ Transaction ID",
+    my: "KBZ Transaction ID",
+    zh: "KBZ Transaction ID",
+  },
+  kbzPayTxnIdPlaceholder: {
+    ko: "KBZ-TXN-20260506-000321",
+    my: "KBZ-TXN-20260506-000321",
+    zh: "KBZ-TXN-20260506-000321",
+  },
+  submitTransaction: {
+    ko: "Submit Transaction",
+    my: "Submit Transaction",
+    zh: "Submit Transaction",
+  },
+  kbzPayTransactionSubmitted: {
+    ko: "KBZ transaction number submitted.",
+    my: "KBZ transaction number submitted.",
+    zh: "KBZ transaction number submitted.",
+  },
+  kbzPaySubmittedHint: {
+    ko: "Transaction submitted, awaiting admin verification.",
+    my: "Transaction submitted, awaiting admin verification.",
+    zh: "Transaction submitted, awaiting admin verification.",
+  },
+  kbzPaySubmittedTxnLabel: {
+    ko: "Submitted transaction",
+    my: "Submitted transaction",
+    zh: "Submitted transaction",
+  },
+  kbzPayTxnRequired: {
+    ko: "KBZPay transaction number is required.",
+    my: "KBZPay transaction number is required.",
+    zh: "KBZPay transaction number is required.",
+  },
+  kbzPayTxnInvalid: {
+    ko: "Enter a valid KBZPay transaction number.",
+    my: "Enter a valid KBZPay transaction number.",
+    zh: "Enter a valid KBZPay transaction number.",
+  },
+  kbzPayNeedsVerificationFirst: {
+    ko: "Please verify phone and email first.",
+    my: "Please verify phone and email first.",
+    zh: "Please verify phone and email first.",
   },
   profileTitle: { ko: "프로필", my: "ပရိုဖိုင်", zh: "个人资料" },
   profileMemberFallback: {
@@ -432,3 +527,6 @@ export function useLocale(): LocaleContextValue {
   if (!ctx) throw new Error("useLocale must be used within a LocaleProvider");
   return ctx;
 }
+
+
+

@@ -23,5 +23,6 @@ export interface IAuthService {
   sendEmailVerification(email: string): Promise<void>;
   verifyEmail(email: string, token: string): Promise<void>;
 
-  requestKbzPayVerification(message: string): Promise<void>;
+  requestKbzPayVerification(message?: string): Promise<void>;
+  submitKbzPayTransaction(kbzTransactionId: string): Promise<void>;
 }

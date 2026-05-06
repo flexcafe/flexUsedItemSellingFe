@@ -19,6 +19,8 @@ import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 
 const SUCCESS = "#16a34a";
+const WARNING = "#d97706";
+const DANGER = "#e74c3c";
 
 export function ProfileScreen() {
   const {
@@ -30,6 +32,7 @@ export function ProfileScreen() {
     sendEmailVerification,
     verifyEmail,
     requestKbzPayVerification,
+    submitKbzPayTransaction,
   } = useAuth();
   const { t } = useLocale();
   const colorScheme = useColorScheme();
@@ -48,15 +51,14 @@ export function ProfileScreen() {
   const [otpCode, setOtpCode] = useState("");
   const [email, setEmail] = useState(sampleEmail);
   const [emailToken, setEmailToken] = useState("");
+  const [kbzTransactionId, setKbzTransactionId] = useState("");
+  const [kbzTransactionError, setKbzTransactionError] = useState("");
   const [kbzMessage, setKbzMessage] = useState(
     "Please verify my KBZPay quickly. I already transferred."
   );
 
   const [phoneVerified, setPhoneVerified] = useState(Boolean(user?.isPhoneVerified));
   const [emailVerified, setEmailVerified] = useState(Boolean(user?.isEmailVerified));
-  const [kbzRequested, setKbzRequested] = useState(
-    user?.kbzPayVerificationStatus === "REQUESTED"
-  );
   const [loading, setLoading] = useState<Record<string, boolean>>({});
 
   const initials = useMemo(() => {
@@ -69,12 +71,20 @@ export function ProfileScreen() {
   const setBusy = (key: string, value: boolean) =>
     setLoading((prev) => ({ ...prev, [key]: value }));
 
+  const getHttpStatus = (err: unknown) =>
+    (err as { response?: { status?: number } })?.response?.status;
+
+  const getServerMessage = (err: unknown) => {
+    const serverMessage = (err as { response?: { data?: { message?: unknown } } })?.response
+      ?.data?.message;
+    return typeof serverMessage === "string" ? serverMessage : undefined;
+  };
+
   useEffect(() => {
     setPhone(user?.phone?.trim() || "+959123456789");
     setEmail(user?.email?.trim() || "member@flexusedmarket.app");
     setPhoneVerified(Boolean(user?.isPhoneVerified));
     setEmailVerified(Boolean(user?.isEmailVerified));
-    setKbzRequested(user?.kbzPayVerificationStatus === "REQUESTED");
   }, [user]);
 
   const normalizePhone = (raw: string): string => {
@@ -89,13 +99,16 @@ export function ProfileScreen() {
   };
 
   const handleError = (err: unknown, fallback?: string) => {
-    const status = (err as { response?: { status?: number } })?.response?.status;
+    const status = getHttpStatus(err);
+    const detail = getServerMessage(err) ?? fallback;
     if (status === 401) {
       Alert.alert(t("errorTitle"), t("invalidCredsBody"));
-    } else if (status === 400 || status === 404) {
-      Alert.alert(t("errorTitle"), fallback ?? t("registerFailedBody"));
+    } else if (status === 400 || status === 404 || status === 422) {
+      Alert.alert(t("errorTitle"), detail ?? t("registerFailedBody"));
+    } else if (status === 409) {
+      Alert.alert(t("errorTitle"), detail ?? t("registerFailedBody"));
     } else {
-      Alert.alert(t("errorTitle"), t("genericErrorBody"));
+      Alert.alert(t("errorTitle"), detail ?? t("genericErrorBody"));
     }
   };
 
@@ -162,20 +175,61 @@ export function ProfileScreen() {
   };
 
   const handleRequestKbzPay = async () => {
+    if (!phoneVerified || !emailVerified) {
+      Alert.alert(t("errorTitle"), t("kbzPayNeedsVerificationFirst"));
+      return;
+    }
     setBusy("kbz", true);
     try {
       await requestKbzPayVerification(
         kbzMessage.trim() || "Please verify my KBZPay quickly. I already transferred."
       );
-      const latest = await refreshProfile();
-      setKbzRequested(
-        latest?.kbzPayVerificationStatus === "REQUESTED" || Boolean(latest?.isKbzPayVerified)
-      );
+      await refreshProfile();
       Alert.alert(t("kbzPayRequested"));
     } catch (err) {
+      if (getHttpStatus(err) === 409) {
+        const latest = await refreshProfile();
+        if (latest?.isKbzPayVerified) {
+          Alert.alert(t("profileStatusVerified"), t("profileVerifiedHint"));
+          return;
+        }
+      }
       handleError(err);
     } finally {
       setBusy("kbz", false);
+    }
+  };
+
+  const handleSubmitKbzTransaction = async () => {
+    if (!kbzHasAdminInstruction) {
+      Alert.alert(t("errorTitle"), t("kbzPayWaitInstructionHint"));
+      return;
+    }
+    if (!kbzTransactionId.trim()) {
+      setKbzTransactionError(t("kbzPayTxnRequired"));
+      return;
+    }
+    setBusy("kbzSubmit", true);
+    try {
+      await submitKbzPayTransaction(kbzTransactionId.trim());
+      setKbzTransactionId("");
+      setKbzTransactionError("");
+      await refreshProfile();
+      Alert.alert(t("kbzPayTransactionSubmitted"));
+    } catch (err) {
+      const status = getHttpStatus(err);
+      if (status === 409) {
+        await refreshProfile();
+        Alert.alert(t("errorTitle"), t("kbzPayWaitInstructionHint"));
+        return;
+      }
+      if (status === 400 || status === 422) {
+        setKbzTransactionError(getServerMessage(err) ?? t("kbzPayTxnInvalid"));
+        return;
+      }
+      handleError(err);
+    } finally {
+      setBusy("kbzSubmit", false);
     }
   };
 
@@ -187,11 +241,53 @@ export function ProfileScreen() {
 
   const phoneStatusText = phoneVerified ? t("profileStatusVerified") : t("profileStatusNotVerified");
   const emailStatusText = emailVerified ? t("profileStatusVerified") : t("profileStatusNotVerified");
+  const kbzStatus = user?.kbzPayVerificationStatus?.toUpperCase() ?? null;
+  const kbzPendingStatuses = new Set(["PENDING", "REQUESTED", "INSTRUCTION_SENT", "IN_REVIEW"]);
+  const kbzIsPending = Boolean(kbzStatus && kbzPendingStatuses.has(kbzStatus));
+  const kbzAdminPhone = user?.kbzPayAdminPhoneForTransfer?.trim() ?? "";
+  const kbzAdminNote = user?.kbzPayAdminNote?.trim() ?? "";
+  const kbzSubmittedTransaction = user?.kbzPayTransactionId?.trim() ?? "";
+  const kbzRequestedAt = user?.kbzPayRequestedAt?.trim() ?? "";
+  const kbzHasAdminInstruction = kbzAdminPhone.length > 0;
+  const kbzHasSubmittedTransaction =
+    kbzSubmittedTransaction.length > 0 || kbzStatus === "IN_REVIEW";
+  const kbzVerificationStarted = Boolean(
+    kbzRequestedAt ||
+      kbzHasAdminInstruction ||
+      kbzHasSubmittedTransaction ||
+      (kbzStatus && kbzStatus !== "PENDING"),
+  );
+  const kbzCanRequest =
+    !user?.isKbzPayVerified && (!kbzIsPending || !kbzVerificationStarted);
+  const kbzWaitingForInstruction =
+    kbzIsPending &&
+    !user?.isKbzPayVerified &&
+    kbzVerificationStarted &&
+    !kbzHasAdminInstruction &&
+    !kbzHasSubmittedTransaction;
+  const kbzCanSubmitTransaction =
+    kbzIsPending &&
+    !user?.isKbzPayVerified &&
+    kbzHasAdminInstruction &&
+    !kbzHasSubmittedTransaction;
+  const kbzWaitingForAdminVerification =
+    kbzIsPending && !user?.isKbzPayVerified && kbzHasSubmittedTransaction;
   const kbzStatusText = user?.isKbzPayVerified
     ? t("profileStatusVerified")
-    : kbzRequested
-      ? t("profileStatusRequested")
-      : t("profileStatusNotVerified");
+    : kbzWaitingForAdminVerification
+      ? t("kbzPayStatusTransactionSubmitted")
+      : kbzCanSubmitTransaction
+        ? t("kbzPayStatusInstructionReady")
+        : kbzWaitingForInstruction
+          ? t("kbzPayStatusPendingInstruction")
+          : kbzIsPending && kbzVerificationStarted
+            ? t("profileStatusRequested")
+            : t("profileStatusNotVerified");
+  const kbzStatusColor = user?.isKbzPayVerified
+    ? SUCCESS
+    : kbzIsPending && kbzVerificationStarted
+      ? WARNING
+      : colors.icon;
 
   return (
     <ThemedView style={styles.screen}>
@@ -361,41 +457,124 @@ export function ProfileScreen() {
               <ThemedText
                 style={[
                   styles.badge,
-                  { color: user?.isKbzPayVerified || kbzRequested ? SUCCESS : colors.icon },
+                  { color: kbzStatusColor },
                 ]}>
                 {kbzStatusText}
               </ThemedText>
             </View>
-            <TextInput
-              style={[
-                styles.input,
-                inputStyle,
-                { minHeight: 92, textAlignVertical: "top" },
-              ]}
-              value={kbzMessage}
-              onChangeText={setKbzMessage}
-              placeholder={t("kbzPayMessagePlaceholder")}
-              placeholderTextColor={colors.icon}
-              multiline
-              editable={!kbzRequested}
-            />
-            <Pressable
-              onPress={handleRequestKbzPay}
-              disabled={loading.kbz || kbzRequested}
-              style={[
-                styles.primaryButton,
-                styles.fullWidthButton,
-                { backgroundColor: colors.tint },
-                (loading.kbz || kbzRequested) && { opacity: 0.6 },
-              ]}>
-              {loading.kbz ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <ThemedText style={styles.primaryButtonText}>
-                  {t("requestVerification")}
-                </ThemedText>
-              )}
-            </Pressable>
+            {kbzCanRequest ? (
+              <>
+                <ThemedText style={styles.profileSub}>{t("kbzPayRequestIntro")}</ThemedText>
+                <TextInput
+                  style={[
+                    styles.input,
+                    inputStyle,
+                    { minHeight: 92, textAlignVertical: "top" },
+                  ]}
+                  value={kbzMessage}
+                  onChangeText={setKbzMessage}
+                  placeholder={t("kbzPayMessagePlaceholder")}
+                  placeholderTextColor={colors.icon}
+                  multiline
+                  editable={!loading.kbz}
+                />
+                <Pressable
+                  onPress={handleRequestKbzPay}
+                  disabled={loading.kbz}
+                  style={[
+                    styles.primaryButton,
+                    styles.fullWidthButton,
+                    { backgroundColor: colors.tint },
+                    loading.kbz && { opacity: 0.6 },
+                  ]}>
+                  {loading.kbz ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <ThemedText style={styles.primaryButtonText}>
+                      {t("requestVerification")}
+                    </ThemedText>
+                  )}
+                </Pressable>
+              </>
+            ) : null}
+
+            {kbzWaitingForInstruction ? (
+              <ThemedText style={styles.profileSub}>{t("kbzPayWaitInstructionHint")}</ThemedText>
+            ) : null}
+
+            {kbzCanSubmitTransaction ? (
+              <>
+                <ThemedText style={styles.profileSub}>{t("kbzPayPendingHint")}</ThemedText>
+                <View style={[styles.infoBox, { borderColor: colors.icon }]}>
+                  <ThemedText style={styles.infoLabel}>{t("kbzPayAmountLabel")}</ThemedText>
+                  <ThemedText style={styles.infoValue}>{t("kbzPayAmountValue")}</ThemedText>
+                </View>
+                <View style={[styles.infoBox, { borderColor: colors.icon }]}>
+                  <ThemedText style={styles.infoLabel}>{t("kbzPayAdminPhoneLabel")}</ThemedText>
+                  <ThemedText style={styles.infoValue}>{kbzAdminPhone}</ThemedText>
+                </View>
+                {kbzAdminNote ? (
+                  <View style={[styles.infoBox, { borderColor: colors.icon }]}>
+                    <ThemedText style={styles.infoLabel}>{t("kbzPayAdminNoteLabel")}</ThemedText>
+                    <ThemedText style={styles.infoValue}>{kbzAdminNote}</ThemedText>
+                  </View>
+                ) : null}
+                <ThemedText style={styles.label}>{t("kbzPayTxnIdLabel")}</ThemedText>
+                <TextInput
+                  style={[
+                    styles.input,
+                    inputStyle,
+                    kbzTransactionError ? { borderColor: DANGER } : null,
+                  ]}
+                  value={kbzTransactionId}
+                  onChangeText={(value) => {
+                    setKbzTransactionId(value);
+                    if (kbzTransactionError) setKbzTransactionError("");
+                  }}
+                  placeholder={t("kbzPayTxnIdPlaceholder")}
+                  placeholderTextColor={colors.icon}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  editable={!loading.kbzSubmit}
+                />
+                {kbzTransactionError ? (
+                  <ThemedText style={styles.error}>{kbzTransactionError}</ThemedText>
+                ) : null}
+                <Pressable
+                  onPress={handleSubmitKbzTransaction}
+                  disabled={loading.kbzSubmit || !kbzTransactionId.trim()}
+                  style={[
+                    styles.primaryButton,
+                    styles.fullWidthButton,
+                    { backgroundColor: colors.tint },
+                    (loading.kbzSubmit || !kbzTransactionId.trim()) && { opacity: 0.6 },
+                  ]}>
+                  {loading.kbzSubmit ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <ThemedText style={styles.primaryButtonText}>
+                      {t("submitTransaction")}
+                    </ThemedText>
+                  )}
+                </Pressable>
+              </>
+            ) : null}
+
+            {kbzWaitingForAdminVerification ? (
+              <>
+                <ThemedText style={styles.profileSub}>{t("kbzPaySubmittedHint")}</ThemedText>
+                {kbzSubmittedTransaction ? (
+                  <View style={[styles.infoBox, { borderColor: colors.icon }]}>
+                    <ThemedText style={styles.infoLabel}>{t("kbzPaySubmittedTxnLabel")}</ThemedText>
+                    <ThemedText style={styles.infoValue}>{kbzSubmittedTransaction}</ThemedText>
+                  </View>
+                ) : null}
+              </>
+            ) : null}
+
+            {user?.isKbzPayVerified ? (
+              <ThemedText style={styles.profileSub}>{t("profileVerifiedHint")}</ThemedText>
+            ) : null}
           </View>
 
           <Pressable
@@ -449,6 +628,7 @@ const styles = StyleSheet.create({
   profileInfo: { flex: 1, gap: 2 },
   profileName: { fontSize: 16, fontWeight: "700" },
   profileSub: { fontSize: 13, opacity: 0.72 },
+  label: { fontWeight: "600", fontSize: 14 },
   cardHeader: {
     alignItems: "flex-start",
     gap: 4,
@@ -487,6 +667,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   outlineButtonText: { fontWeight: "700", fontSize: 15 },
+  infoBox: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    gap: 4,
+  },
+  infoLabel: { fontSize: 12, opacity: 0.72 },
+  infoValue: { fontSize: 14, fontWeight: "600" },
+  error: { color: DANGER, fontSize: 12 },
   linkButton: { alignItems: "center", paddingVertical: 6 },
   signOutButton: {
     borderWidth: 1,

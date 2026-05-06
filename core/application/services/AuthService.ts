@@ -62,7 +62,11 @@ export class AuthService implements IAuthService {
     return this.repo.verifyEmail(email, token);
   }
 
-  requestKbzPayVerification(message: string): Promise<void> {
+  requestKbzPayVerification(message?: string): Promise<void> {
     return this.repo.requestKbzPayVerification(message);
+  }
+
+  submitKbzPayTransaction(kbzTransactionId: string): Promise<void> {
+    return this.repo.submitKbzPayTransaction(kbzTransactionId);
   }
 }

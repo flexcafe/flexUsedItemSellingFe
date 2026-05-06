@@ -34,7 +34,8 @@ interface AuthContextValue extends AuthState {
   verifyPhoneOtp: (phone: string, code: string) => Promise<void>;
   sendEmailVerification: (email: string) => Promise<void>;
   verifyEmail: (email: string, token: string) => Promise<void>;
-  requestKbzPayVerification: (message: string) => Promise<void>;
+  requestKbzPayVerification: (message?: string) => Promise<void>;
+  submitKbzPayTransaction: (kbzTransactionId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -140,8 +141,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const requestKbzPayVerification = useCallback(
-    async (message: string) => {
+    async (message?: string) => {
       await authService.requestKbzPayVerification(message);
+    },
+    [authService],
+  );
+
+  const submitKbzPayTransaction = useCallback(
+    async (kbzTransactionId: string) => {
+      await authService.submitKbzPayTransaction(kbzTransactionId);
     },
     [authService],
   );
@@ -158,6 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sendEmailVerification,
       verifyEmail,
       requestKbzPayVerification,
+      submitKbzPayTransaction,
     }),
     [
       state,
@@ -170,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sendEmailVerification,
       verifyEmail,
       requestKbzPayVerification,
+      submitKbzPayTransaction,
     ],
   );
 

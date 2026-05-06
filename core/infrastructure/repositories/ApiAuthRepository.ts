@@ -96,7 +96,17 @@ export class ApiAuthRepository implements IAuthRepository {
     await this.http.post(API_ENDPOINTS.AUTH.EMAIL_VERIFY, { email, token });
   }
 
-  async requestKbzPayVerification(message: string): Promise<void> {
-    await this.http.post(API_ENDPOINTS.AUTH.KBZPAY_REQUEST, { message });
+  async requestKbzPayVerification(message?: string): Promise<void> {
+    const trimmed = message?.trim();
+    await this.http.post(
+      API_ENDPOINTS.AUTH.KBZPAY_REQUEST,
+      trimmed ? { message: trimmed } : {},
+    );
+  }
+
+  async submitKbzPayTransaction(kbzTransactionId: string): Promise<void> {
+    await this.http.post(API_ENDPOINTS.AUTH.KBZPAY_SUBMIT_TRANSACTION, {
+      kbzTransactionId: kbzTransactionId.trim(),
+    });
   }
 }
