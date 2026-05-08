@@ -9,6 +9,7 @@ export interface AuthProfileDto {
   email?: string | null;
   name?: string | null;
   nickname?: string | null;
+  avatarUrl?: string | null;
   phone?: string;
   role?: string;
   isPhoneVerified?: boolean;

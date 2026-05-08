@@ -6,6 +6,7 @@ export interface AuthUser {
   email: string;
   phone: string;
   name: string | null;
+  avatarUrl: string | null;
   role: UserRole;
   isPhoneVerified: boolean;
   isEmailVerified: boolean;

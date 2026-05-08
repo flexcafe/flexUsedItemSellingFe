@@ -5,6 +5,7 @@ import type {
 } from "@/core/domain/entities/ProfileRewards";
 import type { IProfileRepository } from "@/core/domain/repositories/IProfileRepository";
 import type { IProfileService } from "@/core/domain/services/IProfileService";
+import type { AvatarUploadResult, ChangePasswordInput, UploadFile } from "@/core/domain/types/profile";
 
 export class ProfileService implements IProfileService {
   constructor(private readonly repo: IProfileRepository) {}
@@ -23,5 +24,13 @@ export class ProfileService implements IProfileService {
 
   requestWithdrawal(amount: number): Promise<WithdrawalRequest> {
     return this.repo.requestWithdrawal(amount);
+  }
+
+  changePassword(input: ChangePasswordInput): Promise<boolean> {
+    return this.repo.changePassword(input);
+  }
+
+  uploadAvatar(file: UploadFile): Promise<AvatarUploadResult> {
+    return this.repo.uploadAvatar(file);
   }
 }

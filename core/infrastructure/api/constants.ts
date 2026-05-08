@@ -25,6 +25,8 @@ export const API_ENDPOINTS = {
     POINTS: "/v1/client/profile/points",
     STATS: "/v1/client/profile/stats",
     WITHDRAWALS: "/v1/client/profile/withdrawals",
+    CHANGE_PASSWORD: "/v1/client/profile/change-password",
+    AVATAR: "/v1/client/profile/avatar",
   },
   PRODUCTS: {
     LIST: "/v1/products",

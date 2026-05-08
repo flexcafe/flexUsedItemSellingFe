@@ -58,6 +58,7 @@ export function toAuthUser(
     email: toSafeString(user?.email) || fallbackEmail || "",
     phone: user?.phone ?? "",
     name: user?.name ?? user?.nickname ?? null,
+    avatarUrl: typeof user?.avatarUrl === "string" ? user.avatarUrl : null,
     role: normalizeRole(user?.role),
     isPhoneVerified: Boolean(user?.isPhoneVerified),
     isEmailVerified: Boolean(user?.isEmailVerified),

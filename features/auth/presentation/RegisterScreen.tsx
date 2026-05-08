@@ -26,6 +26,8 @@ import { WebView } from "react-native-webview";
 import { z } from "zod";
 
 import { AuthLogo } from "@/components/auth-logo";
+import { PasswordInput } from "@/components/password-input";
+import { PasswordStrengthMeter } from "@/components/password-strength-meter";
 import { PhoneNumberInput } from "@/components/phone-number-input";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -60,49 +62,6 @@ const PHONE_COUNTRIES: PhoneCountry[] = [
   { code: "KR", dialCode: "+82", label: "Korea", flag: "🇰🇷" },
   { code: "CN", dialCode: "+86", label: "China", flag: "🇨🇳" },
 ];
-
-type PasswordStrength = {
-  score: 0 | 1 | 2 | 3 | 4;
-  label: "Very weak" | "Weak" | "Okay" | "Strong" | "Very strong";
-  color: string;
-  tips: string[];
-};
-
-function getPasswordStrength(password: string): PasswordStrength {
-  const value = password ?? "";
-  const tips: string[] = [];
-
-  const length = value.length;
-  const hasLower = /[a-z]/.test(value);
-  const hasUpper = /[A-Z]/.test(value);
-  const hasNumber = /\d/.test(value);
-  const hasSymbol = /[^A-Za-z0-9]/.test(value);
-
-  if (length < 8) tips.push("Use at least 8 characters");
-  if (!hasUpper) tips.push("Add an uppercase letter");
-  if (!hasLower) tips.push("Add a lowercase letter");
-  if (!hasNumber) tips.push("Add a number");
-  if (!hasSymbol) tips.push("Add a symbol");
-
-  // Simple scoring (0..4): length + character variety.
-  let score = 0;
-  if (length >= 8) score += 1;
-  if (length >= 12) score += 1;
-  const variety = [hasLower, hasUpper, hasNumber, hasSymbol].filter(
-    Boolean,
-  ).length;
-  if (variety >= 2) score += 1;
-  if (variety >= 3) score += 1;
-
-  const final = Math.min(4, score) as 0 | 1 | 2 | 3 | 4;
-  if (final === 0)
-    return { score: 0, label: "Very weak", color: "#ef4444", tips };
-  if (final === 1) return { score: 1, label: "Weak", color: "#f97316", tips };
-  if (final === 2) return { score: 2, label: "Okay", color: "#eab308", tips };
-  if (final === 3) return { score: 3, label: "Strong", color: "#22c55e", tips };
-  return { score: 4, label: "Very strong", color: "#16a34a", tips };
-}
-
 function normalizePhone(raw: string, country: CountryCode): string {
   const trimmed = (raw ?? "").trim();
   if (!trimmed) return trimmed;
@@ -173,9 +132,6 @@ export function RegisterScreen() {
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
-    useState(false);
   const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>(
     PHONE_COUNTRIES[0]!,
   );
@@ -200,7 +156,6 @@ export function RegisterScreen() {
   const [isLocating, setIsLocating] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [languageWidth, setLanguageWidth] = useState(0);
-  const pw = useMemo(() => getPasswordStrength(password), [password]);
   const emailOk = useMemo(
     () => z.string().trim().email().safeParse(email).success,
     [email],
@@ -563,65 +518,14 @@ export function RegisterScreen() {
           {/* Password */}
           <View style={styles.field}>
             <ThemedText style={styles.label}>{t("password")}</ThemedText>
-            <View style={styles.passwordRow}>
-              <TextInput
-                style={[inputStyle(!!errors.password), styles.passwordInput]}
-                value={password}
-                onChangeText={setPassword}
-                placeholder={t("password")}
-                placeholderTextColor={colors.icon}
-                secureTextEntry={!isPasswordVisible}
-                editable={!isSubmitting}
-              />
-              <Pressable
-                onPress={() => setIsPasswordVisible((v) => !v)}
-                disabled={isSubmitting}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  isPasswordVisible ? t("hidePassword") : t("showPassword")
-                }
-                style={({ pressed }) => [
-                  styles.passwordToggle,
-                  { opacity: pressed ? 0.7 : 1 },
-                ]}
-              >
-                <ThemedText
-                  style={[styles.passwordToggleText, { color: colors.tint }]}
-                >
-                  {isPasswordVisible ? t("hide") : t("show")}
-                </ThemedText>
-              </Pressable>
-            </View>
-            {password.length > 0 ? (
-              <View style={styles.strengthWrap}>
-                <View
-                  style={[
-                    styles.strengthTrack,
-                    { backgroundColor: colors.icon + "20" },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.strengthFill,
-                      {
-                        width: `${((pw.score + 1) / 5) * 100}%`,
-                        backgroundColor: pw.color,
-                      },
-                    ]}
-                  />
-                </View>
-                <View style={styles.strengthRow}>
-                  <ThemedText
-                    style={[styles.strengthLabel, { color: pw.color }]}
-                  >
-                    {pw.label}
-                  </ThemedText>
-                  <ThemedText style={styles.strengthHint}>
-                    {pw.tips.length > 0 ? pw.tips[0] : "Looks good"}
-                  </ThemedText>
-                </View>
-              </View>
-            ) : null}
+            <PasswordInput
+              value={password}
+              onChangeText={setPassword}
+              placeholder={t("password")}
+              editable={!isSubmitting}
+              inputStyle={inputStyle(!!errors.password)}
+            />
+            <PasswordStrengthMeter password={password} />
             {errors.password ? (
               <ThemedText style={styles.error}>{errors.password}</ThemedText>
             ) : null}
@@ -630,40 +534,13 @@ export function RegisterScreen() {
           {/* Confirm Password */}
           <View style={styles.field}>
             <ThemedText style={styles.label}>{t("confirmPassword")}</ThemedText>
-            <View style={styles.passwordRow}>
-              <TextInput
-                style={[
-                  inputStyle(!!errors.confirmPassword),
-                  styles.passwordInput,
-                ]}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                placeholder={t("confirmPasswordPlaceholder")}
-                placeholderTextColor={colors.icon}
-                secureTextEntry={!isConfirmPasswordVisible}
-                editable={!isSubmitting}
-              />
-              <Pressable
-                onPress={() => setIsConfirmPasswordVisible((v) => !v)}
-                disabled={isSubmitting}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  isConfirmPasswordVisible
-                    ? t("hidePassword")
-                    : t("showPassword")
-                }
-                style={({ pressed }) => [
-                  styles.passwordToggle,
-                  { opacity: pressed ? 0.7 : 1 },
-                ]}
-              >
-                <ThemedText
-                  style={[styles.passwordToggleText, { color: colors.tint }]}
-                >
-                  {isConfirmPasswordVisible ? t("hide") : t("show")}
-                </ThemedText>
-              </Pressable>
-            </View>
+            <PasswordInput
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder={t("confirmPasswordPlaceholder")}
+              editable={!isSubmitting}
+              inputStyle={inputStyle(!!errors.confirmPassword)}
+            />
             {errors.confirmPassword ? (
               <ThemedText style={styles.error}>
                 {errors.confirmPassword}
@@ -1040,24 +917,6 @@ const styles = StyleSheet.create({
     paddingVertical: Platform.OS === "ios" ? 14 : 10,
     fontSize: 15,
   },
-  passwordRow: {
-    position: "relative",
-    justifyContent: "center",
-  },
-  passwordInput: {
-    paddingRight: 80,
-  },
-  passwordToggle: {
-    position: "absolute",
-    right: 12,
-    height: 44,
-    justifyContent: "center",
-    paddingHorizontal: 8,
-  },
-  passwordToggleText: {
-    fontWeight: "700",
-    fontSize: 14,
-  },
   phoneRow: {
     flexDirection: "row",
     gap: 10,
@@ -1130,35 +989,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     opacity: 0.7,
     flex: 1,
-  },
-  strengthWrap: {
-    marginTop: 8,
-    gap: 6,
-  },
-  strengthTrack: {
-    height: 8,
-    borderRadius: 999,
-    overflow: "hidden",
-  },
-  strengthFill: {
-    height: "100%",
-    borderRadius: 999,
-  },
-  strengthRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 10,
-  },
-  strengthLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  strengthHint: {
-    fontSize: 12,
-    opacity: 0.7,
-    flex: 1,
-    textAlign: "right",
   },
   segment: { flexDirection: "row", gap: 10 },
   segmentItem: {

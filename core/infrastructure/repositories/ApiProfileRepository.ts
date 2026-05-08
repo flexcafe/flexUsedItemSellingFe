@@ -5,6 +5,11 @@ import type {
 } from "@/core/domain/entities/ProfileRewards";
 import type { IProfileRepository } from "@/core/domain/repositories/IProfileRepository";
 import type {
+  AvatarUploadResult,
+  ChangePasswordInput,
+  UploadFile,
+} from "@/core/domain/types/profile";
+import type {
   ProfilePointsSummaryDto,
   ProfileTransactionStatsDto,
   WithdrawalRequestDto,
@@ -48,5 +53,30 @@ export class ApiProfileRepository implements IProfileRepository {
       { amount },
     );
     return toWithdrawalRequest(dto ?? {});
+  }
+
+  async changePassword(input: ChangePasswordInput): Promise<boolean> {
+    const res = await this.http.post<boolean>(
+      API_ENDPOINTS.PROFILE.CHANGE_PASSWORD,
+      input,
+    );
+    return Boolean(res);
+  }
+
+  async uploadAvatar(file: UploadFile): Promise<AvatarUploadResult> {
+    const form = new FormData();
+    form.append("file", {
+      uri: file.uri,
+      name: file.name,
+      type: file.type,
+    } as unknown as Blob);
+
+    const res = await this.http.post<AvatarUploadResult>(
+      API_ENDPOINTS.PROFILE.AVATAR,
+      form,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    const avatarUrl = typeof res?.avatarUrl === "string" ? res.avatarUrl : "";
+    return { avatarUrl };
   }
 }

@@ -9,7 +9,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from "react-native";
 import Animated, {
@@ -25,6 +24,7 @@ import {
   PhoneNumberInput,
   type PhoneCountry,
 } from "@/components/phone-number-input";
+import { PasswordInput } from "@/components/password-input";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
@@ -68,7 +68,6 @@ export function LoginScreen() {
   );
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{
     phone?: string;
@@ -197,42 +196,16 @@ export function LoginScreen() {
 
             <View style={styles.field}>
               <ThemedText style={styles.label}>{t("loginPasswordLabel")}</ThemedText>
-              <View style={styles.passwordRow}>
-                <TextInput
-                  style={[
-                    styles.input,
-                    styles.passwordInput,
-                    {
-                      color: colors.text,
-                      borderColor: errors.password ? "#e74c3c" : colors.icon,
-                    },
-                  ]}
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder={t("password")}
-                  placeholderTextColor={colors.icon}
-                  secureTextEntry={!isPasswordVisible}
-                  editable={!isSubmitting}
-                />
-                <Pressable
-                  onPress={() => setIsPasswordVisible((v) => !v)}
-                  disabled={isSubmitting}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    isPasswordVisible ? t("hidePassword") : t("showPassword")
-                  }
-                  style={({ pressed }) => [
-                    styles.passwordToggle,
-                    { opacity: pressed ? 0.7 : 1 },
-                  ]}
-                >
-                  <ThemedText
-                    style={[styles.passwordToggleText, { color: colors.tint }]}
-                  >
-                    {isPasswordVisible ? t("hide") : t("show")}
-                  </ThemedText>
-                </Pressable>
-              </View>
+              <PasswordInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder={t("password")}
+                editable={!isSubmitting}
+                inputStyle={[
+                  styles.input,
+                  { color: colors.text, borderColor: errors.password ? "#e74c3c" : colors.icon },
+                ]}
+              />
               {errors.password && (
                 <ThemedText style={styles.error}>{errors.password}</ThemedText>
               )}
@@ -386,24 +359,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-  },
-  passwordRow: {
-    position: "relative",
-    justifyContent: "center",
-  },
-  passwordInput: {
-    paddingRight: 80,
-  },
-  passwordToggle: {
-    position: "absolute",
-    right: 12,
-    height: 44,
-    justifyContent: "center",
-    paddingHorizontal: 8,
-  },
-  passwordToggleText: {
-    fontWeight: "700",
-    fontSize: 14,
   },
   error: {
     color: "#e74c3c",

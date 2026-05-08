@@ -42,6 +42,12 @@
         {
           "locationWhenInUsePermission": "Allow Flex Used Market to verify your registration region."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Flex Used Market to access your photos to set a profile avatar."
+        }
       ]
     ],
     "experiments": {
