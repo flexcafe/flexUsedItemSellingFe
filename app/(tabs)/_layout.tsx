@@ -5,11 +5,15 @@ import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useNotifications } from "@/presentation/hooks/useNotifications";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { t } = useLocale();
+  const notificationsQuery = useNotifications(20);
+  const unreadCount =
+    notificationsQuery.data?.filter((item) => !item.isRead).length ?? 0;
 
   return (
     <Tabs
@@ -42,6 +46,16 @@ export default function TabLayout() {
           title: t("tabsExplore"),
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="paperplane.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: t("tabsNotifications"),
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="bell.fill" color={color} />
           ),
         }}
       />

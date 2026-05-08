@@ -15,11 +15,13 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthProvider, useAuth } from "@/presentation/providers/AuthProvider";
 import { LocaleProvider } from "@/presentation/providers/LocaleProvider";
 import { QueryProvider } from "@/presentation/providers/QueryProvider";
+import { RealtimeProvider } from "@/presentation/providers/RealtimeProvider";
 import { ServicesProvider } from "@/presentation/providers/ServicesProvider";
 import container from "@/core/infrastructure/di/container";
 import type { IAuthService } from "@/core/domain/services/IAuthService";
 import type { IProductService } from "@/core/domain/services/IProductService";
 import type { IProfileService } from "@/core/domain/services/IProfileService";
+import type { INotificationService } from "@/core/domain/services/INotificationService";
 import type { IPreferencesRepository } from "@/core/domain/repositories/IPreferencesRepository";
 
 function AuthGate() {
@@ -61,6 +63,8 @@ export default function RootLayout() {
     authService: container.resolve<IAuthService>("authService"),
     productService: container.resolve<IProductService>("productService"),
     profileService: container.resolve<IProfileService>("profileService"),
+    notificationService:
+      container.resolve<INotificationService>("notificationService"),
     preferencesRepository:
       container.resolve<IPreferencesRepository>("preferencesRepository"),
   }))[0];
@@ -71,14 +75,16 @@ export default function RootLayout() {
         <QueryProvider>
           <LocaleProvider>
             <AuthProvider>
-              <View style={{ flex: 1 }}>
-                <AuthGate />
-                <LanguageSwitcher />
-                {showLaunch ? (
-                  <AnimatedLaunchScreen onFinish={handleLaunchFinish} />
-                ) : null}
-              </View>
-              <StatusBar style="auto" />
+              <RealtimeProvider>
+                <View style={{ flex: 1 }}>
+                  <AuthGate />
+                  <LanguageSwitcher />
+                  {showLaunch ? (
+                    <AnimatedLaunchScreen onFinish={handleLaunchFinish} />
+                  ) : null}
+                </View>
+                <StatusBar style="auto" />
+              </RealtimeProvider>
             </AuthProvider>
           </LocaleProvider>
         </QueryProvider>

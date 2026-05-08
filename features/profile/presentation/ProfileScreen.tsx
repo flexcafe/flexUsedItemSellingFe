@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -437,10 +438,13 @@ export function ProfileScreen() {
   const kbzPendingStatuses = new Set(["PENDING", "REQUESTED", "INSTRUCTION_SENT", "IN_REVIEW"]);
   const kbzIsPending = Boolean(kbzStatus && kbzPendingStatuses.has(kbzStatus));
   const kbzAdminPhone = user?.kbzPayAdminPhoneForTransfer?.trim() ?? "";
+  const kbzAdminInstructionSentAt =
+    user?.kbzPayAdminInstructionSentAt?.trim() ?? "";
   const kbzAdminNote = user?.kbzPayAdminNote?.trim() ?? "";
   const kbzSubmittedTransaction = user?.kbzPayTransactionId?.trim() ?? "";
   const kbzRequestedAt = user?.kbzPayRequestedAt?.trim() ?? "";
-  const kbzHasAdminInstruction = kbzAdminPhone.length > 0;
+  const kbzHasAdminInstruction =
+    kbzAdminPhone.length > 0 || kbzAdminInstructionSentAt.length > 0;
   const kbzHasSubmittedTransaction =
     kbzSubmittedTransaction.length > 0 || kbzStatus === "IN_REVIEW";
   const kbzVerificationStarted = Boolean(
@@ -521,6 +525,8 @@ export function ProfileScreen() {
   const rewardError = pointsQuery.isError || statsQuery.isError;
   const rewardPanelBg = colorScheme === "dark" ? "rgba(22, 163, 74, 0.14)" : "#ecfdf5";
   const rewardMutedBg = colorScheme === "dark" ? "rgba(148, 163, 184, 0.12)" : "#f8fafc";
+  const profileRefreshing =
+    pointsQuery.isFetching || statsQuery.isFetching || withdrawalsQuery.isFetching;
 
   return (
     <ThemedView style={styles.screen}>
@@ -529,6 +535,18 @@ export function ProfileScreen() {
         style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={profileRefreshing}
+              onRefresh={() => {
+                void refreshProfile();
+                void pointsQuery.refetch();
+                void statsQuery.refetch();
+                void withdrawalsQuery.refetch();
+              }}
+              tintColor={colors.tint}
+            />
+          }
           keyboardShouldPersistTaps="handled">
           <ThemedText type="title" style={styles.title}>
             {t("profileTitle")}

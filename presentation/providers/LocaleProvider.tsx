@@ -589,6 +589,53 @@ const DICT: Dictionary = {
   tabsProducts: { ko: "상품", my: "ပစ္စည်းများ", zh: "商品" },
   tabsExplore: { ko: "탐색", my: "စူးစမ်း", zh: "探索" },
   tabsProfile: { ko: "프로필", my: "ပရိုဖိုင်", zh: "个人资料" },
+  tabsNotifications: { ko: "알림", my: "အသိပေးချက်", zh: "通知" },
+  notificationsTitle: { ko: "알림함", my: "အသိပေးစာများ", zh: "通知收件箱" },
+  notificationsEmpty: {
+    ko: "아직 알림이 없습니다.",
+    my: "အသိပေးချက် မရှိသေးပါ။",
+    zh: "暂无通知。",
+  },
+  "noti.kbz.requested.title": {
+    ko: "KBZPay 인증 요청됨",
+    my: "KBZPay အတည်ပြုရန် တောင်းဆိုပြီး",
+    zh: "已请求 KBZPay 验证",
+  },
+  "noti.kbz.requested.body": {
+    ko: "요청이 접수되었습니다. 관리자 안내를 기다려주세요. {message}",
+    my: "တောင်းဆိုမှုကို လက်ခံပြီးပါပြီ။ အုပ်ချုပ်သူ ညွှန်ကြားချက်ကို စောင့်ပါ။ {message}",
+    zh: "请求已提交，请等待管理员指引。{message}",
+  },
+  "noti.kbz.instruction.title": {
+    ko: "KBZPay 송금 안내 도착",
+    my: "KBZPay လွှဲပြောင်းညွှန်ကြားချက် ရရှိပြီး",
+    zh: "收到 KBZPay 转账指引",
+  },
+  "noti.kbz.instruction.body": {
+    ko: "아래 번호로 {amount} MMK 송금 후 거래번호를 제출하세요. {transferPhone} {adminNote}",
+    my: "{transferPhone} သို့ {amount} MMK လွှဲပြီးနောက် လုပ်ဆောင်မှုအမှတ်ကို တင်ပြပါ။ {adminNote}",
+    zh: "请向 {transferPhone} 转账 {amount} MMK，然后提交交易号。{adminNote}",
+  },
+  "noti.kbz.transactionSubmitted.title": {
+    ko: "KBZPay 거래번호 제출됨",
+    my: "KBZPay လုပ်ဆောင်မှုအမှတ် တင်ပြပြီး",
+    zh: "已提交 KBZPay 交易号",
+  },
+  "noti.kbz.transactionSubmitted.body": {
+    ko: "거래번호: {kbzTransactionId}. 관리자 확인을 기다리는 중입니다.",
+    my: "လုပ်ဆောင်မှုအမှတ်: {kbzTransactionId}။ အုပ်ချုပ်သူ အတည်ပြုမှုကို စောင့်နေပါသည်။",
+    zh: "交易号：{kbzTransactionId}。等待管理员核验。",
+  },
+  "noti.kbz.verified.title": {
+    ko: "KBZPay 인증 완료",
+    my: "KBZPay အတည်ပြုပြီး",
+    zh: "KBZPay 验证已完成",
+  },
+  "noti.kbz.verified.body": {
+    ko: "인증이 완료되었습니다. {adminNote}",
+    my: "အတည်ပြုခြင်း ပြီးစီးပြီးပါပြီ။ {adminNote}",
+    zh: "验证已完成。{adminNote}",
+  },
   homeWelcome: { ko: "환영합니다", my: "ကြိုဆိုပါသည်", zh: "欢迎" },
   homeBrandTitle: { ko: "Flex Used Market", my: "Flex Used Market", zh: "Flex Used Market" },
   homeDashboardSubtitle: {
@@ -610,10 +657,19 @@ function t(key: keyof typeof DICT, locale: AppLocale): string {
   return DICT[key][locale];
 }
 
+function formatTemplate(template: string, vars?: Record<string, unknown>): string {
+  if (!vars) return template;
+  return template.replace(/\{(\w+)\}/g, (_m, k: string) => {
+    const v = vars[k];
+    return typeof v === "string" || typeof v === "number" ? String(v) : "";
+  });
+}
+
 interface LocaleContextValue {
   locale: AppLocale;
   setLocale: (locale: AppLocale) => Promise<void>;
   t: (key: keyof typeof DICT) => string;
+  tf: (key: keyof typeof DICT, vars?: Record<string, unknown>) => string;
 }
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
@@ -646,6 +702,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
       locale,
       setLocale,
       t: (key) => t(key, locale),
+      tf: (key, vars) => formatTemplate(t(key, locale), vars),
     }),
     [locale, setLocale],
   );

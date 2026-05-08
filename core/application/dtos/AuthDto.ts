@@ -18,6 +18,7 @@ export interface AuthProfileDto {
     status?: string | null;
     isVerified?: boolean;
     adminPhoneForTransfer?: string | null;
+    adminInstructionSentAt?: string | null;
     adminNote?: string | null;
     message?: string | null;
     kbzTransactionId?: string | null;

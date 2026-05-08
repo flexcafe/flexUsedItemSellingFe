@@ -2,16 +2,20 @@ import { HttpClient } from "../api/HttpClient";
 import { ApiProductRepository } from "../repositories/ApiProductRepository";
 import { ApiAuthRepository } from "../repositories/ApiAuthRepository";
 import { ApiProfileRepository } from "../repositories/ApiProfileRepository";
+import { ApiNotificationRepository } from "../repositories/ApiNotificationRepository";
 import { PreferencesRepository } from "../repositories/PreferencesRepository";
 import { ProductService } from "@/core/application/services/ProductService";
 import { AuthService } from "@/core/application/services/AuthService";
 import { ProfileService } from "@/core/application/services/ProfileService";
+import { NotificationService } from "@/core/application/services/NotificationService";
 import type { IProductRepository } from "@/core/domain/repositories/IProductRepository";
 import type { IProductService } from "@/core/domain/services/IProductService";
 import type { IAuthRepository } from "@/core/domain/repositories/IAuthRepository";
 import type { IAuthService } from "@/core/domain/services/IAuthService";
 import type { IProfileRepository } from "@/core/domain/repositories/IProfileRepository";
 import type { IProfileService } from "@/core/domain/services/IProfileService";
+import type { INotificationRepository } from "@/core/domain/repositories/INotificationRepository";
+import type { INotificationService } from "@/core/domain/services/INotificationService";
 import type { IPreferencesRepository } from "@/core/domain/repositories/IPreferencesRepository";
 
 class Container {
@@ -29,6 +33,9 @@ class Container {
     const profileRepository = new ApiProfileRepository(httpClient);
     const profileService = new ProfileService(profileRepository);
 
+    const notificationRepository = new ApiNotificationRepository(httpClient);
+    const notificationService = new NotificationService(notificationRepository);
+
     const preferencesRepository = new PreferencesRepository();
 
     this.register<HttpClient>("httpClient", httpClient);
@@ -38,6 +45,11 @@ class Container {
     this.register<IAuthService>("authService", authService);
     this.register<IProfileRepository>("profileRepository", profileRepository);
     this.register<IProfileService>("profileService", profileService);
+    this.register<INotificationRepository>(
+      "notificationRepository",
+      notificationRepository,
+    );
+    this.register<INotificationService>("notificationService", notificationService);
     this.register<IPreferencesRepository>(
       "preferencesRepository",
       preferencesRepository,

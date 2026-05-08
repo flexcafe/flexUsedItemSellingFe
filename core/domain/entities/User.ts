@@ -13,6 +13,7 @@ export interface AuthUser {
   kbzPayVerificationStatus: string | null;
   isKbzPayVerified: boolean;
   kbzPayAdminPhoneForTransfer: string | null;
+  kbzPayAdminInstructionSentAt: string | null;
   kbzPayAdminNote: string | null;
   kbzPayTransactionId: string | null;
   kbzPayRequestedAt: string | null;

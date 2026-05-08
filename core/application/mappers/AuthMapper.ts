@@ -69,6 +69,10 @@ export function toAuthUser(
       typeof user?.kbzPay?.adminPhoneForTransfer === "string"
         ? user.kbzPay.adminPhoneForTransfer
         : null,
+    kbzPayAdminInstructionSentAt:
+      typeof user?.kbzPay?.adminInstructionSentAt === "string"
+        ? user.kbzPay.adminInstructionSentAt
+        : null,
     kbzPayAdminNote:
       typeof user?.kbzPay?.adminNote === "string" ? user.kbzPay.adminNote : null,
     kbzPayTransactionId:
