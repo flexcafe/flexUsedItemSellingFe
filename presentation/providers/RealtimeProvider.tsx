@@ -3,9 +3,11 @@ import { toClientNotification } from "@/core/application/mappers/NotificationMap
 import type { ClientNotification } from "@/core/domain/entities/Notification";
 import { API_CONFIG, API_ENDPOINTS } from "@/core/infrastructure/api/constants";
 import { CLIENT_NOTIFICATIONS_QUERY_KEY } from "@/presentation/hooks/useNotifications";
+import { showIncomingNotificationToast } from "@/presentation/notifications/show-incoming-notification-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, type ReactNode } from "react";
 import { useAuth } from "./AuthProvider";
+import { useLocale } from "./LocaleProvider";
 
 const PUSHER_KEY = process.env.EXPO_PUBLIC_PUSHER_KEY ?? "";
 const PUSHER_CLUSTER = process.env.EXPO_PUBLIC_PUSHER_CLUSTER ?? "";
@@ -27,6 +29,7 @@ function parseNotificationPayload(rawData: unknown): ClientNotification | null {
 
 export function RealtimeProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, user } = useAuth();
+  const { locale, tf, t } = useLocale();
   const qc = useQueryClient();
 
   useEffect(() => {
@@ -73,6 +76,10 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
             if (event.eventName !== "notification.created") return;
             const incoming = parseNotificationPayload(event.data);
             if (!incoming) return;
+            const existing =
+              qc.getQueryData<ClientNotification[]>(CLIENT_NOTIFICATIONS_QUERY_KEY) ??
+              [];
+            const isNew = !existing.some((item) => item.id === incoming.id);
             qc.setQueriesData(
               { queryKey: CLIENT_NOTIFICATIONS_QUERY_KEY },
               (prev: ClientNotification[] | undefined) => {
@@ -81,6 +88,9 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
                 return [incoming, ...list];
               },
             );
+            if (isNew) {
+              showIncomingNotificationToast(incoming, locale, tf, t("tabsNotifications"));
+            }
           },
         });
 
@@ -98,7 +108,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       void pusher.unsubscribe({ channelName });
       void pusher.disconnect();
     };
-  }, [isAuthenticated, qc, user?.accessToken, user?.id]);
+  }, [isAuthenticated, locale, qc, t, tf, user?.accessToken, user?.id]);
 
   return children;
 }

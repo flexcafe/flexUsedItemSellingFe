@@ -8,9 +8,11 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import "react-native-reanimated";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { AnimatedLaunchScreen } from "@/components/animated-launch-screen";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { NotificationToastRoot } from "@/presentation/components/notification-toast-root";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthProvider, useAuth } from "@/presentation/providers/AuthProvider";
 import { LocaleProvider } from "@/presentation/providers/LocaleProvider";
@@ -70,25 +72,28 @@ export default function RootLayout() {
   }))[0];
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <ServicesProvider services={services}>
-        <QueryProvider>
-          <LocaleProvider>
-            <AuthProvider>
-              <RealtimeProvider>
-                <View style={{ flex: 1 }}>
-                  <AuthGate />
-                  <LanguageSwitcher />
-                  {showLaunch ? (
-                    <AnimatedLaunchScreen onFinish={handleLaunchFinish} />
-                  ) : null}
-                </View>
-                <StatusBar style="auto" />
-              </RealtimeProvider>
-            </AuthProvider>
-          </LocaleProvider>
-        </QueryProvider>
-      </ServicesProvider>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+        <ServicesProvider services={services}>
+          <QueryProvider>
+            <LocaleProvider>
+              <AuthProvider>
+                <RealtimeProvider>
+                  <View style={{ flex: 1 }}>
+                    <AuthGate />
+                    <LanguageSwitcher />
+                    {showLaunch ? (
+                      <AnimatedLaunchScreen onFinish={handleLaunchFinish} />
+                    ) : null}
+                  </View>
+                  <NotificationToastRoot />
+                  <StatusBar style="auto" />
+                </RealtimeProvider>
+              </AuthProvider>
+            </LocaleProvider>
+          </QueryProvider>
+        </ServicesProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
