@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,13 +14,11 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Image } from "expo-image";
-import * as ImagePicker from "expo-image-picker";
 
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
 import { PasswordInput } from "@/components/password-input";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import type {
   UserRankTier,
@@ -26,12 +26,15 @@ import type {
 } from "@/core/domain/entities/ProfileRewards";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
+  useChangePassword,
+  useUploadAvatar,
+} from "@/presentation/hooks/useClientProfile";
+import {
   useProfilePoints,
   useProfileTransactionStats,
   useRequestWithdrawal,
   useWithdrawalRequests,
 } from "@/presentation/hooks/useProfileRewards";
-import { useChangePassword, useUploadAvatar } from "@/presentation/hooks/useClientProfile";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 
@@ -55,13 +58,36 @@ const RANK_TIERS: {
   minPoints: number;
 }[] = [
   { tier: "VIP", label: "VIP", threshold: "30,000+ pts", minPoints: 30000 },
-  { tier: "GOLD", label: "Gold (골드)", threshold: "10,000+ pts", minPoints: 10000 },
-  { tier: "SILVER", label: "Silver (실버)", threshold: "3,000+ pts", minPoints: 3000 },
-  { tier: "BRONZE", label: "Bronze (브론즈)", threshold: "1,000+ pts", minPoints: 1000 },
-  { tier: "NEWBIE", label: "Newbie (새내기)", threshold: "-100 pts 이하", minPoints: -100 },
+  {
+    tier: "GOLD",
+    label: "Gold (골드)",
+    threshold: "10,000+ pts",
+    minPoints: 10000,
+  },
+  {
+    tier: "SILVER",
+    label: "Silver (실버)",
+    threshold: "3,000+ pts",
+    minPoints: 3000,
+  },
+  {
+    tier: "BRONZE",
+    label: "Bronze (브론즈)",
+    threshold: "1,000+ pts",
+    minPoints: 1000,
+  },
+  {
+    tier: "NEWBIE",
+    label: "Newbie (새내기)",
+    threshold: "-100 pts 이하",
+    minPoints: -100,
+  },
 ];
 
-function getWithdrawalStatusColor(status: WithdrawalStatus, tint: string): string {
+function getWithdrawalStatusColor(
+  status: WithdrawalStatus,
+  tint: string,
+): string {
   switch (status) {
     case "PENDING":
       return WARNING;
@@ -121,7 +147,9 @@ export function ProfileScreen() {
   const changePassword = useChangePassword();
   const uploadAvatar = useUploadAvatar();
 
-  const [activeTab, setActiveTab] = useState<"rewards" | "verifications" | "password">("rewards");
+  const [activeTab, setActiveTab] = useState<
+    "rewards" | "verifications" | "password"
+  >("rewards");
   const [showRankSystem, setShowRankSystem] = useState(false);
   const [showWithdrawalHistory, setShowWithdrawalHistory] = useState(true);
   const [showPhoneVerification, setShowPhoneVerification] = useState(true);
@@ -146,14 +174,18 @@ export function ProfileScreen() {
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
   const [withdrawalError, setWithdrawalError] = useState("");
   const [kbzMessage, setKbzMessage] = useState(
-    "Please verify my KBZPay quickly. I already transferred."
+    "Please verify my KBZPay quickly. I already transferred.",
   );
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
 
-  const [phoneVerified, setPhoneVerified] = useState(Boolean(user?.isPhoneVerified));
-  const [emailVerified, setEmailVerified] = useState(Boolean(user?.isEmailVerified));
+  const [phoneVerified, setPhoneVerified] = useState(
+    Boolean(user?.isPhoneVerified),
+  );
+  const [emailVerified, setEmailVerified] = useState(
+    Boolean(user?.isEmailVerified),
+  );
   const [loading, setLoading] = useState<Record<string, boolean>>({});
 
   const initials = useMemo(() => {
@@ -208,7 +240,12 @@ export function ProfileScreen() {
   };
 
   const handleChangePassword = async () => {
-    if (!currentPassword.trim() || !newPassword.trim() || !confirmNewPassword.trim()) return;
+    if (
+      !currentPassword.trim() ||
+      !newPassword.trim() ||
+      !confirmNewPassword.trim()
+    )
+      return;
     setBusy("changePassword", true);
     try {
       await changePassword.mutateAsync({
@@ -234,8 +271,9 @@ export function ProfileScreen() {
     (err as { response?: { status?: number } })?.response?.status;
 
   const getServerMessage = (err: unknown) => {
-    const serverMessage = (err as { response?: { data?: { message?: unknown } } })?.response
-      ?.data?.message;
+    const serverMessage = (
+      err as { response?: { data?: { message?: unknown } } }
+    )?.response?.data?.message;
     return typeof serverMessage === "string" ? serverMessage : undefined;
   };
 
@@ -341,7 +379,8 @@ export function ProfileScreen() {
     setBusy("kbz", true);
     try {
       await requestKbzPayVerification(
-        kbzMessage.trim() || "Please verify my KBZPay quickly. I already transferred."
+        kbzMessage.trim() ||
+          "Please verify my KBZPay quickly. I already transferred.",
       );
       await refreshProfile();
       Alert.alert(t("kbzPayRequested"));
@@ -432,10 +471,19 @@ export function ProfileScreen() {
     backgroundColor: colors.background,
   } as const;
 
-  const phoneStatusText = phoneVerified ? t("profileStatusVerified") : t("profileStatusNotVerified");
-  const emailStatusText = emailVerified ? t("profileStatusVerified") : t("profileStatusNotVerified");
+  const phoneStatusText = phoneVerified
+    ? t("profileStatusVerified")
+    : t("profileStatusNotVerified");
+  const emailStatusText = emailVerified
+    ? t("profileStatusVerified")
+    : t("profileStatusNotVerified");
   const kbzStatus = user?.kbzPayVerificationStatus?.toUpperCase() ?? null;
-  const kbzPendingStatuses = new Set(["PENDING", "REQUESTED", "INSTRUCTION_SENT", "IN_REVIEW"]);
+  const kbzPendingStatuses = new Set([
+    "PENDING",
+    "REQUESTED",
+    "INSTRUCTION_SENT",
+    "IN_REVIEW",
+  ]);
   const kbzIsPending = Boolean(kbzStatus && kbzPendingStatuses.has(kbzStatus));
   const kbzAdminPhone = user?.kbzPayAdminPhoneForTransfer?.trim() ?? "";
   const kbzAdminInstructionSentAt =
@@ -449,9 +497,9 @@ export function ProfileScreen() {
     kbzSubmittedTransaction.length > 0 || kbzStatus === "IN_REVIEW";
   const kbzVerificationStarted = Boolean(
     kbzRequestedAt ||
-      kbzHasAdminInstruction ||
-      kbzHasSubmittedTransaction ||
-      (kbzStatus && kbzStatus !== "PENDING"),
+    kbzHasAdminInstruction ||
+    kbzHasSubmittedTransaction ||
+    (kbzStatus && kbzStatus !== "PENDING"),
   );
   const kbzCanRequest =
     !user?.isKbzPayVerified && (!kbzIsPending || !kbzVerificationStarted);
@@ -490,23 +538,30 @@ export function ProfileScreen() {
   const currentRank = pointsSummary?.currentRank ?? "NEWBIE";
   const currentRankAccent = RANK_ACCENTS[currentRank];
   const totalPoints = pointsSummary?.totalPoints ?? 0;
-  const availableWithdrawalPoints = pointsSummary?.availableWithdrawalPoints ?? 0;
+  const availableWithdrawalPoints =
+    pointsSummary?.availableWithdrawalPoints ?? 0;
   const pendingWithdrawalAmount = pointsSummary?.pendingWithdrawalAmount ?? 0;
   const rewardNickname = pointsSummary?.nickname?.trim() || sampleName;
   const rewardHandle = rewardNickname.startsWith("@")
     ? rewardNickname
     : `@${rewardNickname.replace(/\s+/g, "").toLowerCase()}`;
   const currentRankLabel =
-    pointsSummary?.currentRankConfig?.label?.trim() || getRankLabel(currentRank);
+    pointsSummary?.currentRankConfig?.label?.trim() ||
+    getRankLabel(currentRank);
   const nextRankConfig = pointsSummary?.nextRankConfig;
   const currentMinPoints =
-    pointsSummary?.currentRankConfig?.minPoints ?? getRankThreshold(currentRank);
+    pointsSummary?.currentRankConfig?.minPoints ??
+    getRankThreshold(currentRank);
   const nextMinPoints = nextRankConfig?.minPoints ?? null;
   const rankProgress =
     nextMinPoints && nextMinPoints > currentMinPoints
       ? Math.min(
           1,
-          Math.max(0, (totalPoints - currentMinPoints) / (nextMinPoints - currentMinPoints)),
+          Math.max(
+            0,
+            (totalPoints - currentMinPoints) /
+              (nextMinPoints - currentMinPoints),
+          ),
         )
       : 1;
   const rankProgressPercent = Math.round(rankProgress * 100);
@@ -523,16 +578,21 @@ export function ProfileScreen() {
     withdrawalAmountNumber > availableWithdrawalPoints;
   const rewardLoading = pointsQuery.isLoading || statsQuery.isLoading;
   const rewardError = pointsQuery.isError || statsQuery.isError;
-  const rewardPanelBg = colorScheme === "dark" ? "rgba(22, 163, 74, 0.14)" : "#ecfdf5";
-  const rewardMutedBg = colorScheme === "dark" ? "rgba(148, 163, 184, 0.12)" : "#f8fafc";
+  const rewardPanelBg =
+    colorScheme === "dark" ? "rgba(22, 163, 74, 0.14)" : "#ecfdf5";
+  const rewardMutedBg =
+    colorScheme === "dark" ? "rgba(148, 163, 184, 0.12)" : "#f8fafc";
   const profileRefreshing =
-    pointsQuery.isFetching || statsQuery.isFetching || withdrawalsQuery.isFetching;
+    pointsQuery.isFetching ||
+    statsQuery.isFetching ||
+    withdrawalsQuery.isFetching;
 
   return (
     <ThemedView style={styles.screen}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}>
+        style={{ flex: 1 }}
+      >
         <ScrollView
           contentContainerStyle={styles.content}
           refreshControl={
@@ -547,7 +607,8 @@ export function ProfileScreen() {
               tintColor={colors.tint}
             />
           }
-          keyboardShouldPersistTaps="handled">
+          keyboardShouldPersistTaps="handled"
+        >
           <ThemedText type="title" style={styles.title}>
             {t("profileTitle")}
           </ThemedText>
@@ -557,9 +618,18 @@ export function ProfileScreen() {
               onPress={() => setActiveTab("rewards")}
               style={[
                 styles.tab,
-                activeTab === "rewards" && { backgroundColor: colors.tint, borderColor: colors.tint },
-              ]}>
-              <ThemedText style={[styles.tabText, activeTab === "rewards" && { color: "#fff" }]}>
+                activeTab === "rewards" && {
+                  backgroundColor: colors.tint,
+                  borderColor: colors.tint,
+                },
+              ]}
+            >
+              <ThemedText
+                style={[
+                  styles.tabText,
+                  activeTab === "rewards" && { color: "#fff" },
+                ]}
+              >
                 {t("profileTabRewards")}
               </ThemedText>
             </Pressable>
@@ -571,9 +641,14 @@ export function ProfileScreen() {
                   backgroundColor: colors.tint,
                   borderColor: colors.tint,
                 },
-              ]}>
+              ]}
+            >
               <ThemedText
-                style={[styles.tabText, activeTab === "verifications" && { color: "#fff" }]}>
+                style={[
+                  styles.tabText,
+                  activeTab === "verifications" && { color: "#fff" },
+                ]}
+              >
                 {t("profileTabVerifications")}
               </ThemedText>
             </Pressable>
@@ -585,8 +660,14 @@ export function ProfileScreen() {
                   backgroundColor: colors.tint,
                   borderColor: colors.tint,
                 },
-              ]}>
-              <ThemedText style={[styles.tabText, activeTab === "password" && { color: "#fff" }]}>
+              ]}
+            >
+              <ThemedText
+                style={[
+                  styles.tabText,
+                  activeTab === "password" && { color: "#fff" },
+                ]}
+              >
                 {t("profileTabPassword")}
               </ThemedText>
             </Pressable>
@@ -598,7 +679,8 @@ export function ProfileScreen() {
                 onPress={() => {
                   handlePickAndUploadAvatar();
                 }}
-                style={styles.avatarPressable}>
+                style={styles.avatarPressable}
+              >
                 <View style={[styles.avatar, { backgroundColor: colors.tint }]}>
                   {avatarUrl ? (
                     <Image
@@ -607,11 +689,25 @@ export function ProfileScreen() {
                       contentFit="cover"
                     />
                   ) : (
-                    <ThemedText style={styles.avatarText}>{initials}</ThemedText>
+                    <ThemedText style={styles.avatarText}>
+                      {initials}
+                    </ThemedText>
                   )}
                 </View>
-                <View style={[styles.avatarBadge, { backgroundColor: colors.background, borderColor: colors.icon }]}>
-                  <MaterialIcons name="photo-camera" size={14} color={colors.icon} />
+                <View
+                  style={[
+                    styles.avatarBadge,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.icon,
+                    },
+                  ]}
+                >
+                  <MaterialIcons
+                    name="photo-camera"
+                    size={14}
+                    color={colors.icon}
+                  />
                 </View>
               </Pressable>
               <View style={styles.profileInfo}>
@@ -625,17 +721,39 @@ export function ProfileScreen() {
           </View>
 
           {activeTab === "rewards" ? (
-            <View style={[styles.card, styles.rewardCard, { borderColor: colors.icon }]}>
+            <View
+              style={[
+                styles.card,
+                styles.rewardCard,
+                { borderColor: colors.icon },
+              ]}
+            >
               <View style={styles.rewardHeader}>
-                <View style={[styles.rewardIcon, { backgroundColor: currentRankAccent }]}>
+                <View
+                  style={[
+                    styles.rewardIcon,
+                    { backgroundColor: currentRankAccent },
+                  ]}
+                >
                   <MaterialIcons name="emoji-events" color="#fff" size={22} />
                 </View>
                 <View style={styles.rewardHeaderText}>
-                  <ThemedText style={styles.cardTitle}>{t("rewardMyProfile")}</ThemedText>
-                  <ThemedText style={styles.profileSub}>{rewardHandle}</ThemedText>
+                  <ThemedText style={styles.cardTitle}>
+                    {t("rewardMyProfile")}
+                  </ThemedText>
+                  <ThemedText style={styles.profileSub}>
+                    {rewardHandle}
+                  </ThemedText>
                 </View>
-                <View style={[styles.rankPill, { backgroundColor: currentRankAccent }]}>
-                  <ThemedText style={styles.rankPillText}>{currentRankLabel}</ThemedText>
+                <View
+                  style={[
+                    styles.rankPill,
+                    { backgroundColor: currentRankAccent },
+                  ]}
+                >
+                  <ThemedText style={styles.rankPillText}>
+                    {currentRankLabel}
+                  </ThemedText>
                 </View>
               </View>
 
@@ -650,36 +768,72 @@ export function ProfileScreen() {
                     statsQuery.refetch();
                     withdrawalsQuery.refetch();
                   }}
-                  style={[styles.outlineButton, { borderColor: colors.tint }]}>
+                  style={[styles.outlineButton, { borderColor: colors.tint }]}
+                >
                   <View style={styles.buttonContent}>
-                    <MaterialIcons name="refresh" color={colors.tint} size={18} />
-                    <ThemedText style={[styles.outlineButtonText, { color: colors.tint }]}>
+                    <MaterialIcons
+                      name="refresh"
+                      color={colors.tint}
+                      size={18}
+                    />
+                    <ThemedText
+                      style={[styles.outlineButtonText, { color: colors.tint }]}
+                    >
                       {t("rewardRetry")}
                     </ThemedText>
                   </View>
                 </Pressable>
               ) : (
                 <>
-                  <View style={[styles.pointsPanel, { backgroundColor: rewardPanelBg }]}>
-                    <ThemedText style={styles.sectionLabel}>{t("rewardMyPoints")}</ThemedText>
-                    <ThemedText style={[styles.pointsValue, { color: currentRankAccent }]}>
+                  <View
+                    style={[
+                      styles.pointsPanel,
+                      { backgroundColor: rewardPanelBg },
+                    ]}
+                  >
+                    <ThemedText style={styles.sectionLabel}>
+                      {t("rewardMyPoints")}
+                    </ThemedText>
+                    <ThemedText
+                      style={[styles.pointsValue, { color: currentRankAccent }]}
+                    >
                       {formatPoints(totalPoints)} pts
                     </ThemedText>
                     <View style={styles.rewardHintRow}>
-                      <MaterialIcons name="payments" color={SUCCESS} size={18} />
-                      <ThemedText style={styles.rewardHintText}>{t("rewardCashoutHint")}</ThemedText>
+                      <MaterialIcons
+                        name="payments"
+                        color={SUCCESS}
+                        size={18}
+                      />
+                      <ThemedText style={styles.rewardHintText}>
+                        {t("rewardCashoutHint")}
+                      </ThemedText>
                     </View>
                   </View>
 
                   <View style={styles.rewardMetaGrid}>
-                    <View style={[styles.rewardMetaItem, { backgroundColor: rewardMutedBg }]}>
-                      <ThemedText style={styles.infoLabel}>{t("rewardAvailablePoints")}</ThemedText>
+                    <View
+                      style={[
+                        styles.rewardMetaItem,
+                        { backgroundColor: rewardMutedBg },
+                      ]}
+                    >
+                      <ThemedText style={styles.infoLabel}>
+                        {t("rewardAvailablePoints")}
+                      </ThemedText>
                       <ThemedText style={styles.infoValue}>
                         {formatPoints(availableWithdrawalPoints)} pts
                       </ThemedText>
                     </View>
-                    <View style={[styles.rewardMetaItem, { backgroundColor: rewardMutedBg }]}>
-                      <ThemedText style={styles.infoLabel}>{t("rewardPendingWithdrawal")}</ThemedText>
+                    <View
+                      style={[
+                        styles.rewardMetaItem,
+                        { backgroundColor: rewardMutedBg },
+                      ]}
+                    >
+                      <ThemedText style={styles.infoLabel}>
+                        {t("rewardPendingWithdrawal")}
+                      </ThemedText>
                       <ThemedText style={styles.infoValue}>
                         {formatPoints(pendingWithdrawalAmount)} pts
                       </ThemedText>
@@ -688,12 +842,24 @@ export function ProfileScreen() {
 
                   <View style={styles.rankProgressWrap}>
                     <View style={styles.rewardSectionHeader}>
-                      <ThemedText style={styles.sectionLabel}>{t("rewardCurrentRank")}</ThemedText>
-                      <ThemedText style={[styles.rankProgressValue, { color: currentRankAccent }]}>
+                      <ThemedText style={styles.sectionLabel}>
+                        {t("rewardCurrentRank")}
+                      </ThemedText>
+                      <ThemedText
+                        style={[
+                          styles.rankProgressValue,
+                          { color: currentRankAccent },
+                        ]}
+                      >
                         {rankProgressPercent}%
                       </ThemedText>
                     </View>
-                    <View style={[styles.rankProgressTrack, { backgroundColor: rewardMutedBg }]}>
+                    <View
+                      style={[
+                        styles.rankProgressTrack,
+                        { backgroundColor: rewardMutedBg },
+                      ]}
+                    >
                       <View
                         style={[
                           styles.rankProgressFill,
@@ -712,7 +878,9 @@ export function ProfileScreen() {
                   </View>
 
                   <View style={styles.withdrawalForm}>
-                    <ThemedText style={styles.label}>{t("rewardWithdrawalAmount")}</ThemedText>
+                    <ThemedText style={styles.label}>
+                      {t("rewardWithdrawalAmount")}
+                    </ThemedText>
                     <TextInput
                       style={[
                         styles.input,
@@ -730,7 +898,9 @@ export function ProfileScreen() {
                       editable={!requestWithdrawal.isPending}
                     />
                     {withdrawalError ? (
-                      <ThemedText style={styles.error}>{withdrawalError}</ThemedText>
+                      <ThemedText style={styles.error}>
+                        {withdrawalError}
+                      </ThemedText>
                     ) : null}
                     <Pressable
                       onPress={handleRequestWithdrawal}
@@ -740,12 +910,17 @@ export function ProfileScreen() {
                         styles.fullWidthButton,
                         { backgroundColor: colors.tint },
                         withdrawalDisabled && { opacity: 0.6 },
-                      ]}>
+                      ]}
+                    >
                       {requestWithdrawal.isPending ? (
                         <ActivityIndicator color="#fff" />
                       ) : (
                         <View style={styles.buttonContent}>
-                          <MaterialIcons name="account-balance-wallet" color="#fff" size={18} />
+                          <MaterialIcons
+                            name="account-balance-wallet"
+                            color="#fff"
+                            size={18}
+                          />
                           <ThemedText style={styles.primaryButtonText}>
                             {t("rewardRequestWithdrawal")}
                           </ThemedText>
@@ -755,26 +930,55 @@ export function ProfileScreen() {
                   </View>
 
                   <View style={styles.rewardSection}>
-                    <ThemedText style={styles.cardTitle}>{t("rewardTransactionStats")}</ThemedText>
+                    <ThemedText style={styles.cardTitle}>
+                      {t("rewardTransactionStats")}
+                    </ThemedText>
                     <View style={styles.statGrid}>
-                      <View style={[styles.statTile, { backgroundColor: rewardMutedBg }]}>
-                        <MaterialIcons name="bar-chart" color={colors.tint} size={20} />
+                      <View
+                        style={[
+                          styles.statTile,
+                          { backgroundColor: rewardMutedBg },
+                        ]}
+                      >
+                        <MaterialIcons
+                          name="bar-chart"
+                          color={colors.tint}
+                          size={20}
+                        />
                         <ThemedText style={styles.statValue}>
-                          {formatPoints(statsSummary?.totalTransactionsMade ?? 0)}
+                          {formatPoints(
+                            statsSummary?.totalTransactionsMade ?? 0,
+                          )}
                         </ThemedText>
                         <ThemedText style={styles.statLabel}>
                           {t("rewardTotalTransactions")}
                         </ThemedText>
                       </View>
-                      <View style={[styles.statTile, { backgroundColor: rewardMutedBg }]}>
+                      <View
+                        style={[
+                          styles.statTile,
+                          { backgroundColor: rewardMutedBg },
+                        ]}
+                      >
                         <MaterialIcons name="store" color={SUCCESS} size={20} />
                         <ThemedText style={styles.statValue}>
                           {formatPoints(statsSummary?.completedSales ?? 0)}
                         </ThemedText>
-                        <ThemedText style={styles.statLabel}>{t("rewardCompletedSales")}</ThemedText>
+                        <ThemedText style={styles.statLabel}>
+                          {t("rewardCompletedSales")}
+                        </ThemedText>
                       </View>
-                      <View style={[styles.statTile, { backgroundColor: rewardMutedBg }]}>
-                        <MaterialIcons name="shopping-cart" color={WARNING} size={20} />
+                      <View
+                        style={[
+                          styles.statTile,
+                          { backgroundColor: rewardMutedBg },
+                        ]}
+                      >
+                        <MaterialIcons
+                          name="shopping-cart"
+                          color={WARNING}
+                          size={20}
+                        />
                         <ThemedText style={styles.statValue}>
                           {formatPoints(statsSummary?.completedPurchases ?? 0)}
                         </ThemedText>
@@ -788,8 +992,11 @@ export function ProfileScreen() {
                   <View style={styles.rewardSection}>
                     <Pressable
                       onPress={() => setShowRankSystem((prev) => !prev)}
-                      style={styles.collapsibleHeader}>
-                      <ThemedText style={styles.cardTitle}>{t("rewardRankSystem")}</ThemedText>
+                      style={styles.collapsibleHeader}
+                    >
+                      <ThemedText style={styles.cardTitle}>
+                        {t("rewardRankSystem")}
+                      </ThemedText>
                       <MaterialIcons
                         name={showRankSystem ? "expand-less" : "expand-more"}
                         color={colors.icon}
@@ -807,13 +1014,25 @@ export function ProfileScreen() {
                               style={[
                                 styles.rankRow,
                                 {
-                                  backgroundColor: active ? rewardMutedBg : "transparent",
+                                  backgroundColor: active
+                                    ? rewardMutedBg
+                                    : "transparent",
                                   borderColor: active ? accent : colors.icon,
                                 },
-                              ]}>
-                              <View style={[styles.rankDot, { backgroundColor: accent }]} />
-                              <ThemedText style={styles.rankName}>{rank.label}</ThemedText>
-                              <ThemedText style={styles.rankThreshold}>{rank.threshold}</ThemedText>
+                              ]}
+                            >
+                              <View
+                                style={[
+                                  styles.rankDot,
+                                  { backgroundColor: accent },
+                                ]}
+                              />
+                              <ThemedText style={styles.rankName}>
+                                {rank.label}
+                              </ThemedText>
+                              <ThemedText style={styles.rankThreshold}>
+                                {rank.threshold}
+                              </ThemedText>
                             </View>
                           );
                         })}
@@ -824,22 +1043,29 @@ export function ProfileScreen() {
                   <View style={styles.rewardSection}>
                     <Pressable
                       onPress={() => setShowWithdrawalHistory((prev) => !prev)}
-                      style={styles.collapsibleHeader}>
+                      style={styles.collapsibleHeader}
+                    >
                       <View style={styles.withdrawalHeaderLeft}>
-                        <ThemedText style={styles.cardTitle}>{t("rewardWithdrawalHistory")}</ThemedText>
+                        <ThemedText style={styles.cardTitle}>
+                          {t("rewardWithdrawalHistory")}
+                        </ThemedText>
                         {withdrawalsQuery.isFetching ? (
                           <ActivityIndicator color={colors.tint} size="small" />
                         ) : null}
                       </View>
                       <MaterialIcons
-                        name={showWithdrawalHistory ? "expand-less" : "expand-more"}
+                        name={
+                          showWithdrawalHistory ? "expand-less" : "expand-more"
+                        }
                         color={colors.icon}
                         size={22}
                       />
                     </Pressable>
                     {showWithdrawalHistory ? (
                       withdrawalRequests.length === 0 ? (
-                        <ThemedText style={styles.profileSub}>{t("rewardNoWithdrawals")}</ThemedText>
+                        <ThemedText style={styles.profileSub}>
+                          {t("rewardNoWithdrawals")}
+                        </ThemedText>
                       ) : (
                         <View style={styles.withdrawalList}>
                           {withdrawalRequests.map((item) => (
@@ -847,8 +1073,12 @@ export function ProfileScreen() {
                               key={item.id}
                               style={[
                                 styles.withdrawalRow,
-                                { borderColor: colors.icon, backgroundColor: rewardMutedBg },
-                              ]}>
+                                {
+                                  borderColor: colors.icon,
+                                  backgroundColor: rewardMutedBg,
+                                },
+                              ]}
+                            >
                               <View style={styles.withdrawalTopRow}>
                                 <ThemedText style={styles.withdrawalAmount}>
                                   {formatPoints(item.amount)} pts
@@ -856,17 +1086,27 @@ export function ProfileScreen() {
                                 <ThemedText
                                   style={[
                                     styles.withdrawalStatus,
-                                    { color: getWithdrawalStatusColor(item.status, colors.tint) },
-                                  ]}>
+                                    {
+                                      color: getWithdrawalStatusColor(
+                                        item.status,
+                                        colors.tint,
+                                      ),
+                                    },
+                                  ]}
+                                >
                                   {item.status}
                                 </ThemedText>
                               </View>
                               <ThemedText style={styles.profileSub}>
                                 {formatDate(item.createdAt)}
-                                {item.kbzTransferRef ? ` | ${item.kbzTransferRef}` : ""}
+                                {item.kbzTransferRef
+                                  ? ` | ${item.kbzTransferRef}`
+                                  : ""}
                               </ThemedText>
                               {item.adminNote ? (
-                                <ThemedText style={styles.profileSub}>{item.adminNote}</ThemedText>
+                                <ThemedText style={styles.profileSub}>
+                                  {item.adminNote}
+                                </ThemedText>
                               ) : null}
                             </View>
                           ))}
@@ -883,16 +1123,25 @@ export function ProfileScreen() {
                 <View style={styles.cardHeader}>
                   <Pressable
                     onPress={() => setShowPhoneVerification((prev) => !prev)}
-                    style={styles.collapsibleHeader}>
+                    style={styles.collapsibleHeader}
+                  >
                     <View style={styles.verificationHeaderLeft}>
-                      <ThemedText style={styles.cardTitle}>{t("phoneVerification")}</ThemedText>
+                      <ThemedText style={styles.cardTitle}>
+                        {t("phoneVerification")}
+                      </ThemedText>
                       <ThemedText
-                        style={[styles.badgeInline, { color: phoneVerified ? SUCCESS : colors.icon }]}>
+                        style={[
+                          styles.badgeInline,
+                          { color: phoneVerified ? SUCCESS : colors.icon },
+                        ]}
+                      >
                         {phoneStatusText}
                       </ThemedText>
                     </View>
                     <MaterialIcons
-                      name={showPhoneVerification ? "expand-less" : "expand-more"}
+                      name={
+                        showPhoneVerification ? "expand-less" : "expand-more"
+                      }
                       color={colors.icon}
                       size={22}
                     />
@@ -916,7 +1165,9 @@ export function ProfileScreen() {
                           <TextInput
                             style={[styles.input, inputStyle, { flex: 1 }]}
                             value={otpCode}
-                            onChangeText={(v) => setOtpCode(v.replace(/\D/g, ""))}
+                            onChangeText={(v) =>
+                              setOtpCode(v.replace(/\D/g, ""))
+                            }
                             placeholder={t("otpPlaceholder")}
                             placeholderTextColor={colors.icon}
                             keyboardType="number-pad"
@@ -929,30 +1180,43 @@ export function ProfileScreen() {
                             style={[
                               styles.primaryButton,
                               { backgroundColor: colors.tint },
-                              (loading.verifyOtp || phoneVerified) && { opacity: 0.6 },
-                            ]}>
+                              (loading.verifyOtp || phoneVerified) && {
+                                opacity: 0.6,
+                              },
+                            ]}
+                          >
                             {loading.verifyOtp ? (
                               <ActivityIndicator color="#fff" size="small" />
                             ) : (
-                              <ThemedText style={styles.primaryButtonText}>{t("verify")}</ThemedText>
+                              <ThemedText style={styles.primaryButtonText}>
+                                {t("verify")}
+                              </ThemedText>
                             )}
                           </Pressable>
                         </View>
                         <Pressable
                           onPress={handleSendOtp}
                           disabled={loading.sendOtp || phoneVerified}
-                          style={styles.linkButton}>
+                          style={styles.linkButton}
+                        >
                           {loading.sendOtp ? (
-                            <ActivityIndicator color={colors.tint} size="small" />
+                            <ActivityIndicator
+                              color={colors.tint}
+                              size="small"
+                            />
                           ) : (
-                            <ThemedText style={{ color: colors.tint, fontWeight: "600" }}>
+                            <ThemedText
+                              style={{ color: colors.tint, fontWeight: "600" }}
+                            >
                               {t("resend")}
                             </ThemedText>
                           )}
                         </Pressable>
                       </>
                     ) : (
-                      <ThemedText style={styles.profileSub}>{t("profileVerifiedHint")}</ThemedText>
+                      <ThemedText style={styles.profileSub}>
+                        {t("profileVerifiedHint")}
+                      </ThemedText>
                     )}
                   </>
                 ) : null}
@@ -962,16 +1226,25 @@ export function ProfileScreen() {
                 <View style={styles.cardHeader}>
                   <Pressable
                     onPress={() => setShowEmailVerification((prev) => !prev)}
-                    style={styles.collapsibleHeader}>
+                    style={styles.collapsibleHeader}
+                  >
                     <View style={styles.verificationHeaderLeft}>
-                      <ThemedText style={styles.cardTitle}>{t("emailVerification")}</ThemedText>
+                      <ThemedText style={styles.cardTitle}>
+                        {t("emailVerification")}
+                      </ThemedText>
                       <ThemedText
-                        style={[styles.badgeInline, { color: emailVerified ? SUCCESS : colors.icon }]}>
+                        style={[
+                          styles.badgeInline,
+                          { color: emailVerified ? SUCCESS : colors.icon },
+                        ]}
+                      >
                         {emailStatusText}
                       </ThemedText>
                     </View>
                     <MaterialIcons
-                      name={showEmailVerification ? "expand-less" : "expand-more"}
+                      name={
+                        showEmailVerification ? "expand-less" : "expand-more"
+                      }
                       color={colors.icon}
                       size={22}
                     />
@@ -993,16 +1266,26 @@ export function ProfileScreen() {
                       <>
                         <Pressable
                           onPress={handleSendEmail}
-                          disabled={loading.sendEmail || emailVerified || !email.trim()}
+                          disabled={
+                            loading.sendEmail || emailVerified || !email.trim()
+                          }
                           style={[
                             styles.outlineButton,
                             { borderColor: colors.tint },
-                            (loading.sendEmail || emailVerified || !email.trim()) && { opacity: 0.5 },
-                          ]}>
+                            (loading.sendEmail ||
+                              emailVerified ||
+                              !email.trim()) && { opacity: 0.5 },
+                          ]}
+                        >
                           {loading.sendEmail ? (
                             <ActivityIndicator color={colors.tint} />
                           ) : (
-                            <ThemedText style={[styles.outlineButtonText, { color: colors.tint }]}>
+                            <ThemedText
+                              style={[
+                                styles.outlineButtonText,
+                                { color: colors.tint },
+                              ]}
+                            >
                               {t("sendEmailVerificationButton")}
                             </ThemedText>
                           )}
@@ -1020,7 +1303,10 @@ export function ProfileScreen() {
                         <Pressable
                           onPress={handleVerifyEmail}
                           disabled={
-                            loading.verifyEmail || emailVerified || !email.trim() || !emailToken.trim()
+                            loading.verifyEmail ||
+                            emailVerified ||
+                            !email.trim() ||
+                            !emailToken.trim()
                           }
                           style={[
                             styles.primaryButton,
@@ -1032,7 +1318,8 @@ export function ProfileScreen() {
                               !emailToken.trim()) && {
                               opacity: 0.6,
                             },
-                          ]}>
+                          ]}
+                        >
                           {loading.verifyEmail ? (
                             <ActivityIndicator color="#fff" />
                           ) : (
@@ -1043,7 +1330,9 @@ export function ProfileScreen() {
                         </Pressable>
                       </>
                     ) : (
-                      <ThemedText style={styles.profileSub}>{t("profileVerifiedHint")}</ThemedText>
+                      <ThemedText style={styles.profileSub}>
+                        {t("profileVerifiedHint")}
+                      </ThemedText>
                     )}
                   </>
                 ) : null}
@@ -1053,15 +1342,22 @@ export function ProfileScreen() {
                 <View style={styles.cardHeader}>
                   <Pressable
                     onPress={() => setShowKbzPayVerification((prev) => !prev)}
-                    style={styles.collapsibleHeader}>
+                    style={styles.collapsibleHeader}
+                  >
                     <View style={styles.verificationHeaderLeft}>
-                      <ThemedText style={styles.cardTitle}>{t("kbzPayVerification")}</ThemedText>
-                      <ThemedText style={[styles.badgeInline, { color: kbzStatusColor }]}>
+                      <ThemedText style={styles.cardTitle}>
+                        {t("kbzPayVerification")}
+                      </ThemedText>
+                      <ThemedText
+                        style={[styles.badgeInline, { color: kbzStatusColor }]}
+                      >
                         {kbzStatusText}
                       </ThemedText>
                     </View>
                     <MaterialIcons
-                      name={showKbzPayVerification ? "expand-less" : "expand-more"}
+                      name={
+                        showKbzPayVerification ? "expand-less" : "expand-more"
+                      }
                       color={colors.icon}
                       size={22}
                     />
@@ -1071,7 +1367,9 @@ export function ProfileScreen() {
                   <>
                     {kbzCanRequest ? (
                       <>
-                        <ThemedText style={styles.profileSub}>{t("kbzPayRequestIntro")}</ThemedText>
+                        <ThemedText style={styles.profileSub}>
+                          {t("kbzPayRequestIntro")}
+                        </ThemedText>
                         <TextInput
                           style={[
                             styles.input,
@@ -1093,7 +1391,8 @@ export function ProfileScreen() {
                             styles.fullWidthButton,
                             { backgroundColor: colors.tint },
                             loading.kbz && { opacity: 0.6 },
-                          ]}>
+                          ]}
+                        >
                           {loading.kbz ? (
                             <ActivityIndicator color="#fff" />
                           ) : (
@@ -1113,31 +1412,54 @@ export function ProfileScreen() {
 
                     {kbzCanSubmitTransaction ? (
                       <>
-                        <ThemedText style={styles.profileSub}>{t("kbzPayPendingHint")}</ThemedText>
-                        <View style={[styles.infoBox, { borderColor: colors.icon }]}>
-                          <ThemedText style={styles.infoLabel}>{t("kbzPayAmountLabel")}</ThemedText>
-                          <ThemedText style={styles.infoValue}>{t("kbzPayAmountValue")}</ThemedText>
+                        <ThemedText style={styles.profileSub}>
+                          {t("kbzPayPendingHint")}
+                        </ThemedText>
+                        <View
+                          style={[styles.infoBox, { borderColor: colors.icon }]}
+                        >
+                          <ThemedText style={styles.infoLabel}>
+                            {t("kbzPayAmountLabel")}
+                          </ThemedText>
+                          <ThemedText style={styles.infoValue}>
+                            {t("kbzPayAmountValue")}
+                          </ThemedText>
                         </View>
-                        <View style={[styles.infoBox, { borderColor: colors.icon }]}>
+                        <View
+                          style={[styles.infoBox, { borderColor: colors.icon }]}
+                        >
                           <ThemedText style={styles.infoLabel}>
                             {t("kbzPayAdminPhoneLabel")}
                           </ThemedText>
-                          <ThemedText style={styles.infoValue}>{kbzAdminPhone}</ThemedText>
+                          <ThemedText style={styles.infoValue}>
+                            {kbzAdminPhone}
+                          </ThemedText>
                         </View>
                         {kbzAdminNote ? (
-                          <View style={[styles.infoBox, { borderColor: colors.icon }]}>
+                          <View
+                            style={[
+                              styles.infoBox,
+                              { borderColor: colors.icon },
+                            ]}
+                          >
                             <ThemedText style={styles.infoLabel}>
                               {t("kbzPayAdminNoteLabel")}
                             </ThemedText>
-                            <ThemedText style={styles.infoValue}>{kbzAdminNote}</ThemedText>
+                            <ThemedText style={styles.infoValue}>
+                              {kbzAdminNote}
+                            </ThemedText>
                           </View>
                         ) : null}
-                        <ThemedText style={styles.label}>{t("kbzPayTxnIdLabel")}</ThemedText>
+                        <ThemedText style={styles.label}>
+                          {t("kbzPayTxnIdLabel")}
+                        </ThemedText>
                         <TextInput
                           style={[
                             styles.input,
                             inputStyle,
-                            kbzTransactionError ? { borderColor: DANGER } : null,
+                            kbzTransactionError
+                              ? { borderColor: DANGER }
+                              : null,
                           ]}
                           value={kbzTransactionId}
                           onChangeText={(value) => {
@@ -1151,17 +1473,24 @@ export function ProfileScreen() {
                           editable={!loading.kbzSubmit}
                         />
                         {kbzTransactionError ? (
-                          <ThemedText style={styles.error}>{kbzTransactionError}</ThemedText>
+                          <ThemedText style={styles.error}>
+                            {kbzTransactionError}
+                          </ThemedText>
                         ) : null}
                         <Pressable
                           onPress={handleSubmitKbzTransaction}
-                          disabled={loading.kbzSubmit || !kbzTransactionId.trim()}
+                          disabled={
+                            loading.kbzSubmit || !kbzTransactionId.trim()
+                          }
                           style={[
                             styles.primaryButton,
                             styles.fullWidthButton,
                             { backgroundColor: colors.tint },
-                            (loading.kbzSubmit || !kbzTransactionId.trim()) && { opacity: 0.6 },
-                          ]}>
+                            (loading.kbzSubmit || !kbzTransactionId.trim()) && {
+                              opacity: 0.6,
+                            },
+                          ]}
+                        >
                           {loading.kbzSubmit ? (
                             <ActivityIndicator color="#fff" />
                           ) : (
@@ -1175,20 +1504,31 @@ export function ProfileScreen() {
 
                     {kbzWaitingForAdminVerification ? (
                       <>
-                        <ThemedText style={styles.profileSub}>{t("kbzPaySubmittedHint")}</ThemedText>
+                        <ThemedText style={styles.profileSub}>
+                          {t("kbzPaySubmittedHint")}
+                        </ThemedText>
                         {kbzSubmittedTransaction ? (
-                          <View style={[styles.infoBox, { borderColor: colors.icon }]}>
+                          <View
+                            style={[
+                              styles.infoBox,
+                              { borderColor: colors.icon },
+                            ]}
+                          >
                             <ThemedText style={styles.infoLabel}>
                               {t("kbzPaySubmittedTxnLabel")}
                             </ThemedText>
-                            <ThemedText style={styles.infoValue}>{kbzSubmittedTransaction}</ThemedText>
+                            <ThemedText style={styles.infoValue}>
+                              {kbzSubmittedTransaction}
+                            </ThemedText>
                           </View>
                         ) : null}
                       </>
                     ) : null}
 
                     {user?.isKbzPayVerified ? (
-                      <ThemedText style={styles.profileSub}>{t("profileVerifiedHint")}</ThemedText>
+                      <ThemedText style={styles.profileSub}>
+                        {t("profileVerifiedHint")}
+                      </ThemedText>
                     ) : null}
                   </>
                 ) : null}
@@ -1197,7 +1537,9 @@ export function ProfileScreen() {
           ) : (
             <View style={[styles.card, { borderColor: colors.icon }]}>
               <View style={styles.cardHeader}>
-                <ThemedText style={styles.cardTitle}>Change password</ThemedText>
+                <ThemedText style={styles.cardTitle}>
+                  Change password
+                </ThemedText>
               </View>
               <PasswordInput
                 value={currentPassword}
@@ -1229,11 +1571,14 @@ export function ProfileScreen() {
                   styles.fullWidthButton,
                   { backgroundColor: colors.tint },
                   loading.changePassword && { opacity: 0.6 },
-                ]}>
+                ]}
+              >
                 {loading.changePassword ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <ThemedText style={styles.primaryButtonText}>Update Password</ThemedText>
+                  <ThemedText style={styles.primaryButtonText}>
+                    Update Password
+                  </ThemedText>
                 )}
               </Pressable>
             </View>
@@ -1244,7 +1589,8 @@ export function ProfileScreen() {
             style={[
               styles.signOutButton,
               { borderColor: colors.tint, backgroundColor: colors.background },
-            ]}>
+            ]}
+          >
             <ThemedText style={[styles.signOutText, { color: colors.tint }]}>
               {t("signOutButton")}
             </ThemedText>

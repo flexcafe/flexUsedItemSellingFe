@@ -636,6 +636,108 @@ const DICT: Dictionary = {
     my: "အတည်ပြုခြင်း ပြီးစီးပြီးပါပြီ။ {adminNote}",
     zh: "验证已完成。{adminNote}",
   },
+
+  "noti.points.reviewReceived.title": {
+    ko: "리뷰로 포인트 적립",
+    my: "သုံးသပ်ချက်ဖြင့် အမှတ်များ",
+    zh: "评价获得积分",
+  },
+  "noti.points.reviewReceived.body": {
+    ko: "별점 {stars} 리뷰로 {pointsAwarded}점이 적립되었습니다.",
+    my: "{stars} ကြယ်ပွင့်သုံးသပ်ချက်ဖြင့် အမှတ် {pointsAwarded} ရရှိပါသည်။",
+    zh: "您收到 {stars} 星评价，获得 {pointsAwarded} 积分。",
+  },
+  "noti.points.withdrawalRequested.title": {
+    ko: "출금 요청 접수",
+    my: "ငွေထုတ်ယူမှု တောင်းဆိုမှု လက်ခံပြီး",
+    zh: "提现已提交",
+  },
+  "noti.points.withdrawalRequested.body": {
+    ko: "금액 {amount} MMK 출금 요청이 접수되었습니다. (요청 ID: {withdrawalId})",
+    my: "ငွေပမာဏ {amount} MMK ငွေထုတ်ယူမှု တောင်းဆိုမှုကို လက်ခံပြီးပါပြီ။ (တောင်းဆိုမှု ID: {withdrawalId})",
+    zh: "已收到提现申请，金额 {amount} MMK（申请 ID：{withdrawalId}）。",
+  },
+  "noti.points.withdrawalApproved.title": {
+    ko: "출금 승인",
+    my: "ငွေထုတ်ယူမှု အတည်ပြုပြီး",
+    zh: "提现已通过",
+  },
+  "noti.points.withdrawalApproved.body": {
+    ko: "출금이 승인되었습니다. 금액: {amount} MMK. {adminNote}",
+    my: "ငွေထုတ်ယူမှုကို အတည်ပြုပြီးပါပြီ။ ပမာဏ: {amount} MMK။ {adminNote}",
+    zh: "提现已批准，金额 {amount} MMK。{adminNote}",
+  },
+  "noti.points.withdrawalRejected.title": {
+    ko: "출금 거절",
+    my: "ငွေထုတ်ယူမှု ငြင်းပယ်ခံရ",
+    zh: "提现已拒绝",
+  },
+  "noti.points.withdrawalRejected.body": {
+    ko: "출금 요청이 거절되었습니다. 금액: {amount} MMK. {adminNote}",
+    my: "ငွေထုတ်ယူမှု တောင်းဆိုမှုကို ငြင်းပယ်ထားပါသည်။ ပမာဏ: {amount} MMK။ {adminNote}",
+    zh: "提现已拒绝，金额 {amount} MMK。{adminNote}",
+  },
+  "noti.points.withdrawalPaid.title": {
+    ko: "출금 완료",
+    my: "ငွေထုတ်ယူမှု ပြီးစီး",
+    zh: "提现已打款",
+  },
+  "noti.points.withdrawalPaid.body": {
+    ko: "출금이 완료되었습니다. 금액: {amount} MMK. 참조: {kbzTransferRef}",
+    my: "ငွေထုတ်ယူမှု ပြီးစီးပါပြီ။ ပမာဏ: {amount} MMK။ ကိုးကား: {kbzTransferRef}",
+    zh: "提现已完成，金额 {amount} MMK。参考：{kbzTransferRef}",
+  },
+  "noti.points.bonus.registration.title": {
+    ko: "가입 보너스 포인트",
+    my: "စာရင်းသွင်းအပိုအမှတ်",
+    zh: "注册奖励积分",
+  },
+  "noti.points.bonus.registration.body": {
+    ko: "회원가입 보너스로 {amount}점이 적립되었습니다.",
+    my: "စာရင်းသွင်းအပိုအမှတ်အဖြစ် အမှတ် {amount} ရရှိပါသည်။",
+    zh: "注册奖励：获得 {amount} 积分。",
+  },
+  "noti.points.bonus.phone.title": {
+    ko: "휴대폰 인증 보너스",
+    my: "ဖုန်းအတည်ပြုအပိုအမှတ်",
+    zh: "手机验证奖励",
+  },
+  "noti.points.bonus.phone.body": {
+    ko: "휴대폰 인증 완료 보너스로 {amount}점이 적립되었습니다.",
+    my: "ဖုန်းအတည်ပြုပြီးနောက် အပိုအမှတ် {amount} ရရှိပါသည်။",
+    zh: "完成手机验证，获得 {amount} 积分。",
+  },
+  "noti.points.bonus.email.title": {
+    ko: "이메일 인증 보너스",
+    my: "အီးမေးလ်အတည်ပြုအပိုအမှတ်",
+    zh: "邮箱验证奖励",
+  },
+  "noti.points.bonus.email.body": {
+    ko: "이메일 인증 완료 보너스로 {amount}점이 적립되었습니다.",
+    my: "အီးမေးလ်အတည်ပြုပြီးနောက် အပိုအမှတ် {amount} ရရှိပါသည်။",
+    zh: "完成邮箱验证，获得 {amount} 积分。",
+  },
+  "noti.points.bonus.kbzpay.title": {
+    ko: "KBZPay 인증 보너스",
+    my: "KBZPay အတည်ပြုအပိုအမှတ်",
+    zh: "KBZPay 验证奖励",
+  },
+  "noti.points.bonus.kbzpay.body": {
+    ko: "KBZPay 인증 완료 보너스로 {amount}점이 적립되었습니다.",
+    my: "KBZPay အတည်ပြုပြီးနောက် အပိုအမှတ် {amount} ရရှိပါသည်။",
+    zh: "完成 KBZPay 验证，获得 {amount} 积分。",
+  },
+  "noti.points.bonus.generic.title": {
+    ko: "보너스 포인트",
+    my: "အပိုအမှတ်",
+    zh: "奖励积分",
+  },
+  "noti.points.bonus.generic.body": {
+    ko: "{amount}점 보너스가 적립되었습니다. ({sourceType})",
+    my: "အပိုအမှတ် {amount} ရရှိပါသည်။ ({sourceType})",
+    zh: "获得奖励积分 {amount}。（{sourceType}）",
+  },
+
   homeWelcome: { ko: "환영합니다", my: "ကြိုဆိုပါသည်", zh: "欢迎" },
   homeBrandTitle: { ko: "Flex Used Market", my: "Flex Used Market", zh: "Flex Used Market" },
   homeDashboardSubtitle: {
