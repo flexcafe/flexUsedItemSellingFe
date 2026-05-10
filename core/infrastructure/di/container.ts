@@ -1,22 +1,22 @@
-import { HttpClient } from "../api/HttpClient";
-import { ApiProductRepository } from "../repositories/ApiProductRepository";
-import { ApiAuthRepository } from "../repositories/ApiAuthRepository";
-import { ApiProfileRepository } from "../repositories/ApiProfileRepository";
-import { ApiNotificationRepository } from "../repositories/ApiNotificationRepository";
-import { PreferencesRepository } from "../repositories/PreferencesRepository";
-import { ProductService } from "@/core/application/services/ProductService";
 import { AuthService } from "@/core/application/services/AuthService";
-import { ProfileService } from "@/core/application/services/ProfileService";
 import { NotificationService } from "@/core/application/services/NotificationService";
-import type { IProductRepository } from "@/core/domain/repositories/IProductRepository";
-import type { IProductService } from "@/core/domain/services/IProductService";
+import { ProductService } from "@/core/application/services/ProductService";
+import { ProfileService } from "@/core/application/services/ProfileService";
 import type { IAuthRepository } from "@/core/domain/repositories/IAuthRepository";
-import type { IAuthService } from "@/core/domain/services/IAuthService";
-import type { IProfileRepository } from "@/core/domain/repositories/IProfileRepository";
-import type { IProfileService } from "@/core/domain/services/IProfileService";
 import type { INotificationRepository } from "@/core/domain/repositories/INotificationRepository";
-import type { INotificationService } from "@/core/domain/services/INotificationService";
 import type { IPreferencesRepository } from "@/core/domain/repositories/IPreferencesRepository";
+import type { IProductRepository } from "@/core/domain/repositories/IProductRepository";
+import type { IProfileRepository } from "@/core/domain/repositories/IProfileRepository";
+import type { IAuthService } from "@/core/domain/services/IAuthService";
+import type { INotificationService } from "@/core/domain/services/INotificationService";
+import type { IProductService } from "@/core/domain/services/IProductService";
+import type { IProfileService } from "@/core/domain/services/IProfileService";
+import { HttpClient } from "../api/HttpClient";
+import { ApiAuthRepository } from "../repositories/ApiAuthRepository";
+import { ApiNotificationRepository } from "../repositories/ApiNotificationRepository";
+import { ApiProductRepository } from "../repositories/ApiProductRepository";
+import { ApiProfileRepository } from "../repositories/ApiProfileRepository";
+import { PreferencesRepository } from "../repositories/PreferencesRepository";
 
 class Container {
   private instances = new Map<string, unknown>();
@@ -49,7 +49,10 @@ class Container {
       "notificationRepository",
       notificationRepository,
     );
-    this.register<INotificationService>("notificationService", notificationService);
+    this.register<INotificationService>(
+      "notificationService",
+      notificationService,
+    );
     this.register<IPreferencesRepository>(
       "preferencesRepository",
       preferencesRepository,
@@ -63,7 +66,9 @@ class Container {
   resolve<T>(key: string): T {
     const instance = this.instances.get(key);
     if (!instance) {
-      throw new Error(`[DI Container] No instance registered for key: "${key}"`);
+      throw new Error(
+        `[DI Container] No instance registered for key: "${key}"`,
+      );
     }
     return instance as T;
   }

@@ -44,7 +44,11 @@ function toDisplay(value: unknown): string {
 }
 
 function getMetadata(n: ClientNotification): Record<string, unknown> {
-  return (n.metadata && typeof n.metadata === "object" ? (n.metadata as Record<string, unknown>) : {}) ?? {};
+  return (
+    (n.metadata && typeof n.metadata === "object"
+      ? (n.metadata as Record<string, unknown>)
+      : {}) ?? {}
+  );
 }
 
 export function localizeNotification(
@@ -61,7 +65,9 @@ export function localizeNotification(
     case "KBZPAY_VERIFICATION_REQUESTED_CLIENT":
       return {
         title: tf("noti.kbz.requested.title"),
-        body: tf("noti.kbz.requested.body", { message: toSafeString(md.message) }),
+        body: tf("noti.kbz.requested.body", {
+          message: toSafeString(md.message),
+        }),
       };
     case "KBZPAY_INSTRUCTION_SENT_CLIENT":
       return {
@@ -82,7 +88,9 @@ export function localizeNotification(
     case "KBZPAY_VERIFIED_CLIENT":
       return {
         title: tf("noti.kbz.verified.title"),
-        body: tf("noti.kbz.verified.body", { adminNote: toSafeString(md.adminNote) }),
+        body: tf("noti.kbz.verified.body", {
+          adminNote: toSafeString(md.adminNote),
+        }),
       };
 
     case "POINTS_REVIEW_RECEIVED_CLIENT":
@@ -182,4 +190,3 @@ export function localizeNotification(
       return { title: n.title, body: n.message };
   }
 }
-

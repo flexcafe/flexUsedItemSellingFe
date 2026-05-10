@@ -29,6 +29,7 @@ import {
   useChangePassword,
   useUploadAvatar,
 } from "@/presentation/hooks/useClientProfile";
+import { useAdminNotifyCooldown } from "@/presentation/hooks/useAdminNotifyCooldown";
 import {
   useProfilePoints,
   useProfileTransactionStats,
@@ -125,6 +126,13 @@ function formatDate(value: string): string {
   return `${year}-${month}-${day}`;
 }
 
+function cooldownHhMm(ms: number): { hours: string; minutes: string } {
+  const totalSec = Math.max(0, Math.ceil(ms / 1000));
+  const hours = Math.floor(totalSec / 3600);
+  const minutes = Math.floor((totalSec % 3600) / 60);
+  return { hours: String(hours), minutes: String(minutes) };
+}
+
 export function ProfileScreen() {
   const {
     user,
@@ -137,7 +145,8 @@ export function ProfileScreen() {
     requestKbzPayVerification,
     submitKbzPayTransaction,
   } = useAuth();
-  const { t } = useLocale();
+  const { t, tf } = useLocale();
+  const adminCooldown = useAdminNotifyCooldown();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const pointsQuery = useProfilePoints();
@@ -383,6 +392,7 @@ export function ProfileScreen() {
           "Please verify my KBZPay quickly. I already transferred.",
       );
       await refreshProfile();
+      await adminCooldown.recordSuccess("kbzPayVerificationRequest");
       Alert.alert(t("kbzPayRequested"));
     } catch (err) {
       if (getHttpStatus(err) === 409) {
@@ -413,6 +423,7 @@ export function ProfileScreen() {
       setKbzTransactionId("");
       setKbzTransactionError("");
       await refreshProfile();
+      await adminCooldown.recordSuccess("kbzPaySubmitTransaction");
       Alert.alert(t("kbzPayTransactionSubmitted"));
     } catch (err) {
       const status = getHttpStatus(err);
@@ -459,6 +470,7 @@ export function ProfileScreen() {
     try {
       await requestWithdrawal.mutateAsync(amount);
       setWithdrawalAmount("");
+      await adminCooldown.recordSuccess("withdrawalRequest");
       Alert.alert(t("rewardWithdrawalRequested"));
     } catch (err) {
       setWithdrawalError(getServerMessage(err) ?? t("rewardWithdrawalFailed"));
@@ -569,8 +581,16 @@ export function ProfileScreen() {
     ? Math.max(0, nextMinPoints - totalPoints)
     : 0;
   const withdrawalAmountNumber = Number(withdrawalAmount);
+  const kbzRequestCoolingDown = adminCooldown.isCoolingDown(
+    "kbzPayVerificationRequest",
+  );
+  const kbzSubmitCoolingDown = adminCooldown.isCoolingDown(
+    "kbzPaySubmitTransaction",
+  );
+  const withdrawalCoolingDown = adminCooldown.isCoolingDown("withdrawalRequest");
   const withdrawalDisabled =
     requestWithdrawal.isPending ||
+    withdrawalCoolingDown ||
     !user?.isKbzPayVerified ||
     availableWithdrawalPoints < MIN_WITHDRAWAL_POINTS ||
     !Number.isFinite(withdrawalAmountNumber) ||
@@ -895,11 +915,23 @@ export function ProfileScreen() {
                       placeholder={t("rewardWithdrawalPlaceholder")}
                       placeholderTextColor={colors.icon}
                       keyboardType="number-pad"
-                      editable={!requestWithdrawal.isPending}
+                      editable={
+                        !requestWithdrawal.isPending && !withdrawalCoolingDown
+                      }
                     />
                     {withdrawalError ? (
                       <ThemedText style={styles.error}>
                         {withdrawalError}
+                      </ThemedText>
+                    ) : null}
+                    {withdrawalCoolingDown ? (
+                      <ThemedText style={styles.profileSub}>
+                        {tf(
+                          "actionCooldownRemaining",
+                          cooldownHhMm(
+                            adminCooldown.remainingMs("withdrawalRequest"),
+                          ),
+                        )}
                       </ThemedText>
                     ) : null}
                     <Pressable
@@ -1381,16 +1413,30 @@ export function ProfileScreen() {
                           placeholder={t("kbzPayMessagePlaceholder")}
                           placeholderTextColor={colors.icon}
                           multiline
-                          editable={!loading.kbz}
+                          editable={!loading.kbz && !kbzRequestCoolingDown}
                         />
+                        {kbzRequestCoolingDown ? (
+                          <ThemedText style={styles.profileSub}>
+                            {tf(
+                              "actionCooldownRemaining",
+                              cooldownHhMm(
+                                adminCooldown.remainingMs(
+                                  "kbzPayVerificationRequest",
+                                ),
+                              ),
+                            )}
+                          </ThemedText>
+                        ) : null}
                         <Pressable
                           onPress={handleRequestKbzPay}
-                          disabled={loading.kbz}
+                          disabled={loading.kbz || kbzRequestCoolingDown}
                           style={[
                             styles.primaryButton,
                             styles.fullWidthButton,
                             { backgroundColor: colors.tint },
-                            loading.kbz && { opacity: 0.6 },
+                            (loading.kbz || kbzRequestCoolingDown) && {
+                              opacity: 0.6,
+                            },
                           ]}
                         >
                           {loading.kbz ? (
@@ -1470,23 +1516,39 @@ export function ProfileScreen() {
                           placeholderTextColor={colors.icon}
                           autoCapitalize="characters"
                           autoCorrect={false}
-                          editable={!loading.kbzSubmit}
+                          editable={!loading.kbzSubmit && !kbzSubmitCoolingDown}
                         />
                         {kbzTransactionError ? (
                           <ThemedText style={styles.error}>
                             {kbzTransactionError}
                           </ThemedText>
                         ) : null}
+                        {kbzSubmitCoolingDown ? (
+                          <ThemedText style={styles.profileSub}>
+                            {tf(
+                              "actionCooldownRemaining",
+                              cooldownHhMm(
+                                adminCooldown.remainingMs(
+                                  "kbzPaySubmitTransaction",
+                                ),
+                              ),
+                            )}
+                          </ThemedText>
+                        ) : null}
                         <Pressable
                           onPress={handleSubmitKbzTransaction}
                           disabled={
-                            loading.kbzSubmit || !kbzTransactionId.trim()
+                            loading.kbzSubmit ||
+                            kbzSubmitCoolingDown ||
+                            !kbzTransactionId.trim()
                           }
                           style={[
                             styles.primaryButton,
                             styles.fullWidthButton,
                             { backgroundColor: colors.tint },
-                            (loading.kbzSubmit || !kbzTransactionId.trim()) && {
+                            (loading.kbzSubmit ||
+                              kbzSubmitCoolingDown ||
+                              !kbzTransactionId.trim()) && {
                               opacity: 0.6,
                             },
                           ]}

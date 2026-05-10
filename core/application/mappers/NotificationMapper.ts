@@ -16,14 +16,22 @@ function pickUnknown(
   return asRecord(dto)[snake];
 }
 
-function pickString(dto: ClientNotificationDto, camel: keyof ClientNotificationDto, snake: string): string {
+function pickString(
+  dto: ClientNotificationDto,
+  camel: keyof ClientNotificationDto,
+  snake: string,
+): string {
   const v = pickUnknown(dto, camel, snake);
   if (typeof v === "string") return v;
   if (typeof v === "number" && Number.isFinite(v)) return String(v);
   return "";
 }
 
-function pickBoolean(dto: ClientNotificationDto, camel: keyof ClientNotificationDto, snake: string): boolean {
+function pickBoolean(
+  dto: ClientNotificationDto,
+  camel: keyof ClientNotificationDto,
+  snake: string,
+): boolean {
   const v = pickUnknown(dto, camel, snake);
   if (typeof v === "boolean") return v;
   if (v === 1 || v === "1" || v === "true") return true;
@@ -44,7 +52,15 @@ function coerceEventKey(value: unknown): string | null {
   }
   if (typeof value === "object" && !Array.isArray(value)) {
     const o = value as Record<string, unknown>;
-    for (const k of ["code", "key", "name", "value", "eventKey", "event_key", "type"]) {
+    for (const k of [
+      "code",
+      "key",
+      "name",
+      "value",
+      "eventKey",
+      "event_key",
+      "type",
+    ]) {
       const inner = o[k];
       if (typeof inner === "string" && inner.trim()) return inner.trim();
     }
@@ -52,8 +68,15 @@ function coerceEventKey(value: unknown): string | null {
   return null;
 }
 
-function readMetadataEventKey(metadata: ClientNotification["metadata"]): string | null {
-  if (metadata == null || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+function readMetadataEventKey(
+  metadata: ClientNotification["metadata"],
+): string | null {
+  if (
+    metadata == null ||
+    typeof metadata !== "object" ||
+    Array.isArray(metadata)
+  )
+    return null;
   const m = metadata as Record<string, unknown>;
   return (
     coerceEventKey(m.eventKey) ??
@@ -85,9 +108,13 @@ function resolveEventKey(
   return inferEventKeyFromType(pickString(dto, "type", "type"));
 }
 
-export function toClientNotification(dto: ClientNotificationDto): ClientNotification {
+export function toClientNotification(
+  dto: ClientNotificationDto,
+): ClientNotification {
   const r = asRecord(dto);
-  const metadata = (dto.metadata ?? r.metadata ?? null) as ClientNotification["metadata"];
+  const metadata = (dto.metadata ??
+    r.metadata ??
+    null) as ClientNotification["metadata"];
 
   return {
     id: pickString(dto, "id", "id"),

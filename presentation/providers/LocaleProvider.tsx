@@ -596,6 +596,11 @@ const DICT: Dictionary = {
     my: "အသိပေးချက် မရှိသေးပါ။",
     zh: "暂无通知。",
   },
+  actionCooldownRemaining: {
+    ko: "{hours}시간 {minutes}분 후에 다시 시도할 수 있습니다.",
+    my: "{hours} နာရီ {minutes} မိနစ်အကြာတွင် ပြန်လည်ကြိုးစားနိုင်ပါသည်။",
+    zh: "{hours} 小时 {minutes} 分钟后可再次操作。",
+  },
   "noti.kbz.requested.title": {
     ko: "KBZPay 인증 요청됨",
     my: "KBZPay အတည်ပြုရန် တောင်းဆိုပြီး",
@@ -739,7 +744,11 @@ const DICT: Dictionary = {
   },
 
   homeWelcome: { ko: "환영합니다", my: "ကြိုဆိုပါသည်", zh: "欢迎" },
-  homeBrandTitle: { ko: "Flex Used Market", my: "Flex Used Market", zh: "Flex Used Market" },
+  homeBrandTitle: {
+    ko: "Flex Used Market",
+    my: "Flex Used Market",
+    zh: "Flex Used Market",
+  },
   homeDashboardSubtitle: {
     ko: "중고거래 대시보드입니다.",
     my: "အသုံးပြုပြီး ပစ္စည်း စျေးကွက် ဒက်ရှ်ဘုတ်",
@@ -759,7 +768,10 @@ function t(key: keyof typeof DICT, locale: AppLocale): string {
   return DICT[key][locale];
 }
 
-function formatTemplate(template: string, vars?: Record<string, unknown>): string {
+function formatTemplate(
+  template: string,
+  vars?: Record<string, unknown>,
+): string {
   if (!vars) return template;
   return template.replace(/\{(\w+)\}/g, (_m, k: string) => {
     const v = vars[k];
@@ -819,5 +831,3 @@ export function useLocale(): LocaleContextValue {
   if (!ctx) throw new Error("useLocale must be used within a LocaleProvider");
   return ctx;
 }
-
-

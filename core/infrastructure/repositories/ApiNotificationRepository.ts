@@ -11,7 +11,11 @@ function extractNotificationList(res: unknown): ClientNotificationDto[] {
     const r = res as Record<string, unknown>;
     const direct = r.data;
     if (Array.isArray(direct)) return direct as ClientNotificationDto[];
-    if (direct != null && typeof direct === "object" && !Array.isArray(direct)) {
+    if (
+      direct != null &&
+      typeof direct === "object" &&
+      !Array.isArray(direct)
+    ) {
       const inner = direct as Record<string, unknown>;
       for (const k of ["items", "notifications", "rows", "list"]) {
         const arr = inner[k];

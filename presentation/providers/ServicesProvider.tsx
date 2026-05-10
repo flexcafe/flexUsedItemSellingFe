@@ -1,10 +1,10 @@
 import { createContext, useContext, type ReactNode } from "react";
 
+import type { IPreferencesRepository } from "@/core/domain/repositories/IPreferencesRepository";
 import type { IAuthService } from "@/core/domain/services/IAuthService";
+import type { INotificationService } from "@/core/domain/services/INotificationService";
 import type { IProductService } from "@/core/domain/services/IProductService";
 import type { IProfileService } from "@/core/domain/services/IProfileService";
-import type { INotificationService } from "@/core/domain/services/INotificationService";
-import type { IPreferencesRepository } from "@/core/domain/repositories/IPreferencesRepository";
 
 export interface AppServices {
   authService: IAuthService;
@@ -37,4 +37,3 @@ export function useServices(): AppServices {
   }
   return ctx;
 }
-
