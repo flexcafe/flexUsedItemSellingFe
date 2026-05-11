@@ -1,8 +1,7 @@
 import Constants from "expo-constants";
 
 const envApiUrl =
-  Constants.expoConfig?.extra?.apiUrl ??
-  process.env.EXPO_PUBLIC_API_URL;
+  Constants.expoConfig?.extra?.apiUrl ?? process.env.EXPO_PUBLIC_API_URL;
 
 export const API_CONFIG = {
   BASE_URL: envApiUrl ?? "http://localhost:3000/api",

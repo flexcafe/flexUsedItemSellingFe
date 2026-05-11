@@ -1,3 +1,4 @@
+import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
 
 import type { ClientNotification } from "@/core/domain/entities/Notification";
@@ -19,10 +20,13 @@ export function showIncomingNotificationToast(
   const { title, body } = localizeNotification(notification, tf, locale);
   const text1 = title.trim() || titleFallback;
   const text2 = body.trim();
+  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   Toast.show({
     type: "notification",
     text1,
     ...(text2 ? { text2 } : {}),
-    visibilityTime: 5200,
+    visibilityTime: 7000,
+    swipeable: true,
+    position: "bottom",
   });
 }

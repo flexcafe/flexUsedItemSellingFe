@@ -743,6 +743,37 @@ const DICT: Dictionary = {
     zh: "获得奖励积分 {amount}。（{sourceType}）",
   },
 
+  "noti.facebook.linked.title": {
+    ko: "Facebook 연동 완료",
+    my: "Facebook ချိတ်ဆက်မှု ပြီးစီး",
+    zh: "Facebook 已绑定",
+  },
+  "noti.facebook.linked.body": {
+    ko: "{facebookName} 계정이 연결되었습니다.",
+    my: "{facebookName} အကောင့်ကို ချိတ်ဆက်ပြီးပါပြီ။",
+    zh: "已绑定 Facebook 账号：{facebookName}。",
+  },
+  "noti.facebook.followSubmitted.title": {
+    ko: "페이지 팔로우 인증 제출됨",
+    my: "စာမျက်နှာ လိုက်ပါမှုအတည်ပြု တင်ပြပြီး",
+    zh: "已提交关注页面凭证",
+  },
+  "noti.facebook.followSubmitted.body": {
+    ko: "관리자 검토 중입니다. 페이지: {facebookPageUrl}",
+    my: "အုပ်ချုပ်သူ စစ်ဆေးနေပါသည်။ စာမျက်နှာ: {facebookPageUrl}",
+    zh: "等待管理员审核。页面：{facebookPageUrl}",
+  },
+  "noti.facebook.rewarded.title": {
+    ko: "Facebook 팔로우 보상",
+    my: "Facebook လိုက်ပါမှုဆုလာဘ်",
+    zh: "Facebook 关注奖励",
+  },
+  "noti.facebook.rewarded.body": {
+    ko: "페이지 팔로우가 승인되어 포인트가 지급되었습니다.",
+    my: "စာမျက်နှာ လိုက်ပါမှုကို အတည်ပြုပြီး အမှတ်များ ပေးအပ်ပါသည်။",
+    zh: "关注审核已通过，积分已发放。",
+  },
+
   homeWelcome: { ko: "환영합니다", my: "ကြိုဆိုပါသည်", zh: "欢迎" },
   homeBrandTitle: {
     ko: "Flex Used Market",

@@ -5,7 +5,11 @@ import type {
 } from "@/core/domain/entities/ProfileRewards";
 import type { IProfileRepository } from "@/core/domain/repositories/IProfileRepository";
 import type { IProfileService } from "@/core/domain/services/IProfileService";
-import type { AvatarUploadResult, ChangePasswordInput, UploadFile } from "@/core/domain/types/profile";
+import type {
+  AvatarUploadResult,
+  ChangePasswordInput,
+  UploadFile,
+} from "@/core/domain/types/profile";
 
 export class ProfileService implements IProfileService {
   constructor(private readonly repo: IProfileRepository) {}

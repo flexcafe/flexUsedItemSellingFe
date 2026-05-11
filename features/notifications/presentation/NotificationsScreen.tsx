@@ -93,7 +93,7 @@ export function NotificationsScreen() {
                   ]}>
                   <View style={styles.cardHeader}>
                     <ThemedText style={[styles.title, !item.isRead && { fontWeight: "800" }]}>
-                      {localized.title || item.title}
+                      {localized.title}
                     </ThemedText>
                     <View style={styles.cardHeaderRight}>
                       <ThemedText style={styles.dateInline}>
@@ -109,7 +109,7 @@ export function NotificationsScreen() {
                   {expandedId === item.id ? (
                     <>
                       <ThemedText style={styles.message}>
-                        {localized.body || item.message}
+                        {localized.body}
                       </ThemedText>
                       <ThemedText style={styles.date}>{formatDate(item.createdAt)}</ThemedText>
                     </>

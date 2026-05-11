@@ -91,7 +91,13 @@ function inferEventKeyFromType(type: string): string | null {
   const t = type.trim();
   if (!t) return null;
   if (!t.endsWith("_CLIENT")) return null;
-  if (t.startsWith("KBZPAY_") || t.startsWith("POINTS_")) return t;
+  if (
+    t.startsWith("KBZPAY_") ||
+    t.startsWith("POINTS_") ||
+    t.startsWith("FACEBOOK_")
+  ) {
+    return t;
+  }
   return null;
 }
 

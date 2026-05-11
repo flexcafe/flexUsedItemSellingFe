@@ -3,7 +3,11 @@ import type {
   ProfileTransactionStats,
   WithdrawalRequest,
 } from "../entities/ProfileRewards";
-import type { AvatarUploadResult, ChangePasswordInput, UploadFile } from "../types/profile";
+import type {
+  AvatarUploadResult,
+  ChangePasswordInput,
+  UploadFile,
+} from "../types/profile";
 
 export interface IProfileService {
   getPointsSummary(): Promise<ProfilePointsSummary>;

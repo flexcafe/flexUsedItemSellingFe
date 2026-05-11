@@ -57,7 +57,9 @@ function toWithdrawalStatus(value: unknown): WithdrawalStatus {
     : "PENDING";
 }
 
-export function toRankConfig(dto: RankConfigDto | null | undefined): RankConfig | null {
+export function toRankConfig(
+  dto: RankConfigDto | null | undefined,
+): RankConfig | null {
   if (!dto) return null;
   const tier = toRank(dto.tier);
   return {
@@ -96,7 +98,9 @@ export function toProfileTransactionStats(
   };
 }
 
-export function toWithdrawalRequest(dto: WithdrawalRequestDto): WithdrawalRequest {
+export function toWithdrawalRequest(
+  dto: WithdrawalRequestDto,
+): WithdrawalRequest {
   return {
     id: toStringValue(dto.id),
     userId: toStringValue(dto.userId),

@@ -11,6 +11,7 @@ import type {
   LoginResponseDto,
   RegisterRequestDto,
 } from "../dtos/AuthDto";
+import { extractAvatarFromUserPayload, toAbsoluteMediaUrl } from "./mediaUrl";
 
 export function toLoginRequestDto(
   credentials: LoginCredentials,
@@ -27,14 +28,62 @@ function normalizeRole(raw: string | null | undefined): UserRole {
   return "staff";
 }
 
+function peelNestedUserEnvelope(
+  dto: LoginResponseDto,
+): LoginResponseDto | AuthProfileDto {
+  const r = dto as unknown as Record<string, unknown>;
+  const inner = r.data;
+  if (
+    inner != null &&
+    typeof inner === "object" &&
+    !Array.isArray(inner) &&
+    ("id" in (inner as object) ||
+      "profile" in (inner as object) ||
+      "nickname" in (inner as object))
+  ) {
+    return inner as LoginResponseDto;
+  }
+  return dto;
+}
+
 function getAuthProfile(dto: LoginResponseDto): AuthProfileDto | undefined {
-  if (dto.user) return dto.user;
-  if (dto.id || dto.email || dto.name || dto.nickname || dto.phone) return dto;
+  const peeled = peelNestedUserEnvelope(dto);
+  const withUser = peeled as LoginResponseDto;
+  if (withUser.user) return withUser.user;
+  if (
+    peeled.id ||
+    peeled.email ||
+    peeled.name ||
+    peeled.nickname ||
+    peeled.phone
+  )
+    return peeled as AuthProfileDto;
   return undefined;
 }
 
 function toSafeString(value: unknown): string {
   return typeof value === "string" ? value : "";
+}
+
+function pickDisplayName(user: AuthProfileDto | undefined): string | null {
+  if (!user) return null;
+  const name = typeof user.name === "string" ? user.name.trim() : "";
+  if (name) return name;
+  const nick =
+    typeof user.nickname === "string" ? user.nickname.trim() : "";
+  return nick || null;
+}
+
+/**
+ * Resolves avatar URL from root `avatarUrl`, nested `profile.avatar` (string or object),
+ * and common backend field names.
+ */
+export function resolveAuthAvatarUrl(user: AuthProfileDto | undefined): string | null {
+  if (!user) return null;
+  const combined = extractAvatarFromUserPayload(user);
+  if (!combined) return null;
+  const absolute = toAbsoluteMediaUrl(combined);
+  return absolute || null;
 }
 
 export function toAuthUser(
@@ -57,8 +106,8 @@ export function toAuthUser(
     id: user?.id ?? "",
     email: toSafeString(user?.email) || fallbackEmail || "",
     phone: user?.phone ?? "",
-    name: user?.name ?? user?.nickname ?? null,
-    avatarUrl: typeof user?.avatarUrl === "string" ? user.avatarUrl : null,
+    name: pickDisplayName(user),
+    avatarUrl: resolveAuthAvatarUrl(user),
     role: normalizeRole(user?.role),
     isPhoneVerified: Boolean(user?.isPhoneVerified),
     isEmailVerified: Boolean(user?.isEmailVerified),
@@ -74,7 +123,9 @@ export function toAuthUser(
         ? user.kbzPay.adminInstructionSentAt
         : null,
     kbzPayAdminNote:
-      typeof user?.kbzPay?.adminNote === "string" ? user.kbzPay.adminNote : null,
+      typeof user?.kbzPay?.adminNote === "string"
+        ? user.kbzPay.adminNote
+        : null,
     kbzPayTransactionId:
       typeof user?.kbzPay?.kbzTransactionId === "string"
         ? user.kbzPay.kbzTransactionId

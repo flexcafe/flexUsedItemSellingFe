@@ -29,7 +29,13 @@ export type NotificationI18nKey =
   | "noti.points.bonus.kbzpay.title"
   | "noti.points.bonus.kbzpay.body"
   | "noti.points.bonus.generic.title"
-  | "noti.points.bonus.generic.body";
+  | "noti.points.bonus.generic.body"
+  | "noti.facebook.linked.title"
+  | "noti.facebook.linked.body"
+  | "noti.facebook.followSubmitted.title"
+  | "noti.facebook.followSubmitted.body"
+  | "noti.facebook.rewarded.title"
+  | "noti.facebook.rewarded.body";
 
 type Tf = (key: string, vars?: Record<string, unknown>) => string;
 
@@ -184,6 +190,28 @@ export function localizeNotification(
           amount: toDisplay(md.amount),
           sourceType: toSafeString(md.sourceType),
         }),
+      };
+
+    case "FACEBOOK_LINKED_CLIENT":
+      return {
+        title: tf("noti.facebook.linked.title"),
+        body: tf("noti.facebook.linked.body", {
+          facebookName: toSafeString(md.facebookName),
+        }),
+      };
+
+    case "FACEBOOK_FOLLOW_SUBMITTED_CLIENT":
+      return {
+        title: tf("noti.facebook.followSubmitted.title"),
+        body: tf("noti.facebook.followSubmitted.body", {
+          facebookPageUrl: toSafeString(md.facebookPageUrl),
+        }),
+      };
+
+    case "POINTS_FACEBOOK_FOLLOW_REWARDED_CLIENT":
+      return {
+        title: tf("noti.facebook.rewarded.title"),
+        body: tf("noti.facebook.rewarded.body"),
       };
 
     default:

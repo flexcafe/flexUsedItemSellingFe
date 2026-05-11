@@ -1,5 +1,5 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { Image } from "expo-image";
+import { Image, type ImageSource } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -19,17 +19,18 @@ import { PasswordInput } from "@/components/password-input";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { mediaUrlSharesApiOrigin } from "@/core/application/mappers/mediaUrl";
 import { Colors } from "@/constants/theme";
 import type {
   UserRankTier,
   WithdrawalStatus,
 } from "@/core/domain/entities/ProfileRewards";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAdminNotifyCooldown } from "@/presentation/hooks/useAdminNotifyCooldown";
 import {
   useChangePassword,
   useUploadAvatar,
 } from "@/presentation/hooks/useClientProfile";
-import { useAdminNotifyCooldown } from "@/presentation/hooks/useAdminNotifyCooldown";
 import {
   useProfilePoints,
   useProfileTransactionStats,
@@ -205,6 +206,17 @@ export function ProfileScreen() {
   }, [sampleName]);
 
   const avatarUrl = user?.avatarUrl?.trim() ? user.avatarUrl.trim() : "";
+
+  const avatarImageSource = useMemo<ImageSource | null>(() => {
+    if (!avatarUrl) return null;
+    if (user?.accessToken && mediaUrlSharesApiOrigin(avatarUrl)) {
+      return {
+        uri: avatarUrl,
+        headers: { Authorization: `Bearer ${user.accessToken}` },
+      };
+    }
+    return { uri: avatarUrl };
+  }, [avatarUrl, user?.accessToken]);
 
   const handlePickAndUploadAvatar = async () => {
     setBusy("avatar", true);
@@ -587,7 +599,8 @@ export function ProfileScreen() {
   const kbzSubmitCoolingDown = adminCooldown.isCoolingDown(
     "kbzPaySubmitTransaction",
   );
-  const withdrawalCoolingDown = adminCooldown.isCoolingDown("withdrawalRequest");
+  const withdrawalCoolingDown =
+    adminCooldown.isCoolingDown("withdrawalRequest");
   const withdrawalDisabled =
     requestWithdrawal.isPending ||
     withdrawalCoolingDown ||
@@ -702,11 +715,13 @@ export function ProfileScreen() {
                 style={styles.avatarPressable}
               >
                 <View style={[styles.avatar, { backgroundColor: colors.tint }]}>
-                  {avatarUrl ? (
+                  {avatarImageSource ? (
                     <Image
-                      source={{ uri: avatarUrl }}
+                      key={avatarUrl}
+                      source={avatarImageSource}
                       style={styles.avatarImage}
                       contentFit="cover"
+                      recyclingKey={avatarUrl}
                     />
                   ) : (
                     <ThemedText style={styles.avatarText}>

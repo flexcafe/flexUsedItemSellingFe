@@ -4,12 +4,28 @@ export interface LoginRequestDto {
   password: string;
 }
 
+/** Nested profile on GET /client/auth/me (and similar) — avatar lives here, not only at root. */
+export interface AuthClientProfileDto {
+  avatar?: unknown;
+  gender?: string | null;
+  age?: number | null;
+  maritalStatus?: string | null;
+  region?: string | null;
+  gpsLatitude?: number | null;
+  gpsLongitude?: number | null;
+  isRegionVerified?: boolean;
+  facebookName?: string | null;
+  facebookProfileUrl?: string | null;
+  facebookLinkedAt?: string | null;
+}
+
 export interface AuthProfileDto {
   id?: string;
   email?: string | null;
   name?: string | null;
   nickname?: string | null;
   avatarUrl?: string | null;
+  profile?: AuthClientProfileDto | null;
   phone?: string;
   role?: string;
   isPhoneVerified?: boolean;

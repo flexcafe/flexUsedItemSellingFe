@@ -13,4 +13,3 @@ export interface UploadFile {
 export interface AvatarUploadResult {
   avatarUrl: string;
 }
-
