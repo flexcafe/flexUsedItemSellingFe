@@ -1,6 +1,7 @@
 import type {
   ProfilePointsSummary,
   ProfileTransactionStats,
+  RankConfig,
   WithdrawalRequest,
 } from "../entities/ProfileRewards";
 import type {
@@ -10,6 +11,7 @@ import type {
 } from "../types/profile";
 
 export interface IProfileService {
+  getRankConfigs(): Promise<RankConfig[]>;
   getPointsSummary(): Promise<ProfilePointsSummary>;
   getTransactionStats(): Promise<ProfileTransactionStats>;
   getWithdrawalRequests(): Promise<WithdrawalRequest[]>;

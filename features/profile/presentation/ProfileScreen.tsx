@@ -22,6 +22,7 @@ import { ThemedView } from "@/components/themed-view";
 import { mediaUrlSharesApiOrigin } from "@/core/application/mappers/mediaUrl";
 import { Colors } from "@/constants/theme";
 import type {
+  RankConfig,
   UserRankTier,
   WithdrawalStatus,
 } from "@/core/domain/entities/ProfileRewards";
@@ -34,6 +35,7 @@ import {
 import {
   useProfilePoints,
   useProfileTransactionStats,
+  useRankConfigs,
   useRequestWithdrawal,
   useWithdrawalRequests,
 } from "@/presentation/hooks/useProfileRewards";
@@ -53,38 +55,14 @@ const RANK_ACCENTS: Record<UserRankTier, string> = {
   NEWBIE: "#0891b2",
 };
 
-const RANK_TIERS: {
-  tier: UserRankTier;
-  label: string;
-  threshold: string;
-  minPoints: number;
-}[] = [
-  { tier: "VIP", label: "VIP", threshold: "30,000+ pts", minPoints: 30000 },
-  {
-    tier: "GOLD",
-    label: "Gold (골드)",
-    threshold: "10,000+ pts",
-    minPoints: 10000,
-  },
-  {
-    tier: "SILVER",
-    label: "Silver (실버)",
-    threshold: "3,000+ pts",
-    minPoints: 3000,
-  },
-  {
-    tier: "BRONZE",
-    label: "Bronze (브론즈)",
-    threshold: "1,000+ pts",
-    minPoints: 1000,
-  },
-  {
-    tier: "NEWBIE",
-    label: "Newbie (새내기)",
-    threshold: "-100 pts 이하",
-    minPoints: -100,
-  },
-];
+/** When rank-config API is unavailable, keep progress math sane. */
+const FALLBACK_MIN_POINTS_BY_TIER: Record<UserRankTier, number> = {
+  VIP: 30000,
+  GOLD: 10000,
+  SILVER: 3000,
+  BRONZE: 1000,
+  NEWBIE: -100,
+};
 
 function getWithdrawalStatusColor(
   status: WithdrawalStatus,
@@ -110,12 +88,11 @@ function formatPoints(value: number): string {
     .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-function getRankLabel(tier: UserRankTier): string {
-  return RANK_TIERS.find((item) => item.tier === tier)?.label ?? tier;
-}
-
-function getRankThreshold(tier: UserRankTier): number {
-  return RANK_TIERS.find((item) => item.tier === tier)?.minPoints ?? 0;
+function formatRankPointsRange(rank: RankConfig): string {
+  if (rank.maxPoints == null) {
+    return `${formatPoints(rank.minPoints)}+ pts`;
+  }
+  return `${formatPoints(rank.minPoints)}–${formatPoints(rank.maxPoints)} pts`;
 }
 
 function formatDate(value: string): string {
@@ -151,6 +128,7 @@ export function ProfileScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const pointsQuery = useProfilePoints();
+  const rankConfigsQuery = useRankConfigs();
   const statsQuery = useProfileTransactionStats();
   const withdrawalsQuery = useWithdrawalRequests();
   const requestWithdrawal = useRequestWithdrawal();
@@ -557,6 +535,7 @@ export function ProfileScreen() {
       ? WARNING
       : colors.icon;
   const pointsSummary = pointsQuery.data;
+  const rankLadder = rankConfigsQuery.data ?? [];
   const statsSummary = statsQuery.data;
   const withdrawalRequests = withdrawalsQuery.data ?? [];
   const currentRank = pointsSummary?.currentRank ?? "NEWBIE";
@@ -571,11 +550,13 @@ export function ProfileScreen() {
     : `@${rewardNickname.replace(/\s+/g, "").toLowerCase()}`;
   const currentRankLabel =
     pointsSummary?.currentRankConfig?.label?.trim() ||
-    getRankLabel(currentRank);
+    rankLadder.find((r) => r.tier === currentRank)?.label?.trim() ||
+    currentRank;
   const nextRankConfig = pointsSummary?.nextRankConfig;
   const currentMinPoints =
     pointsSummary?.currentRankConfig?.minPoints ??
-    getRankThreshold(currentRank);
+    rankLadder.find((r) => r.tier === currentRank)?.minPoints ??
+    FALLBACK_MIN_POINTS_BY_TIER[currentRank];
   const nextMinPoints = nextRankConfig?.minPoints ?? null;
   const rankProgress =
     nextMinPoints && nextMinPoints > currentMinPoints
@@ -617,6 +598,7 @@ export function ProfileScreen() {
     colorScheme === "dark" ? "rgba(148, 163, 184, 0.12)" : "#f8fafc";
   const profileRefreshing =
     pointsQuery.isFetching ||
+    rankConfigsQuery.isFetching ||
     statsQuery.isFetching ||
     withdrawalsQuery.isFetching;
 
@@ -634,6 +616,7 @@ export function ProfileScreen() {
               onRefresh={() => {
                 void refreshProfile();
                 void pointsQuery.refetch();
+                void rankConfigsQuery.refetch();
                 void statsQuery.refetch();
                 void withdrawalsQuery.refetch();
               }}
@@ -1052,37 +1035,69 @@ export function ProfileScreen() {
                     </Pressable>
                     {showRankSystem ? (
                       <View style={styles.rankList}>
-                        {RANK_TIERS.map((rank) => {
-                          const active = rank.tier === currentRank;
-                          const accent = RANK_ACCENTS[rank.tier];
-                          return (
-                            <View
-                              key={rank.tier}
-                              style={[
-                                styles.rankRow,
-                                {
-                                  backgroundColor: active
-                                    ? rewardMutedBg
-                                    : "transparent",
-                                  borderColor: active ? accent : colors.icon,
-                                },
-                              ]}
-                            >
+                        {rankConfigsQuery.isLoading && rankLadder.length === 0 ? (
+                          <View style={styles.rankLoading}>
+                            <ActivityIndicator color={colors.tint} />
+                          </View>
+                        ) : rankLadder.length === 0 ? (
+                          <ThemedText style={styles.profileSub}>
+                            {t("rewardRankLadderUnavailable")}
+                          </ThemedText>
+                        ) : (
+                          rankLadder.map((rank) => {
+                            const active = rank.tier === currentRank;
+                            const accent = RANK_ACCENTS[rank.tier];
+                            const badgeSource =
+                              rank.badgeUrl?.trim() &&
+                              user?.accessToken &&
+                              mediaUrlSharesApiOrigin(rank.badgeUrl)
+                                ? {
+                                    uri: rank.badgeUrl.trim(),
+                                    headers: {
+                                      Authorization: `Bearer ${user.accessToken}`,
+                                    },
+                                  }
+                                : rank.badgeUrl?.trim()
+                                  ? { uri: rank.badgeUrl.trim() }
+                                  : null;
+                            return (
                               <View
+                                key={rank.tier}
                                 style={[
-                                  styles.rankDot,
-                                  { backgroundColor: accent },
+                                  styles.rankRow,
+                                  {
+                                    backgroundColor: active
+                                      ? rewardMutedBg
+                                      : "transparent",
+                                    borderColor: active ? accent : colors.icon,
+                                  },
                                 ]}
-                              />
-                              <ThemedText style={styles.rankName}>
-                                {rank.label}
-                              </ThemedText>
-                              <ThemedText style={styles.rankThreshold}>
-                                {rank.threshold}
-                              </ThemedText>
-                            </View>
-                          );
-                        })}
+                              >
+                                {badgeSource ? (
+                                  <Image
+                                    source={badgeSource}
+                                    style={styles.rankBadge}
+                                    contentFit="contain"
+                                    recyclingKey={rank.badgeUrl ?? rank.tier}
+                                  />
+                                ) : (
+                                  <View
+                                    style={[
+                                      styles.rankDot,
+                                      { backgroundColor: accent },
+                                    ]}
+                                  />
+                                )}
+                                <ThemedText style={styles.rankName}>
+                                  {rank.label}
+                                </ThemedText>
+                                <ThemedText style={styles.rankThreshold}>
+                                  {formatRankPointsRange(rank)}
+                                </ThemedText>
+                              </View>
+                            );
+                          })
+                        )}
                       </View>
                     ) : null}
                   </View>
@@ -1934,6 +1949,16 @@ const styles = StyleSheet.create({
     opacity: 0.78,
   },
   rankList: { gap: 7 },
+  rankLoading: {
+    minHeight: 56,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rankBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+  },
   rankRow: {
     minHeight: 42,
     borderWidth: 1,

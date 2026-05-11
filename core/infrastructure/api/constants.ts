@@ -31,6 +31,7 @@ export const API_ENDPOINTS = {
   PROFILE: {
     POINTS: "/v1/client/profile/points",
     STATS: "/v1/client/profile/stats",
+    RANK_CONFIG: "/v1/client/profile/rank-config",
     WITHDRAWALS: "/v1/client/profile/withdrawals",
     CHANGE_PASSWORD: "/v1/client/profile/change-password",
     AVATAR: "/v1/client/profile/avatar",

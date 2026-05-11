@@ -12,6 +12,7 @@ import type {
   RankConfigDto,
   WithdrawalRequestDto,
 } from "../dtos/ProfileDto";
+import { toAbsoluteMediaUrl } from "./mediaUrl";
 
 const RANKS: UserRankTier[] = ["NEWBIE", "BRONZE", "SILVER", "GOLD", "VIP"];
 const WITHDRAWAL_STATUSES: WithdrawalStatus[] = [
@@ -62,14 +63,25 @@ export function toRankConfig(
 ): RankConfig | null {
   if (!dto) return null;
   const tier = toRank(dto.tier);
+  const rawBadge = toNullableString(dto.badgeUrl);
+  const badgeAbsolute =
+    rawBadge && rawBadge.length > 0 ? toAbsoluteMediaUrl(rawBadge) : "";
   return {
     tier,
     minPoints: toNumber(dto.minPoints),
     maxPoints: toNullableNumber(dto.maxPoints),
     label: toStringValue(dto.label, tier),
-    badgeUrl: toNullableString(dto.badgeUrl),
+    badgeUrl: badgeAbsolute || null,
     sortOrder: toNumber(dto.sortOrder),
   };
+}
+
+/** Maps API rank ladder rows; drops invalid entries; sorts by `sortOrder`. */
+export function toRankConfigsFromDtos(dtos: RankConfigDto[]): RankConfig[] {
+  return dtos
+    .map((d) => toRankConfig(d))
+    .filter((c): c is RankConfig => c !== null)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
 export function toProfilePointsSummary(

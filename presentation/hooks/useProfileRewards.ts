@@ -2,9 +2,20 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServices } from "../providers/ServicesProvider";
 
 const PROFILE_REWARDS_KEY = ["profile", "rewards"] as const;
+const PROFILE_RANK_CONFIG_KEY = [...PROFILE_REWARDS_KEY, "rank-config"] as const;
 const PROFILE_POINTS_KEY = [...PROFILE_REWARDS_KEY, "points"] as const;
 const PROFILE_STATS_KEY = [...PROFILE_REWARDS_KEY, "stats"] as const;
 const PROFILE_WITHDRAWALS_KEY = [...PROFILE_REWARDS_KEY, "withdrawals"] as const;
+
+/** Public rank ladder (admin-managed thresholds, labels, badges). */
+export function useRankConfigs() {
+  const { profileService } = useServices();
+  return useQuery({
+    queryKey: PROFILE_RANK_CONFIG_KEY,
+    queryFn: () => profileService.getRankConfigs(),
+    staleTime: 10 * 60 * 1000,
+  });
+}
 
 export function useProfilePoints() {
   const { profileService } = useServices();

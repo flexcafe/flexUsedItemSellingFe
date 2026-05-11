@@ -1,17 +1,20 @@
 import type {
   ProfilePointsSummaryDto,
   ProfileTransactionStatsDto,
+  RankConfigDto,
   WithdrawalRequestDto,
 } from "@/core/application/dtos/ProfileDto";
 import { toAbsoluteMediaUrl } from "@/core/application/mappers/mediaUrl";
 import {
   toProfilePointsSummary,
   toProfileTransactionStats,
+  toRankConfigsFromDtos,
   toWithdrawalRequest,
 } from "@/core/application/mappers/ProfileMapper";
 import type {
   ProfilePointsSummary,
   ProfileTransactionStats,
+  RankConfig,
   WithdrawalRequest,
 } from "@/core/domain/entities/ProfileRewards";
 import type { IProfileRepository } from "@/core/domain/repositories/IProfileRepository";
@@ -53,8 +56,34 @@ function pickAvatarUrlFromUploadResponse(res: unknown): string {
   return "";
 }
 
+function extractRankConfigList(res: unknown): RankConfigDto[] {
+  if (Array.isArray(res)) return res as RankConfigDto[];
+  if (res != null && typeof res === "object") {
+    const r = res as Record<string, unknown>;
+    const direct = r.data;
+    if (Array.isArray(direct)) return direct as RankConfigDto[];
+    if (direct != null && typeof direct === "object" && !Array.isArray(direct)) {
+      const inner = direct as Record<string, unknown>;
+      for (const k of ["items", "rows", "configs", "list"]) {
+        const arr = inner[k];
+        if (Array.isArray(arr)) return arr as RankConfigDto[];
+      }
+    }
+    for (const k of ["items", "rows", "configs", "list"]) {
+      const arr = r[k];
+      if (Array.isArray(arr)) return arr as RankConfigDto[];
+    }
+  }
+  return [];
+}
+
 export class ApiProfileRepository implements IProfileRepository {
   constructor(private readonly http: HttpClient) {}
+
+  async getRankConfigs(): Promise<RankConfig[]> {
+    const res = await this.http.get<unknown>(API_ENDPOINTS.PROFILE.RANK_CONFIG);
+    return toRankConfigsFromDtos(extractRankConfigList(res));
+  }
 
   async getPointsSummary(): Promise<ProfilePointsSummary> {
     const dto = await this.http.get<ProfilePointsSummaryDto>(

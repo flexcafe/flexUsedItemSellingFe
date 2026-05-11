@@ -1,6 +1,7 @@
 import type {
   ProfilePointsSummary,
   ProfileTransactionStats,
+  RankConfig,
   WithdrawalRequest,
 } from "@/core/domain/entities/ProfileRewards";
 import type { IProfileRepository } from "@/core/domain/repositories/IProfileRepository";
@@ -13,6 +14,10 @@ import type {
 
 export class ProfileService implements IProfileService {
   constructor(private readonly repo: IProfileRepository) {}
+
+  getRankConfigs(): Promise<RankConfig[]> {
+    return this.repo.getRankConfigs();
+  }
 
   getPointsSummary(): Promise<ProfilePointsSummary> {
     return this.repo.getPointsSummary();

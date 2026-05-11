@@ -29,7 +29,9 @@ function unwrapMaybeJson(value: unknown): unknown {
   }
 }
 
-function extractNotificationDto(rawData: unknown): ClientNotificationDto | null {
+function extractNotificationDto(
+  rawData: unknown,
+): ClientNotificationDto | null {
   // Some payloads are wrapped or double-encoded:
   // { notification }, { data: { notification } }, { data: "<json>" }, "<json>".
   let cur = unwrapMaybeJson(rawData);
@@ -252,4 +254,3 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
 
   return children;
 }
-
