@@ -7,7 +7,9 @@ import type { PaginationParams } from "@/core/domain/types";
 import type {
   ClientProductCatalogPage,
   ClientProductListParams,
+  ProductDeleteInput,
   ProductCreateInput,
+  ProductStatus,
   ProductUpdateInput,
 } from "@/core/domain/types/product";
 import {
@@ -45,6 +47,22 @@ function buildClientProductQuery(
     }
   }
   return query;
+}
+
+function buildPaginationQuery(
+  params?: PaginationParams,
+): Record<string, number> {
+  const page = params?.page ?? 1;
+  const rawLimit = params?.limit ?? 20;
+  const limit = Math.min(50, Math.max(1, rawLimit));
+  return { page, limit };
+}
+
+function asProductOrNull(raw: unknown): Product | null {
+  if (raw == null || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const row = raw as ProductApiResponse;
+  if (typeof row.id !== "string" || !row.id.trim()) return null;
+  return toProduct(row);
 }
 
 function extractProductList(res: unknown): ProductDto[] {
@@ -95,42 +113,67 @@ export class ApiProductRepository implements IProductRepository {
     return mapClientProductCatalogPage(res);
   }
 
+  async getMyList(params?: PaginationParams): Promise<ClientProductCatalogPage> {
+    const res = await this.http.get<unknown>(API_ENDPOINTS.CLIENT_PRODUCTS.MY_LIST, {
+      params: buildPaginationQuery(params),
+    });
+    return mapClientProductCatalogPage(res);
+  }
+
+  async getMyById(id: string): Promise<Product | null> {
+    try {
+      const dto = await this.http.get<unknown>(API_ENDPOINTS.CLIENT_PRODUCTS.MY_BY_ID(id));
+      return asProductOrNull(dto);
+    } catch {
+      return null;
+    }
+  }
+
   async getById(id: string): Promise<Product | null> {
     try {
-      const dto = await this.http.get<unknown>(
-        API_ENDPOINTS.CLIENT_PRODUCTS.BY_ID(id),
-      );
-      if (dto == null || typeof dto !== "object" || Array.isArray(dto)) {
-        return null;
-      }
-      const row = dto as ProductApiResponse;
-      if (typeof row.id !== "string" || !row.id.trim()) return null;
-      return toProduct(row);
+      const dto = await this.http.get<unknown>(API_ENDPOINTS.CLIENT_PRODUCTS.BY_ID(id));
+      return asProductOrNull(dto);
     } catch {
       return null;
     }
   }
 
   async create(data: ProductCreateInput): Promise<Product> {
-    const dto = await this.http.post<ProductDto & { id: string }>(
-      API_ENDPOINTS.PRODUCTS.CREATE,
-      data
-    );
-    if (!dto?.id) throw new Error("Create product response missing id");
-    return toProduct(dto);
+    return this.createMy(data);
+  }
+
+  async createMy(data: ProductCreateInput): Promise<Product> {
+    const dto = await this.http.post<unknown>(API_ENDPOINTS.CLIENT_PRODUCTS.CREATE, data);
+    const product = asProductOrNull(dto);
+    if (!product) throw new Error("Create product response missing id");
+    return product;
   }
 
   async update(id: string, data: ProductUpdateInput): Promise<Product> {
-    const dto = await this.http.patch<ProductDto & { id: string }>(
-      API_ENDPOINTS.PRODUCTS.UPDATE(id),
-      data
-    );
-    return toProduct({ ...dto, id: dto?.id ?? id } as ProductDto & {
-      id: string;
-    });
+    return this.updateMy(id, data);
+  }
+
+  async updateMy(id: string, data: ProductUpdateInput): Promise<Product> {
+    const dto = await this.http.patch<unknown>(API_ENDPOINTS.CLIENT_PRODUCTS.UPDATE(id), data);
+    const product = asProductOrNull(dto);
+    if (!product) throw new Error("Update product response missing id");
+    return product;
+  }
+
+  async updateStatus(id: string, status: ProductStatus): Promise<Product> {
+    return this.updateMy(id, { status });
   }
 
   async delete(id: string): Promise<void> {
     await this.http.delete(API_ENDPOINTS.PRODUCTS.DELETE(id));
+  }
+
+  async deleteMy(id: string, data: ProductDeleteInput): Promise<boolean> {
+    const res = await this.http.delete<unknown>(API_ENDPOINTS.CLIENT_PRODUCTS.DELETE(id), {
+      data,
+    });
+    if (res == null || typeof res !== "object" || Array.isArray(res)) return false;
+    const r = res as Record<string, unknown>;
+    return r.deleted === true;
   }
 }

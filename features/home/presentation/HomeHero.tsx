@@ -1,12 +1,12 @@
-import type { Category } from "@/core/domain/entities/Category";
 import { Colors } from "@/constants/theme";
+import type { Category } from "@/core/domain/entities/Category";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useRouter } from "expo-router";
-import { Image } from "expo-image";
 import Constants from "expo-constants";
+import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 import {
   Linking,
   Pressable,
@@ -69,7 +69,8 @@ export function HomeHero({
             EXTRA_TOP_FOR_LANGUAGE_SWITCHER +
             HERO_EXTRA_TOP_MARGIN,
         },
-      ]}>
+      ]}
+    >
       <Text style={styles.marketTitle}>{t("homeMarketTitleFlex")}</Text>
 
       <View style={styles.actionsRow}>
@@ -79,7 +80,8 @@ export function HomeHero({
             style={({ pressed }) => [
               styles.outlinePill,
               pressed && styles.pillPressed,
-            ]}>
+            ]}
+          >
             <MaterialIcons name="person-outline" size={14} color="#fff" />
             <Text style={styles.outlinePillText} numberOfLines={1}>
               {t("homeMyProfileButton")}
@@ -90,7 +92,8 @@ export function HomeHero({
             style={({ pressed }) => [
               styles.reportPill,
               pressed && styles.pillPressed,
-            ]}>
+            ]}
+          >
             <MaterialIcons name="warning" size={14} color="#fff" />
             <Text style={styles.reportPillText} numberOfLines={1}>
               {t("homeSuggestReportButton")}
@@ -102,7 +105,8 @@ export function HomeHero({
           style={({ pressed }) => [
             styles.logoutPill,
             pressed && styles.pillPressed,
-          ]}>
+          ]}
+        >
           <Text style={[styles.logoutPillText, { color: tint }]}>
             {t("homeLogoutCaps")}
           </Text>
@@ -112,20 +116,23 @@ export function HomeHero({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryRow}>
+        contentContainerStyle={styles.categoryRow}
+      >
         <Pressable
           onPress={() => onSelectCategory(null)}
           style={[
             styles.categoryTile,
             selectedCategoryId == null && styles.categoryTileSelected,
-          ]}>
+          ]}
+        >
           <View style={styles.categoryIconWrap}>
             <MaterialIcons name="apps" size={17} color={Colors[scheme].text} />
           </View>
           <Text
             style={styles.categoryPrimary}
             numberOfLines={1}
-            ellipsizeMode="tail">
+            ellipsizeMode="tail"
+          >
             {t("homeAllCategory")}
           </Text>
         </Pressable>
@@ -139,7 +146,8 @@ export function HomeHero({
               style={[
                 styles.categoryTile,
                 selected && styles.categoryTileSelected,
-              ]}>
+              ]}
+            >
               <View style={styles.categoryIconWrap}>
                 {category.iconUrl ? (
                   <Image
@@ -148,20 +156,26 @@ export function HomeHero({
                     contentFit="contain"
                   />
                 ) : (
-                  <MaterialIcons name="category" size={17} color={Colors[scheme].text} />
+                  <MaterialIcons
+                    name="category"
+                    size={17}
+                    color={Colors[scheme].text}
+                  />
                 )}
               </View>
               <Text
                 style={styles.categoryPrimary}
                 numberOfLines={1}
-                ellipsizeMode="tail">
+                ellipsizeMode="tail"
+              >
                 {category.name}
               </Text>
               {sub ? (
                 <Text
                   style={styles.categorySecondary}
                   numberOfLines={1}
-                  ellipsizeMode="tail">
+                  ellipsizeMode="tail"
+                >
                   {sub}
                 </Text>
               ) : null}

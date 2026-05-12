@@ -46,6 +46,11 @@ export const API_ENDPOINTS = {
   CLIENT_PRODUCTS: {
     LIST: "/v1/client/products",
     BY_ID: (productId: string) => `/v1/client/products/${productId}`,
+    MY_LIST: "/v1/client/products/my",
+    MY_BY_ID: (productId: string) => `/v1/client/products/my/${productId}`,
+    CREATE: "/v1/client/products",
+    UPDATE: (productId: string) => `/v1/client/products/${productId}`,
+    DELETE: (productId: string) => `/v1/client/products/${productId}`,
   },
   PRODUCTS: {
     LIST: "/v1/products",

@@ -5,7 +5,9 @@ import type { Product } from "@/core/domain/entities/Product";
 import type {
   ClientProductCatalogPage,
   ClientProductListParams,
+  ProductDeleteInput,
   ProductCreateInput,
+  ProductStatus,
   ProductUpdateInput,
 } from "@/core/domain/types/product";
 
@@ -20,6 +22,14 @@ export class ProductService implements IProductService {
     return this.repo.getClientList(params);
   }
 
+  getMyList(params?: PaginationParams): Promise<ClientProductCatalogPage> {
+    return this.repo.getMyList(params);
+  }
+
+  getMyById(id: string): Promise<Product | null> {
+    return this.repo.getMyById(id);
+  }
+
   getById(id: string): Promise<Product | null> {
     return this.repo.getById(id);
   }
@@ -28,11 +38,27 @@ export class ProductService implements IProductService {
     return this.repo.create(data);
   }
 
+  createMy(data: ProductCreateInput): Promise<Product> {
+    return this.repo.createMy(data);
+  }
+
   update(id: string, data: ProductUpdateInput): Promise<Product> {
     return this.repo.update(id, data);
   }
 
+  updateMy(id: string, data: ProductUpdateInput): Promise<Product> {
+    return this.repo.updateMy(id, data);
+  }
+
+  updateStatus(id: string, status: ProductStatus): Promise<Product> {
+    return this.repo.updateStatus(id, status);
+  }
+
   delete(id: string): Promise<void> {
     return this.repo.delete(id);
+  }
+
+  deleteMy(id: string, data: ProductDeleteInput): Promise<boolean> {
+    return this.repo.deleteMy(id, data);
   }
 }

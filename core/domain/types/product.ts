@@ -1,16 +1,58 @@
 import type { Product } from "@/core/domain/entities/Product";
 import type { PaginationParams } from "@/core/domain/types";
 
-export interface ProductCreateInput {
-  name: string;
-  description: string;
-  price: number;
-  category: string;
-  imageUrl?: string | null;
-  isAvailable: boolean;
+export type ProductCondition =
+  | "NEW"
+  | "LIKE_NEW"
+  | "GOOD"
+  | "FAIR"
+  | "POOR";
+
+export type ProductStatus =
+  | "DRAFT"
+  | "ACTIVE"
+  | "SOLD"
+  | "INACTIVE"
+  | "DELETED";
+
+export type ProductPaymentMethod = "CASH" | "KBZPAY";
+export type ProductDeliveryFeePayer = "BUYER" | "SELLER";
+
+export interface PreferredTradeLocationInput {
+  label: string;
+  address: string;
+  latitude?: number;
+  longitude?: number;
 }
 
-export type ProductUpdateInput = Partial<ProductCreateInput>;
+export interface ProductCreateInput {
+  categoryId: string;
+  title: string;
+  description: string;
+  price: number;
+  condition: ProductCondition;
+  paymentMethods: ProductPaymentMethod[];
+  directTradeLocation?: string;
+  directTradeLatitude?: number;
+  directTradeLongitude?: number;
+  mapScreenshotUrl?: string;
+  nearbyLandmarks?: string;
+  preferredTradeTime?: string;
+  isDeliveryAvailable: boolean;
+  deliveryFeePayer?: ProductDeliveryFeePayer;
+  images?: string[];
+  preferredLocations?: PreferredTradeLocationInput[];
+}
+
+export type ProductUpdateInput = Partial<
+  Omit<ProductCreateInput, "price">
+> & {
+  status?: ProductStatus;
+};
+
+export interface ProductDeleteInput {
+  confirmTitle: string;
+}
 
 export interface ClientProductListParams extends PaginationParams {
   categoryId?: string;
@@ -33,4 +75,7 @@ export interface ClientProductCatalogPage {
   hasNextPage: boolean;
   hasPrevPage: boolean;
 }
+
+/** `GET /v1/client/products/my` — seller's own listings page. */
+export type MyProductListPage = ClientProductCatalogPage;
 

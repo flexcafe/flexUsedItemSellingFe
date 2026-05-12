@@ -958,6 +958,341 @@ const DICT: Dictionary = {
     my: "ထွက်မည်",
     zh: "退出",
   },
+  productsMyTitle: {
+    ko: "내 상품",
+    my: "ကျွန်ုပ်၏ ပစ္စည်းများ",
+    zh: "我的商品",
+  },
+  productsMySubtitle: {
+    ko: "판매 중인 내 상품을 관리하세요.",
+    my: "ရောင်းချနေသော သင့်ပစ္စည်းများကို စီမံပါ။",
+    zh: "管理你发布的出售商品。",
+  },
+  productsNewListing: {
+    ko: "+ 새 등록",
+    my: "+ အသစ်ထည့်မည်",
+    zh: "+ 新建发布",
+  },
+  productsLoading: {
+    ko: "상품을 불러오는 중…",
+    my: "ပစ္စည်းများ တင်နေသည်…",
+    zh: "正在加载商品…",
+  },
+  productsLoadError: {
+    ko: "내 상품 목록을 불러오지 못했습니다.\n다시 시도해 주세요.",
+    my: "သင့်ပစ္စည်းစာရင်း မရရှိနိုင်ပါ။\nထပ်ကြိုးစားပါ။",
+    zh: "无法加载你的商品列表。\n请重试。",
+  },
+  productsRetry: {
+    ko: "다시 시도",
+    my: "ပြန်ကြိုးစားမည်",
+    zh: "重试",
+  },
+  productsEmpty: {
+    ko: "등록된 상품이 없습니다.",
+    my: "ပစ္စည်းမရှိသေးပါ။",
+    zh: "暂无商品。",
+  },
+  productsDetail: {
+    ko: "상세",
+    my: "အသေးစိတ်",
+    zh: "详情",
+  },
+  productsEdit: {
+    ko: "수정",
+    my: "ပြင်မည်",
+    zh: "编辑",
+  },
+  productsArchive: {
+    ko: "보관",
+    my: "သိမ်းမည်",
+    zh: "下架",
+  },
+  productsArchiveShort: {
+    ko: "…",
+    my: "…",
+    zh: "…",
+  },
+  productsArchiveTitle: {
+    ko: "상품 보관",
+    my: "ပစ္စည်းသိမ်းမည်",
+    zh: "下架商品",
+  },
+  productsArchiveMessage: {
+    ko: "\"{name}\"을(를) 보관할까요?",
+    my: "\"{name}\" ကို သိမ်းမလား?",
+    zh: "确定下架「{name}」吗？",
+  },
+  productsAlertCategoryTitle: {
+    ko: "카테고리 필요",
+    my: "အမျိုးအစားလိုအပ်သည်",
+    zh: "需要分类",
+  },
+  productsAlertCategoryBody: {
+    ko: "카테고리를 선택해 주세요.",
+    my: "အမျိုးအစားရွေးပါ။",
+    zh: "请选择分类。",
+  },
+  productsAlertMissingTitle: {
+    ko: "입력 누락",
+    my: "ထည့်သွင်းမှု မပြည့်စုံ",
+    zh: "缺少信息",
+  },
+  productsAlertMissingBody: {
+    ko: "제목과 설명을 입력해 주세요.",
+    my: "ခေါင်းစီးနှင့် ဖော်ပြချက်ထည့်ပါ။",
+    zh: "请填写标题和描述。",
+  },
+  productsAlertPaymentTitle: {
+    ko: "결제 수단",
+    my: "ငွေပေးချေမှု နည်းလမ်း",
+    zh: "支付方式",
+  },
+  productsAlertPaymentBody: {
+    ko: "결제 수단을 하나 이상 선택해 주세요.",
+    my: "ငွေပေးချေမှု နည်းလမ်းတစ်ခုအနည်းဆုံး ရွေးပါ။",
+    zh: "请至少选择一种支付方式。",
+  },
+  productsAlertCoordsTitle: {
+    ko: "좌표",
+    my: "ကိုဩဒိနိတ်",
+    zh: "坐标",
+  },
+  productsAlertCoordsBody: {
+    ko: "위도와 경도는 함께 입력해야 합니다.",
+    my: "လတ္တီတွဒ်နှင့် လောင်ဂျီတွဒ်ကို အတူတူ ထည့်ပါ။",
+    zh: "纬度和经度需同时填写。",
+  },
+  productsAlertPriceTitle: {
+    ko: "가격 필요",
+    my: "စျေးနှုန်းလိုအပ်သည်",
+    zh: "需要价格",
+  },
+  productsAlertPriceBody: {
+    ko: "새 상품의 유효한 가격을 입력해 주세요.",
+    my: "ပစ္စသစ်အတွက် မှန်ကန်သော စျေးနှုန်းထည့်ပါ။",
+    zh: "请为新商品填写有效价格。",
+  },
+  productsSuccessTitle: {
+    ko: "완료",
+    my: "ပြီးပါပြီ",
+    zh: "完成",
+  },
+  productsSuccessCreated: {
+    ko: "상품이 등록되었습니다.",
+    my: "ပစ္စည်းထည့်သွင်းပြီးပါပြီ။",
+    zh: "商品已创建。",
+  },
+  productsSuccessUpdated: {
+    ko: "상품이 수정되었습니다.",
+    my: "ပစ္စည်းပြင်ဆင်ပြီးပါပြီ။",
+    zh: "商品已更新。",
+  },
+  productsErrorRequestTitle: {
+    ko: "요청 실패",
+    my: "တောင်းဆိုမှု မအောင်မြင်ပါ",
+    zh: "请求失败",
+  },
+  productsErrorRequestBody: {
+    ko: "입력을 확인한 뒤 다시 시도해 주세요.",
+    my: "ထည့်သွင်းချက်များစစ်ပြီး ထပ်ကြိုးစားပါ။",
+    zh: "请检查输入后重试。",
+  },
+  productsModalDetailTitle: {
+    ko: "내 상품 상세",
+    my: "ကျွန်ုပ်၏ ပစ္စည်း အသေးစိတ်",
+    zh: "我的商品详情",
+  },
+  productsModalClose: {
+    ko: "닫기",
+    my: "ပိတ်မည်",
+    zh: "关闭",
+  },
+  productsModalCreateTitle: {
+    ko: "상품 등록",
+    my: "ပစ္စည်းအသစ်ထည့်မည်",
+    zh: "发布商品",
+  },
+  productsModalEditTitle: {
+    ko: "상품 수정",
+    my: "ပစ္စည်းပြင်မည်",
+    zh: "编辑商品",
+  },
+  productsDetailNoData: {
+    ko: "데이터가 없습니다.",
+    my: "ဒေတာမရှိပါ။",
+    zh: "暂无数据。",
+  },
+  productsLabelStatus: {
+    ko: "상태",
+    my: "အခြေအနေ",
+    zh: "状态",
+  },
+  productsLabelTitle: {
+    ko: "제목",
+    my: "ခေါင်းစီး",
+    zh: "标题",
+  },
+  productsLabelCondition: {
+    ko: "상태(물품)",
+    my: "အခြေအနေ (ပစ္စည်း)",
+    zh: "成色",
+  },
+  productsLabelCategoryId: {
+    ko: "카테고리 ID",
+    my: "အမျိုးအစား ID",
+    zh: "分类 ID",
+  },
+  productsLabelPayment: {
+    ko: "결제",
+    my: "ငွေပေးချေမှု",
+    zh: "支付",
+  },
+  productsLabelLocation: {
+    ko: "거래 장소",
+    my: "လဲလှယ်ရာနေရာ",
+    zh: "交易地点",
+  },
+  productsLabelPrice: {
+    ko: "가격",
+    my: "စျေးနှုန်း",
+    zh: "价格",
+  },
+  productsLabelDescription: {
+    ko: "설명",
+    my: "ဖော်ပြချက်",
+    zh: "描述",
+  },
+  productsFieldCategory: {
+    ko: "카테고리",
+    my: "အမျိုးအစား",
+    zh: "分类",
+  },
+  productsFieldTitle: {
+    ko: "제목",
+    my: "ခေါင်းစီး",
+    zh: "标题",
+  },
+  productsFieldDescription: {
+    ko: "설명",
+    my: "ဖော်ပြချက်",
+    zh: "描述",
+  },
+  productsFieldPriceCreateOnly: {
+    ko: "가격 (신규만)",
+    my: "စျေးနှုန်း (အသစ်သာ)",
+    zh: "价格（仅新建）",
+  },
+  productsFieldCondition: {
+    ko: "상태(물품)",
+    my: "အခြေအနေ (ပစ္စည်း)",
+    zh: "成色",
+  },
+  productsFieldStatus: {
+    ko: "판매 상태",
+    my: "ရောင်းချမှု အခြေအနေ",
+    zh: "销售状态",
+  },
+  productsFieldPaymentMethods: {
+    ko: "결제 수단",
+    my: "ငွေပေးချေမှု နည်းလမ်းများ",
+    zh: "支付方式",
+  },
+  productsFieldDirectLocation: {
+    ko: "직거래 장소",
+    my: "တိုက်ရိုက် လဲလှယ်ရာနေရာ",
+    zh: "当面交易地点",
+  },
+  productsFieldLatitude: {
+    ko: "위도",
+    my: "လတ္တီတွဒ်",
+    zh: "纬度",
+  },
+  productsFieldLongitude: {
+    ko: "경도",
+    my: "လောင်ဂျီတွဒ်",
+    zh: "经度",
+  },
+  productsFieldImages: {
+    ko: "이미지 URL (쉼표 구분)",
+    my: "ပုံ URL များ (ကော်မာဖြင့် ခွဲ)",
+    zh: "图片 URL（逗号分隔）",
+  },
+  productsFieldDelivery: {
+    ko: "배송",
+    my: "ပို့ဆောင်မှု",
+    zh: "配送",
+  },
+  productsPlaceholderTitle: {
+    ko: "예: iPhone 13 Pro Max",
+    my: "ဥပမာ iPhone 13 Pro Max",
+    zh: "例如 iPhone 13 Pro Max",
+  },
+  productsPlaceholderDescription: {
+    ko: "예: 스크래치 없음, 배터리 87%",
+    my: "ဥပမာ အကွာအဝေးမရှိ၊ ဘက်ထရီ ၈၇%",
+    zh: "例如：无划痕，电池 87%",
+  },
+  productsPlaceholderPrice: {
+    ko: "980000",
+    my: "980000",
+    zh: "980000",
+  },
+  productsPlaceholderLocation: {
+    ko: "예: 파베단 타운শ립",
+    my: "ဥပမာ ပါဘေဒန် မြို့နယ်",
+    zh: "例如帕贝丹镇区",
+  },
+  productsPlaceholderLat: {
+    ko: "위도",
+    my: "လတ္တီတွဒ်",
+    zh: "纬度",
+  },
+  productsPlaceholderLng: {
+    ko: "경도",
+    my: "လောင်ဂျီတွဒ်",
+    zh: "经度",
+  },
+  productsPlaceholderImages: {
+    ko: "https://.../1.jpg, https://.../2.jpg",
+    my: "https://.../1.jpg, https://.../2.jpg",
+    zh: "https://.../1.jpg, https://.../2.jpg",
+  },
+  productsDeliveryOn: {
+    ko: "배송 가능",
+    my: "ပို့ဆောင်ရန်",
+    zh: "可配送",
+  },
+  productsDeliveryOff: {
+    ko: "배송 불가",
+    my: "ပို့ဆောင်မရ",
+    zh: "不可配送",
+  },
+  productsDeliveryBuyerPays: {
+    ko: "구매자 부담",
+    my: "ဝယ်သူပေးချေ",
+    zh: "买家承担",
+  },
+  productsDeliverySellerPays: {
+    ko: "판매자 부담",
+    my: "ရောင်းသူပေးချေ",
+    zh: "卖家承担",
+  },
+  productsSaveCreate: {
+    ko: "등록",
+    my: "ထည့်မည်",
+    zh: "创建",
+  },
+  productsSaveUpdate: {
+    ko: "수정 저장",
+    my: "ပြင်ပြီး သိမ်းမည်",
+    zh: "保存修改",
+  },
+  productsSaving: {
+    ko: "저장 중…",
+    my: "သိမ်းနေသည်…",
+    zh: "保存中…",
+  },
   loginPasswordLabel: { ko: "비밀번호", my: "စကားဝှက်", zh: "密码" },
   loginVerifyRequiredFallback: {
     ko: "로그인 전에 전화와 이메일 인증이 필요합니다",

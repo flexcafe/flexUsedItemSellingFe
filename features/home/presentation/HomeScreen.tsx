@@ -1,3 +1,4 @@
+import { AddProductListingButton } from "@/components/add-product-listing-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import type { Category } from "@/core/domain/entities/Category";
@@ -8,6 +9,7 @@ import { useBuyerCatalogLocation } from "@/presentation/hooks/useBuyerCatalogLoc
 import { useCategories } from "@/presentation/hooks/useCategories";
 import { useClientProductsCatalog } from "@/presentation/hooks/useClientProducts";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
+import { useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { useCallback, useMemo, useState } from "react";
 import {
@@ -71,6 +73,7 @@ function ProductCard({
 }
 
 export function HomeScreen() {
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { t } = useLocale();
@@ -144,6 +147,13 @@ export function HomeScreen() {
         <View style={styles.sliderSection}>
           <HomeSlider />
         </View>
+        <AddProductListingButton
+          horizontalPadding={16}
+          style={styles.addListingButton}
+          onPress={() =>
+            router.push({ pathname: "/(tabs)/products", params: { openCreate: "1" } })
+          }
+        />
         <View style={styles.listHeader}>
           <ThemedText type="subtitle">{t("homeProductsTitle")}</ThemedText>
           {locationQuery.data != null ? (
@@ -166,6 +176,7 @@ export function HomeScreen() {
       colors.tint,
       geo.latitude,
       productsQuery.isError,
+      router,
       selectedCategoryId,
       t,
       locationQuery.data,
@@ -246,6 +257,10 @@ const styles = StyleSheet.create({
   },
   sliderSection: {
     marginTop: 6,
+  },
+  addListingButton: {
+    marginTop: 10,
+    marginBottom: 4,
   },
   categoryErrorText: {
     marginTop: 6,

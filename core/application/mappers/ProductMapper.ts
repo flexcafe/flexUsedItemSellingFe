@@ -18,9 +18,22 @@ export interface ProductApiResponse {
   imageUrl?: string | null;
   images?: unknown;
   status?: string | null;
+  condition?: string | null;
+  paymentMethods?: unknown;
+  directTradeLocation?: unknown;
+  directTradeLatitude?: unknown;
+  directTradeLongitude?: unknown;
+  mapScreenshotUrl?: unknown;
+  nearbyLandmarks?: unknown;
+  preferredTradeTime?: unknown;
+  isDeliveryAvailable?: boolean | null;
+  deliveryFeePayer?: unknown;
+  preferredLocations?: unknown;
+  sellerId?: string | null;
+  viewCount?: number | null;
   isAvailable?: boolean | null;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 function parsePrice(val: unknown): number {
@@ -83,6 +96,28 @@ function deriveIsAvailable(status: unknown): boolean {
   return s !== "SOLD" && s !== "DELETED" && s !== "REMOVED";
 }
 
+function toStringOrNull(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const t = v.trim();
+  return t ? t : null;
+}
+
+function toNumberOrNull(v: unknown): number | null {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    const n = Number(v);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+function toStringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter((item) => item.length > 0);
+}
+
 export function toProduct(dto: ProductApiResponse): Product {
   const categoryId =
     typeof dto.categoryId === "string" && dto.categoryId.trim()
@@ -92,12 +127,35 @@ export function toProduct(dto: ProductApiResponse): Product {
   const isAvailable = dto.isAvailable === false ? false : fromStatus;
   return {
     id: dto.id,
+    sellerId: toStringOrNull(dto.sellerId),
     name: displayTitle(dto),
     description:
       typeof dto.description === "string" ? dto.description : "",
     price: parsePrice(dto.price),
+    status: typeof dto.status === "string" ? dto.status : undefined,
+    condition: typeof dto.condition === "string" ? dto.condition : undefined,
     category: displayCategory(dto),
     categoryId,
+    paymentMethods: toStringArray(dto.paymentMethods),
+    directTradeLocation: toStringOrNull(dto.directTradeLocation),
+    directTradeLatitude: toNumberOrNull(dto.directTradeLatitude),
+    directTradeLongitude: toNumberOrNull(dto.directTradeLongitude),
+    mapScreenshotUrl: toStringOrNull(dto.mapScreenshotUrl),
+    nearbyLandmarks: toStringOrNull(dto.nearbyLandmarks),
+    preferredTradeTime: toStringOrNull(dto.preferredTradeTime),
+    isDeliveryAvailable:
+      typeof dto.isDeliveryAvailable === "boolean"
+        ? dto.isDeliveryAvailable
+        : undefined,
+    deliveryFeePayer: toStringOrNull(dto.deliveryFeePayer),
+    images: toStringArray(dto.images),
+    preferredLocations: Array.isArray(dto.preferredLocations)
+      ? dto.preferredLocations
+      : [],
+    viewCount:
+      typeof dto.viewCount === "number" && Number.isFinite(dto.viewCount)
+        ? dto.viewCount
+        : undefined,
     imageUrl: catalogImageUrl(dto),
     isAvailable,
     createdAt: dto.createdAt ?? new Date().toISOString(),
@@ -171,10 +229,28 @@ export function mapClientProductCatalogPage(data: unknown): ClientProductCatalog
 export function toProductDto(product: Partial<Product>): ProductDto {
   return {
     ...(product.id && { id: product.id }),
-    name: product.name ?? "",
+    title: product.name ?? "",
     description: product.description ?? "",
     price: product.price ?? 0,
     category: product.category ?? "",
+    categoryId: product.categoryId ?? null,
+    status: product.status ?? null,
+    condition: product.condition ?? null,
+    paymentMethods: product.paymentMethods ?? [],
+    directTradeLocation: product.directTradeLocation ?? null,
+    directTradeLatitude: product.directTradeLatitude ?? null,
+    directTradeLongitude: product.directTradeLongitude ?? null,
+    mapScreenshotUrl: product.mapScreenshotUrl ?? null,
+    nearbyLandmarks: product.nearbyLandmarks ?? null,
+    preferredTradeTime: product.preferredTradeTime ?? null,
+    isDeliveryAvailable: product.isDeliveryAvailable ?? null,
+    deliveryFeePayer: product.deliveryFeePayer ?? null,
+    images: product.images ?? [],
+    preferredLocations: product.preferredLocations ?? [],
+    sellerId: product.sellerId ?? null,
+    viewCount: product.viewCount ?? null,
+    createdAt: product.createdAt ?? null,
+    updatedAt: product.updatedAt ?? null,
     imageUrl: product.imageUrl,
     isAvailable: product.isAvailable ?? true,
   };
