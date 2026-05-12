@@ -2,15 +2,19 @@ import { createContext, useContext, type ReactNode } from "react";
 
 import type { IPreferencesRepository } from "@/core/domain/repositories/IPreferencesRepository";
 import type { IAuthService } from "@/core/domain/services/IAuthService";
+import type { ICategoryService } from "@/core/domain/services/ICategoryService";
 import type { INotificationService } from "@/core/domain/services/INotificationService";
 import type { IProductService } from "@/core/domain/services/IProductService";
 import type { IProfileService } from "@/core/domain/services/IProfileService";
+import type { ISliderAdService } from "@/core/domain/services/ISliderAdService";
 
 export interface AppServices {
   authService: IAuthService;
   productService: IProductService;
   profileService: IProfileService;
   notificationService: INotificationService;
+  sliderAdService: ISliderAdService;
+  categoryService: ICategoryService;
   preferencesRepository: IPreferencesRepository;
 }
 

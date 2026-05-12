@@ -14,9 +14,11 @@ import { AnimatedLaunchScreen } from "@/components/animated-launch-screen";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import type { IPreferencesRepository } from "@/core/domain/repositories/IPreferencesRepository";
 import type { IAuthService } from "@/core/domain/services/IAuthService";
+import type { ICategoryService } from "@/core/domain/services/ICategoryService";
 import type { INotificationService } from "@/core/domain/services/INotificationService";
 import type { IProductService } from "@/core/domain/services/IProductService";
 import type { IProfileService } from "@/core/domain/services/IProfileService";
+import type { ISliderAdService } from "@/core/domain/services/ISliderAdService";
 import container from "@/core/infrastructure/di/container";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { NotificationToastRoot } from "@/presentation/components/notification-toast-root";
@@ -68,6 +70,8 @@ export default function RootLayout() {
     notificationService: container.resolve<INotificationService>(
       "notificationService",
     ),
+    sliderAdService: container.resolve<ISliderAdService>("sliderAdService"),
+    categoryService: container.resolve<ICategoryService>("categoryService"),
     preferencesRepository: container.resolve<IPreferencesRepository>(
       "preferencesRepository",
     ),

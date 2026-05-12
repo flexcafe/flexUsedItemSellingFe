@@ -36,6 +36,17 @@ export const API_ENDPOINTS = {
     CHANGE_PASSWORD: "/v1/client/profile/change-password",
     AVATAR: "/v1/client/profile/avatar",
   },
+  SLIDER_ADS: {
+    LIST: "/v1/client/slider-ads",
+  },
+  CATEGORIES: {
+    LIST: "/v1/client/categories",
+    BY_ID: (categoryId: string) => `/v1/client/categories/${categoryId}`,
+  },
+  CLIENT_PRODUCTS: {
+    LIST: "/v1/client/products",
+    BY_ID: (productId: string) => `/v1/client/products/${productId}`,
+  },
   PRODUCTS: {
     LIST: "/v1/products",
     BY_ID: (id: string) => `/v1/products/${id}`,

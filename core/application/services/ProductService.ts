@@ -2,13 +2,22 @@ import type { IProductService } from "@/core/domain/services/IProductService";
 import type { IProductRepository } from "@/core/domain/repositories/IProductRepository";
 import type { PaginationParams } from "@/core/domain/types";
 import type { Product } from "@/core/domain/entities/Product";
-import type { ProductCreateInput, ProductUpdateInput } from "@/core/domain/types/product";
+import type {
+  ClientProductCatalogPage,
+  ClientProductListParams,
+  ProductCreateInput,
+  ProductUpdateInput,
+} from "@/core/domain/types/product";
 
 export class ProductService implements IProductService {
   constructor(private readonly repo: IProductRepository) {}
 
   getAll(params?: PaginationParams): Promise<Product[]> {
     return this.repo.getAll(params);
+  }
+
+  getClientList(params?: ClientProductListParams): Promise<ClientProductCatalogPage> {
+    return this.repo.getClientList(params);
   }
 
   getById(id: string): Promise<Product | null> {

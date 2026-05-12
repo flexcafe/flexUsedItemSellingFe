@@ -4,6 +4,7 @@ import type {
   ProductCreateInput,
   ProductUpdateInput,
 } from "@/core/domain/types/product";
+import { CLIENT_PRODUCTS_QUERY_KEY } from "@/presentation/hooks/useClientProducts";
 import { useServices } from "../providers/ServicesProvider";
 
 const PRODUCTS_KEY = ["products"];
@@ -32,6 +33,7 @@ export function useCreateProduct() {
     mutationFn: (data: ProductCreateInput) => productService.create(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: PRODUCTS_KEY });
+      qc.invalidateQueries({ queryKey: [...CLIENT_PRODUCTS_QUERY_KEY] });
     },
   });
 }
@@ -44,6 +46,7 @@ export function useUpdateProduct() {
       productService.update(id, data),
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: PRODUCTS_KEY });
+      qc.invalidateQueries({ queryKey: [...CLIENT_PRODUCTS_QUERY_KEY] });
       qc.invalidateQueries({ queryKey: [...PRODUCTS_KEY, variables.id] });
     },
   });
@@ -56,6 +59,7 @@ export function useDeleteProduct() {
     mutationFn: (id: string) => productService.delete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: PRODUCTS_KEY });
+      qc.invalidateQueries({ queryKey: [...CLIENT_PRODUCTS_QUERY_KEY] });
     },
   });
 }

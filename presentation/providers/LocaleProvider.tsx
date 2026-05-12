@@ -13,6 +13,99 @@ import { useServices } from "./ServicesProvider";
 
 type Dictionary = Record<string, Record<AppLocale, string>>;
 
+/** Second line under category name (parenthetical / locale hint). Matched by slug substring. */
+const CATEGORY_SECONDARY: {
+  match: (slug: string) => boolean;
+  labels: Record<AppLocale, string>;
+}[] = [
+  {
+    match: (s) =>
+      /mobile|laptop|computer|phone|모바일|노트북/i.test(s) ||
+      s.includes("mobile") ||
+      s.includes("laptop"),
+    labels: {
+      ko: "(모바일&노트북)",
+      my: "(မိုဘိုင်းနှင့် လက်ပ်တော့ပ်)",
+      zh: "(手机与笔记本)",
+    },
+  },
+  {
+    match: (s) =>
+      /house|home|kitchen|가정|household/i.test(s) || s.includes("house"),
+    labels: {
+      ko: "(가정용품)",
+      my: "(အိမ်သုံးပစ္စည်း)",
+      zh: "(家居用品)",
+    },
+  },
+  {
+    match: (s) =>
+      /book|study|education|student|책|학생/i.test(s) || s.includes("book"),
+    labels: {
+      ko: "(책&학생용품)",
+      my: "(စာအုပ်နှင့် ကျောင်းသုံးပစ္စည်း)",
+      zh: "(图书与学习用品)",
+    },
+  },
+  {
+    match: (s) =>
+      /part[-\s]?time|job|work|일자리|briefcase/i.test(s) ||
+      s.includes("part"),
+    labels: {
+      ko: "(일자리)",
+      my: "(အလုပ်အကိုင်)",
+      zh: "(兼职/工作)",
+    },
+  },
+  {
+    match: (s) =>
+      /hous|rent|dorm|apartment|주택|기숙사/i.test(s) ||
+      s.includes("housing"),
+    labels: {
+      ko: "(주택·기숙사)",
+      my: "(အိမ်ခြံမြေ·နေထိုင်ရာ)",
+      zh: "(住房/宿舍)",
+    },
+  },
+  {
+    match: (s) =>
+      /promo|gift|share|event|프로모션|나눔/i.test(s) ||
+      s.includes("promotion"),
+    labels: {
+      ko: "(프로모션·나눔)",
+      my: "(ပရိုမိုးရှင်း·မျှဝေခြင်း)",
+      zh: "(促销/分享)",
+    },
+  },
+  {
+    match: (s) =>
+      /look|want|seek|구해|searching/i.test(s) || s.includes("looking"),
+    labels: {
+      ko: "(구해요)",
+      my: "(ရှာဖွေနေသည်)",
+      zh: "(求购)",
+    },
+  },
+  {
+    match: (s) =>
+      /electronic|gadget|가전|디지털/i.test(s) || s.includes("electronic"),
+    labels: {
+      ko: "(전자·가젯)",
+      my: "(အီလက်ထရောနစ်)",
+      zh: "(电子数码)",
+    },
+  },
+];
+
+function resolveCategorySecondLine(slug: string, locale: AppLocale): string {
+  const s = (slug ?? "").trim().toLowerCase();
+  if (!s) return "";
+  for (const row of CATEGORY_SECONDARY) {
+    if (row.match(s)) return row.labels[locale];
+  }
+  return "";
+}
+
 const DICT: Dictionary = {
   appName: {
     ko: "Flex Used Market",
@@ -790,6 +883,81 @@ const DICT: Dictionary = {
     my: "အသုံးပြုပြီး ပစ္စည်း စျေးကွက် ဒက်ရှ်ဘုတ်",
     zh: "你的二手市场仪表板。",
   },
+  homeHeroSubtitle: {
+    ko: "카테고리로 상품을 빠르게 찾아보세요.",
+    my: "အမျိုးအစားအလိုက် ပစ္စည်းများကို မြန်မြန်ရှာဖွေပါ။",
+    zh: "按分类快速查找商品。",
+  },
+  homeCategoriesTitle: {
+    ko: "카테고리",
+    my: "အမျိုးအစားများ",
+    zh: "分类",
+  },
+  homeAllCategory: {
+    ko: "전체",
+    my: "အားလုံး",
+    zh: "全部",
+  },
+  homeProductsTitle: {
+    ko: "상품",
+    my: "ပစ္စည်းများ",
+    zh: "商品",
+  },
+  homeProductsNearYouHint: {
+    ko: "가까운 거래 위치 순",
+    my: "အနီးဆုံး လဲလှယ်ရာ နေရာအလိုက်",
+    zh: "按距离排序",
+  },
+  homeProductsLoadingMore: {
+    ko: "더 불러오는 중…",
+    my: "ထပ်မံတင်နေသည်…",
+    zh: "正在加载更多…",
+  },
+  homeProductsLoadError: {
+    ko: "상품 목록을 불러오지 못했습니다. 아래로 당겨 다시 시도하세요.",
+    my: "ပစ္စည်းစာရင်း မရရှိနိုင်ပါ။ အောက်သို့ ဆွဲချပြီး ပြန်ကြိုးစားပါ။",
+    zh: "商品列表加载失败，请下拉重试。",
+  },
+  homeLoadingProducts: {
+    ko: "상품을 불러오는 중...",
+    my: "ပစ္စည်းများကို တင်နေသည်...",
+    zh: "正在加载商品...",
+  },
+  homeNoProductsForCategory: {
+    ko: "이 카테고리에 상품이 없습니다.",
+    my: "ဒီအမျိုးအစားတွင် ပစ္စည်းမရှိသေးပါ။",
+    zh: "该分类下暂无商品。",
+  },
+  homeCategoryFallback: {
+    ko: "일반",
+    my: "အထွေထွေ",
+    zh: "通用",
+  },
+  homeCategoryErrorRetryHint: {
+    ko: "카테고리를 불러오지 못했습니다. 아래로 당겨 새로고침하세요.",
+    my: "အမျိုးအစားများ မရရှိနိုင်ပါ။ အောက်သို့ ဆွဲချပြီး ပြန်လည်ရယူပါ။",
+    zh: "分类加载失败，请下拉刷新。",
+  },
+  homeMarketTitleFlex: {
+    ko: "FLEX Used market",
+    my: "FLEX Used market",
+    zh: "FLEX Used market",
+  },
+  homeMyProfileButton: {
+    ko: "본인정보",
+    my: "ကိုယ်ရေးအချက်အလက်",
+    zh: "个人资料",
+  },
+  homeSuggestReportButton: {
+    ko: "제안/신고",
+    my: "အကြံပြု/တိုင်ကြား",
+    zh: "建议/举报",
+  },
+  homeLogoutCaps: {
+    ko: "Logout",
+    my: "ထွက်မည်",
+    zh: "退出",
+  },
   loginPasswordLabel: { ko: "비밀번호", my: "စကားဝှက်", zh: "密码" },
   loginVerifyRequiredFallback: {
     ko: "로그인 전에 전화와 이메일 인증이 필요합니다",
@@ -820,6 +988,7 @@ interface LocaleContextValue {
   setLocale: (locale: AppLocale) => Promise<void>;
   t: (key: keyof typeof DICT) => string;
   tf: (key: keyof typeof DICT, vars?: Record<string, unknown>) => string;
+  categorySecondLine: (slug: string) => string;
 }
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
@@ -853,6 +1022,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
       setLocale,
       t: (key) => t(key, locale),
       tf: (key, vars) => formatTemplate(t(key, locale), vars),
+      categorySecondLine: (slug) => resolveCategorySecondLine(slug, locale),
     }),
     [locale, setLocale],
   );

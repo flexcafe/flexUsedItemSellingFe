@@ -21,6 +21,7 @@ const MAPPING = {
   'cup.and.saucer.fill': 'local-cafe',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'chevron.left': 'chevron-left',
 } as IconMapping;
 
 /**

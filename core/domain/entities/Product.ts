@@ -5,7 +5,10 @@ export interface Product {
   name: string;
   description: string;
   price: number;
+  /** Legacy / human-readable category label when API sends it. */
   category: string;
+  /** Listing category UUID from client catalog (`categoryId`). */
+  categoryId?: string | null;
   imageUrl?: string | null;
   isAvailable: boolean;
   createdAt: string;
