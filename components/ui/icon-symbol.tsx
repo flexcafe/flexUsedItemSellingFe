@@ -18,7 +18,8 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'person.fill': 'person',
   'bell.fill': 'notifications',
-  'cup.and.saucer.fill': 'local-cafe',
+  /** Listings / inventory (Products tab) */
+  'cube.box.fill': 'inventory-2',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
   'chevron.left': 'chevron-left',

@@ -36,7 +36,7 @@ export default function TabLayout() {
         options={{
           title: t("tabsProducts"),
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="cup.and.saucer.fill" color={color} />
+            <IconSymbol size={28} name="cube.box.fill" color={color} />
           ),
         }}
       />

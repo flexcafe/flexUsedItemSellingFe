@@ -14,6 +14,7 @@ import {
 import { AddProductListingButton } from "@/components/add-product-listing-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { Colors } from "@/constants/theme";
 import type { Product } from "@/core/domain/entities/Product";
 import type {
   ProductCondition,
@@ -21,11 +22,8 @@ import type {
   ProductStatus,
   ProductUpdateInput,
 } from "@/core/domain/types/product";
-import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useCategories } from "@/presentation/hooks/useCategories";
-import { useLocale } from "@/presentation/providers/LocaleProvider";
-import { useLocalSearchParams, router } from "expo-router";
 import {
   useCreateProduct,
   useDeleteProduct,
@@ -33,10 +31,24 @@ import {
   useProducts,
   useUpdateProduct,
 } from "@/presentation/hooks/useProducts";
+import { useLocale } from "@/presentation/providers/LocaleProvider";
+import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-const CONDITION_OPTIONS: ProductCondition[] = ["NEW", "LIKE_NEW", "GOOD", "FAIR", "POOR"];
-const STATUS_OPTIONS: ProductStatus[] = ["DRAFT", "ACTIVE", "INACTIVE", "SOLD", "DELETED"];
+const CONDITION_OPTIONS: ProductCondition[] = [
+  "NEW",
+  "LIKE_NEW",
+  "GOOD",
+  "FAIR",
+  "POOR",
+];
+const STATUS_OPTIONS: ProductStatus[] = [
+  "DRAFT",
+  "ACTIVE",
+  "INACTIVE",
+  "SOLD",
+  "DELETED",
+];
 
 type ComposerMode = "create" | "edit";
 type ProductFormState = {
@@ -86,16 +98,21 @@ function splitCsv(text: string): string[] {
 }
 
 function formFromProduct(product: Product): ProductFormState {
-  const status = STATUS_OPTIONS.includes((product.status as ProductStatus) ?? "ACTIVE")
+  const status = STATUS_OPTIONS.includes(
+    (product.status as ProductStatus) ?? "ACTIVE",
+  )
     ? (product.status as ProductStatus)
     : "ACTIVE";
-  const condition = CONDITION_OPTIONS.includes((product.condition as ProductCondition) ?? "GOOD")
+  const condition = CONDITION_OPTIONS.includes(
+    (product.condition as ProductCondition) ?? "GOOD",
+  )
     ? (product.condition as ProductCondition)
     : "GOOD";
   const validMethods = (product.paymentMethods ?? []).filter(
     (m): m is "CASH" | "KBZPAY" => m === "CASH" || m === "KBZPAY",
   );
-  const methods: ("CASH" | "KBZPAY")[] = validMethods.length > 0 ? validMethods : ["CASH"];
+  const methods: ("CASH" | "KBZPAY")[] =
+    validMethods.length > 0 ? validMethods : ["CASH"];
   return {
     categoryId: product.categoryId ?? "",
     title: product.name,
@@ -105,11 +122,18 @@ function formFromProduct(product: Product): ProductFormState {
     status,
     paymentMethods: methods,
     directTradeLocation: product.directTradeLocation ?? "",
-    latitude: product.directTradeLatitude != null ? String(product.directTradeLatitude) : "",
-    longitude: product.directTradeLongitude != null ? String(product.directTradeLongitude) : "",
+    latitude:
+      product.directTradeLatitude != null
+        ? String(product.directTradeLatitude)
+        : "",
+    longitude:
+      product.directTradeLongitude != null
+        ? String(product.directTradeLongitude)
+        : "",
     imagesCsv: (product.images ?? []).join(", "),
     isDeliveryAvailable: product.isDeliveryAvailable ?? false,
-    deliveryFeePayer: product.deliveryFeePayer === "SELLER" ? "SELLER" : "BUYER",
+    deliveryFeePayer:
+      product.deliveryFeePayer === "SELLER" ? "SELLER" : "BUYER",
   };
 }
 
@@ -129,7 +153,8 @@ function ProductCard({
   const { t } = useLocale();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
-  const statusText = product.status ?? (product.isAvailable ? "ACTIVE" : "SOLD");
+  const statusText =
+    product.status ?? (product.isAvailable ? "ACTIVE" : "SOLD");
 
   return (
     <View style={[styles.card, { borderColor: colors.icon + "30" }]}>
@@ -150,15 +175,22 @@ function ProductCard({
           <View style={styles.actionsRow}>
             <Pressable
               onPress={() => onView(product)}
-              style={[styles.neutralButton, { borderColor: colors.icon + "55" }]}>
+              style={[
+                styles.neutralButton,
+                { borderColor: colors.icon + "55" },
+              ]}
+            >
               <ThemedText style={[styles.neutralText, { color: colors.text }]}>
                 {t("productsDetail")}
               </ThemedText>
             </Pressable>
             <Pressable
               onPress={() => onEdit(product)}
-              style={[styles.editButton, { backgroundColor: colors.tint }]}>
-              <ThemedText style={styles.editText}>{t("productsEdit")}</ThemedText>
+              style={[styles.editButton, { backgroundColor: colors.tint }]}
+            >
+              <ThemedText style={styles.editText}>
+                {t("productsEdit")}
+              </ThemedText>
             </Pressable>
             <Pressable
               disabled={archivePending}
@@ -167,9 +199,12 @@ function ProductCard({
                 styles.archiveButton,
                 pressed && !archivePending && styles.archiveButtonPressed,
                 archivePending && styles.archiveButtonDisabled,
-              ]}>
+              ]}
+            >
               <ThemedText style={styles.archiveText}>
-                {archivePending ? t("productsArchiveShort") : t("productsArchive")}
+                {archivePending
+                  ? t("productsArchiveShort")
+                  : t("productsArchive")}
               </ThemedText>
             </Pressable>
           </View>
@@ -208,7 +243,8 @@ export function ProductListScreen() {
     [productsQuery.data?.pages],
   );
   const categories = useMemo(
-    () => (categoriesQuery.data ?? []).flatMap((root) => [root, ...root.children]),
+    () =>
+      (categoriesQuery.data ?? []).flatMap((root) => [root, ...root.children]),
     [categoriesQuery.data],
   );
 
@@ -265,15 +301,24 @@ export function ProductListScreen() {
     const title = form.title.trim();
     const description = form.description.trim();
     if (!form.categoryId) {
-      Alert.alert(t("productsAlertCategoryTitle"), t("productsAlertCategoryBody"));
+      Alert.alert(
+        t("productsAlertCategoryTitle"),
+        t("productsAlertCategoryBody"),
+      );
       return;
     }
     if (!title || !description) {
-      Alert.alert(t("productsAlertMissingTitle"), t("productsAlertMissingBody"));
+      Alert.alert(
+        t("productsAlertMissingTitle"),
+        t("productsAlertMissingBody"),
+      );
       return;
     }
     if (form.paymentMethods.length === 0) {
-      Alert.alert(t("productsAlertPaymentTitle"), t("productsAlertPaymentBody"));
+      Alert.alert(
+        t("productsAlertPaymentTitle"),
+        t("productsAlertPaymentBody"),
+      );
       return;
     }
 
@@ -288,7 +333,10 @@ export function ProductListScreen() {
       if (composerMode === "create") {
         const price = Number(form.price);
         if (!Number.isFinite(price) || price <= 0) {
-          Alert.alert(t("productsAlertPriceTitle"), t("productsAlertPriceBody"));
+          Alert.alert(
+            t("productsAlertPriceTitle"),
+            t("productsAlertPriceBody"),
+          );
           return;
         }
         const payload: ProductCreateInput = {
@@ -304,8 +352,12 @@ export function ProductListScreen() {
             : {}),
           ...(lat != null ? { directTradeLatitude: lat } : {}),
           ...(lng != null ? { directTradeLongitude: lng } : {}),
-          ...(form.isDeliveryAvailable ? { deliveryFeePayer: form.deliveryFeePayer } : {}),
-          ...(form.imagesCsv.trim() ? { images: splitCsv(form.imagesCsv) } : {}),
+          ...(form.isDeliveryAvailable
+            ? { deliveryFeePayer: form.deliveryFeePayer }
+            : {}),
+          ...(form.imagesCsv.trim()
+            ? { images: splitCsv(form.imagesCsv) }
+            : {}),
         };
         await createMutation.mutateAsync(payload);
       } else {
@@ -323,8 +375,12 @@ export function ProductListScreen() {
             : {}),
           ...(lat != null ? { directTradeLatitude: lat } : {}),
           ...(lng != null ? { directTradeLongitude: lng } : {}),
-          ...(form.isDeliveryAvailable ? { deliveryFeePayer: form.deliveryFeePayer } : {}),
-          ...(form.imagesCsv.trim() ? { images: splitCsv(form.imagesCsv) } : {}),
+          ...(form.isDeliveryAvailable
+            ? { deliveryFeePayer: form.deliveryFeePayer }
+            : {}),
+          ...(form.imagesCsv.trim()
+            ? { images: splitCsv(form.imagesCsv) }
+            : {}),
         };
         await updateMutation.mutateAsync({ id: editingId, data: payload });
       }
@@ -337,7 +393,10 @@ export function ProductListScreen() {
           : t("productsSuccessUpdated"),
       );
     } catch {
-      Alert.alert(t("productsErrorRequestTitle"), t("productsErrorRequestBody"));
+      Alert.alert(
+        t("productsErrorRequestTitle"),
+        t("productsErrorRequestBody"),
+      );
     }
   };
 
@@ -345,7 +404,9 @@ export function ProductListScreen() {
     return (
       <ThemedView style={styles.centered}>
         <ActivityIndicator size="large" color={colors.tint} />
-        <ThemedText style={{ marginTop: 12 }}>{t("productsLoading")}</ThemedText>
+        <ThemedText style={{ marginTop: 12 }}>
+          {t("productsLoading")}
+        </ThemedText>
       </ThemedView>
     );
   }
@@ -358,7 +419,8 @@ export function ProductListScreen() {
         </ThemedText>
         <Pressable
           onPress={() => productsQuery.refetch()}
-          style={[styles.retryButton, { backgroundColor: colors.tint }]}>
+          style={[styles.retryButton, { backgroundColor: colors.tint }]}
+        >
           <ThemedText style={styles.retryText}>{t("productsRetry")}</ThemedText>
         </Pressable>
       </ThemedView>
@@ -369,7 +431,9 @@ export function ProductListScreen() {
     <ThemedView style={styles.container}>
       <View style={styles.header}>
         <ThemedText type="title">{t("productsMyTitle")}</ThemedText>
-        <ThemedText style={styles.subtitle}>{t("productsMySubtitle")}</ThemedText>
+        <ThemedText style={styles.subtitle}>
+          {t("productsMySubtitle")}
+        </ThemedText>
       </View>
       <AddProductListingButton
         onPress={openCreate}
@@ -411,7 +475,9 @@ export function ProductListScreen() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <ThemedText style={{ opacity: 0.6 }}>{t("productsEmpty")}</ThemedText>
+            <ThemedText style={{ opacity: 0.6 }}>
+              {t("productsEmpty")}
+            </ThemedText>
           </View>
         }
       />
@@ -420,11 +486,16 @@ export function ProductListScreen() {
         visible={detailId != null}
         transparent
         animationType="slide"
-        onRequestClose={() => setDetailId(null)}>
+        onRequestClose={() => setDetailId(null)}
+      >
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, { backgroundColor: colors.background }]}>
+          <View
+            style={[styles.modalCard, { backgroundColor: colors.background }]}
+          >
             <View style={styles.modalHeader}>
-              <ThemedText type="subtitle">{t("productsModalDetailTitle")}</ThemedText>
+              <ThemedText type="subtitle">
+                {t("productsModalDetailTitle")}
+              </ThemedText>
               <Pressable onPress={() => setDetailId(null)}>
                 <ThemedText style={[styles.closeText, { color: colors.tint }]}>
                   {t("productsModalClose")}
@@ -444,23 +515,31 @@ export function ProductListScreen() {
                   {t("productsLabelStatus")}: {detailQuery.data.status ?? "-"}
                 </ThemedText>
                 <ThemedText style={styles.detailRow}>
-                  {t("productsLabelCondition")}: {detailQuery.data.condition ?? "-"}
+                  {t("productsLabelCondition")}:{" "}
+                  {detailQuery.data.condition ?? "-"}
                 </ThemedText>
                 <ThemedText style={styles.detailRow}>
-                  {t("productsLabelCategoryId")}: {detailQuery.data.categoryId ?? "-"}
+                  {t("productsLabelCategoryId")}:{" "}
+                  {detailQuery.data.categoryId ?? "-"}
                 </ThemedText>
                 <ThemedText style={styles.detailRow}>
                   {t("productsLabelPayment")}:{" "}
                   {(detailQuery.data.paymentMethods ?? []).join(", ") || "-"}
                 </ThemedText>
                 <ThemedText style={styles.detailRow}>
-                  {t("productsLabelLocation")}: {detailQuery.data.directTradeLocation ?? "-"}
+                  {t("productsLabelLocation")}:{" "}
+                  {detailQuery.data.directTradeLocation ?? "-"}
                 </ThemedText>
                 <ThemedText style={styles.detailRow}>
-                  {t("productsLabelPrice")}: {detailQuery.data.price.toLocaleString()} MMK
+                  {t("productsLabelPrice")}:{" "}
+                  {detailQuery.data.price.toLocaleString()} MMK
                 </ThemedText>
-                <ThemedText style={styles.detailRow}>{t("productsLabelDescription")}:</ThemedText>
-                <ThemedText style={styles.detailDescription}>{detailQuery.data.description}</ThemedText>
+                <ThemedText style={styles.detailRow}>
+                  {t("productsLabelDescription")}:
+                </ThemedText>
+                <ThemedText style={styles.detailDescription}>
+                  {detailQuery.data.description}
+                </ThemedText>
               </ScrollView>
             ) : (
               <View style={styles.centeredBlock}>
@@ -475,9 +554,12 @@ export function ProductListScreen() {
         visible={composerVisible}
         transparent
         animationType="slide"
-        onRequestClose={() => setComposerVisible(false)}>
+        onRequestClose={() => setComposerVisible(false)}
+      >
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, { backgroundColor: colors.background }]}>
+          <View
+            style={[styles.modalCard, { backgroundColor: colors.background }]}
+          >
             <View style={styles.modalHeader}>
               <ThemedText type="subtitle">
                 {composerMode === "create"
@@ -491,31 +573,58 @@ export function ProductListScreen() {
               </Pressable>
             </View>
             <ScrollView style={styles.formBody}>
-              <ThemedText style={styles.fieldLabel}>{t("productsFieldCategory")}</ThemedText>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsWrap}>
+              <ThemedText style={styles.fieldLabel}>
+                {t("productsFieldCategory")}
+              </ThemedText>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.chipsWrap}
+              >
                 {categories.map((c) => (
                   <Pressable
                     key={c.id}
-                    onPress={() => setForm((prev) => ({ ...prev, categoryId: c.id }))}
-                    style={[styles.chip, chipSelected(form.categoryId === c.id)]}>
-                    <ThemedText style={[styles.chipText, { color: colors.text }]}>{c.name}</ThemedText>
+                    onPress={() =>
+                      setForm((prev) => ({ ...prev, categoryId: c.id }))
+                    }
+                    style={[
+                      styles.chip,
+                      chipSelected(form.categoryId === c.id),
+                    ]}
+                  >
+                    <ThemedText
+                      style={[styles.chipText, { color: colors.text }]}
+                    >
+                      {c.name}
+                    </ThemedText>
                   </Pressable>
                 ))}
               </ScrollView>
 
-              <ThemedText style={styles.fieldLabel}>{t("productsFieldTitle")}</ThemedText>
+              <ThemedText style={styles.fieldLabel}>
+                {t("productsFieldTitle")}
+              </ThemedText>
               <TextInput
                 value={form.title}
-                onChangeText={(title) => setForm((prev) => ({ ...prev, title }))}
-                style={[styles.input, { color: colors.text, borderColor: colors.icon + "66" }]}
+                onChangeText={(title) =>
+                  setForm((prev) => ({ ...prev, title }))
+                }
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.icon + "66" },
+                ]}
                 placeholder={t("productsPlaceholderTitle")}
                 placeholderTextColor={colors.icon}
               />
 
-              <ThemedText style={styles.fieldLabel}>{t("productsFieldDescription")}</ThemedText>
+              <ThemedText style={styles.fieldLabel}>
+                {t("productsFieldDescription")}
+              </ThemedText>
               <TextInput
                 value={form.description}
-                onChangeText={(description) => setForm((prev) => ({ ...prev, description }))}
+                onChangeText={(description) =>
+                  setForm((prev) => ({ ...prev, description }))
+                }
                 style={[
                   styles.input,
                   styles.textarea,
@@ -526,11 +635,15 @@ export function ProductListScreen() {
                 placeholderTextColor={colors.icon}
               />
 
-              <ThemedText style={styles.fieldLabel}>{t("productsFieldPriceCreateOnly")}</ThemedText>
+              <ThemedText style={styles.fieldLabel}>
+                {t("productsFieldPriceCreateOnly")}
+              </ThemedText>
               <TextInput
                 editable={composerMode === "create"}
                 value={form.price}
-                onChangeText={(price) => setForm((prev) => ({ ...prev, price }))}
+                onChangeText={(price) =>
+                  setForm((prev) => ({ ...prev, price }))
+                }
                 keyboardType="numeric"
                 style={[
                   styles.input,
@@ -541,28 +654,50 @@ export function ProductListScreen() {
                 placeholderTextColor={colors.icon}
               />
 
-              <ThemedText style={styles.fieldLabel}>{t("productsFieldCondition")}</ThemedText>
+              <ThemedText style={styles.fieldLabel}>
+                {t("productsFieldCondition")}
+              </ThemedText>
               <View style={styles.inlineWrap}>
                 {CONDITION_OPTIONS.map((option) => (
                   <Pressable
                     key={option}
-                    onPress={() => setForm((prev) => ({ ...prev, condition: option }))}
-                    style={[styles.chip, chipSelected(form.condition === option)]}>
-                    <ThemedText style={[styles.chipText, { color: colors.text }]}>{option}</ThemedText>
+                    onPress={() =>
+                      setForm((prev) => ({ ...prev, condition: option }))
+                    }
+                    style={[
+                      styles.chip,
+                      chipSelected(form.condition === option),
+                    ]}
+                  >
+                    <ThemedText
+                      style={[styles.chipText, { color: colors.text }]}
+                    >
+                      {option}
+                    </ThemedText>
                   </Pressable>
                 ))}
               </View>
 
               {composerMode === "edit" ? (
                 <>
-                  <ThemedText style={styles.fieldLabel}>{t("productsFieldStatus")}</ThemedText>
+                  <ThemedText style={styles.fieldLabel}>
+                    {t("productsFieldStatus")}
+                  </ThemedText>
                   <View style={styles.inlineWrap}>
                     {STATUS_OPTIONS.map((option) => (
                       <Pressable
                         key={option}
-                        onPress={() => setForm((prev) => ({ ...prev, status: option }))}
-                        style={[styles.chip, chipSelected(form.status === option)]}>
-                        <ThemedText style={[styles.chipText, { color: colors.text }]}>
+                        onPress={() =>
+                          setForm((prev) => ({ ...prev, status: option }))
+                        }
+                        style={[
+                          styles.chip,
+                          chipSelected(form.status === option),
+                        ]}
+                      >
+                        <ThemedText
+                          style={[styles.chipText, { color: colors.text }]}
+                        >
                           {option}
                         </ThemedText>
                       </Pressable>
@@ -571,7 +706,9 @@ export function ProductListScreen() {
                 </>
               ) : null}
 
-              <ThemedText style={styles.fieldLabel}>{t("productsFieldPaymentMethods")}</ThemedText>
+              <ThemedText style={styles.fieldLabel}>
+                {t("productsFieldPaymentMethods")}
+              </ThemedText>
               <View style={styles.inlineWrap}>
                 {(["CASH", "KBZPAY"] as const).map((method) => {
                   const selected = form.paymentMethods.includes(method);
@@ -586,8 +723,11 @@ export function ProductListScreen() {
                             : [...prev.paymentMethods, method],
                         }))
                       }
-                      style={[styles.chip, chipSelected(selected)]}>
-                      <ThemedText style={[styles.chipText, { color: colors.text }]}>
+                      style={[styles.chip, chipSelected(selected)]}
+                    >
+                      <ThemedText
+                        style={[styles.chipText, { color: colors.text }]}
+                      >
                         {method}
                       </ThemedText>
                     </Pressable>
@@ -595,13 +735,18 @@ export function ProductListScreen() {
                 })}
               </View>
 
-              <ThemedText style={styles.fieldLabel}>{t("productsFieldDirectLocation")}</ThemedText>
+              <ThemedText style={styles.fieldLabel}>
+                {t("productsFieldDirectLocation")}
+              </ThemedText>
               <TextInput
                 value={form.directTradeLocation}
                 onChangeText={(directTradeLocation) =>
                   setForm((prev) => ({ ...prev, directTradeLocation }))
                 }
-                style={[styles.input, { color: colors.text, borderColor: colors.icon + "66" }]}
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.icon + "66" },
+                ]}
                 placeholder={t("productsPlaceholderLocation")}
                 placeholderTextColor={colors.icon}
               />
@@ -609,7 +754,9 @@ export function ProductListScreen() {
               <View style={styles.coordsRow}>
                 <TextInput
                   value={form.latitude}
-                  onChangeText={(latitude) => setForm((prev) => ({ ...prev, latitude }))}
+                  onChangeText={(latitude) =>
+                    setForm((prev) => ({ ...prev, latitude }))
+                  }
                   style={[
                     styles.input,
                     styles.coordInput,
@@ -621,7 +768,9 @@ export function ProductListScreen() {
                 />
                 <TextInput
                   value={form.longitude}
-                  onChangeText={(longitude) => setForm((prev) => ({ ...prev, longitude }))}
+                  onChangeText={(longitude) =>
+                    setForm((prev) => ({ ...prev, longitude }))
+                  }
                   style={[
                     styles.input,
                     styles.coordInput,
@@ -633,27 +782,42 @@ export function ProductListScreen() {
                 />
               </View>
 
-              <ThemedText style={styles.fieldLabel}>{t("productsFieldImages")}</ThemedText>
+              <ThemedText style={styles.fieldLabel}>
+                {t("productsFieldImages")}
+              </ThemedText>
               <TextInput
                 value={form.imagesCsv}
-                onChangeText={(imagesCsv) => setForm((prev) => ({ ...prev, imagesCsv }))}
-                style={[styles.input, { color: colors.text, borderColor: colors.icon + "66" }]}
+                onChangeText={(imagesCsv) =>
+                  setForm((prev) => ({ ...prev, imagesCsv }))
+                }
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.icon + "66" },
+                ]}
                 placeholder={t("productsPlaceholderImages")}
                 placeholderTextColor={colors.icon}
               />
 
-              <ThemedText style={styles.fieldLabel}>{t("productsFieldDelivery")}</ThemedText>
+              <ThemedText style={styles.fieldLabel}>
+                {t("productsFieldDelivery")}
+              </ThemedText>
               <View style={styles.inlineWrap}>
                 <Pressable
-                  onPress={() => setForm((prev) => ({ ...prev, isDeliveryAvailable: true }))}
-                  style={[styles.chip, chipSelected(form.isDeliveryAvailable)]}>
+                  onPress={() =>
+                    setForm((prev) => ({ ...prev, isDeliveryAvailable: true }))
+                  }
+                  style={[styles.chip, chipSelected(form.isDeliveryAvailable)]}
+                >
                   <ThemedText style={[styles.chipText, { color: colors.text }]}>
                     {t("productsDeliveryOn")}
                   </ThemedText>
                 </Pressable>
                 <Pressable
-                  onPress={() => setForm((prev) => ({ ...prev, isDeliveryAvailable: false }))}
-                  style={[styles.chip, chipSelected(!form.isDeliveryAvailable)]}>
+                  onPress={() =>
+                    setForm((prev) => ({ ...prev, isDeliveryAvailable: false }))
+                  }
+                  style={[styles.chip, chipSelected(!form.isDeliveryAvailable)]}
+                >
                   <ThemedText style={[styles.chipText, { color: colors.text }]}>
                     {t("productsDeliveryOff")}
                   </ThemedText>
@@ -661,16 +825,38 @@ export function ProductListScreen() {
                 {form.isDeliveryAvailable ? (
                   <>
                     <Pressable
-                      onPress={() => setForm((prev) => ({ ...prev, deliveryFeePayer: "BUYER" }))}
-                      style={[styles.chip, chipSelected(form.deliveryFeePayer === "BUYER")]}>
-                      <ThemedText style={[styles.chipText, { color: colors.text }]}>
+                      onPress={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          deliveryFeePayer: "BUYER",
+                        }))
+                      }
+                      style={[
+                        styles.chip,
+                        chipSelected(form.deliveryFeePayer === "BUYER"),
+                      ]}
+                    >
+                      <ThemedText
+                        style={[styles.chipText, { color: colors.text }]}
+                      >
                         {t("productsDeliveryBuyerPays")}
                       </ThemedText>
                     </Pressable>
                     <Pressable
-                      onPress={() => setForm((prev) => ({ ...prev, deliveryFeePayer: "SELLER" }))}
-                      style={[styles.chip, chipSelected(form.deliveryFeePayer === "SELLER")]}>
-                      <ThemedText style={[styles.chipText, { color: colors.text }]}>
+                      onPress={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          deliveryFeePayer: "SELLER",
+                        }))
+                      }
+                      style={[
+                        styles.chip,
+                        chipSelected(form.deliveryFeePayer === "SELLER"),
+                      ]}
+                    >
+                      <ThemedText
+                        style={[styles.chipText, { color: colors.text }]}
+                      >
                         {t("productsDeliverySellerPays")}
                       </ThemedText>
                     </Pressable>
@@ -685,8 +871,10 @@ export function ProductListScreen() {
                   styles.saveButton,
                   { backgroundColor: colors.tint },
                   pressed && styles.archiveButtonPressed,
-                  (createMutation.isPending || updateMutation.isPending) && styles.archiveButtonDisabled,
-                ]}>
+                  (createMutation.isPending || updateMutation.isPending) &&
+                    styles.archiveButtonDisabled,
+                ]}
+              >
                 <ThemedText style={styles.saveButtonText}>
                   {createMutation.isPending || updateMutation.isPending
                     ? t("productsSaving")
