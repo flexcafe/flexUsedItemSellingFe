@@ -174,7 +174,6 @@ export function HomeScreen() {
       categories,
       categoriesQuery.isError,
       colors.tint,
-      geo.latitude,
       productsQuery.isError,
       router,
       selectedCategoryId,

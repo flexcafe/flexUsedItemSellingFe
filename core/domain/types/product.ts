@@ -1,12 +1,7 @@
 import type { Product } from "@/core/domain/entities/Product";
 import type { PaginationParams } from "@/core/domain/types";
 
-export type ProductCondition =
-  | "NEW"
-  | "LIKE_NEW"
-  | "GOOD"
-  | "FAIR"
-  | "POOR";
+export type ProductCondition = "NEW" | "LIKE_NEW" | "GOOD" | "FAIR" | "POOR";
 
 export type ProductStatus =
   | "DRAFT"
@@ -44,9 +39,7 @@ export interface ProductCreateInput {
   preferredLocations?: PreferredTradeLocationInput[];
 }
 
-export type ProductUpdateInput = Partial<
-  Omit<ProductCreateInput, "price">
-> & {
+export type ProductUpdateInput = Partial<Omit<ProductCreateInput, "price">> & {
   status?: ProductStatus;
 };
 
@@ -78,4 +71,3 @@ export interface ClientProductCatalogPage {
 
 /** `GET /v1/client/products/my` — seller's own listings page. */
 export type MyProductListPage = ClientProductCatalogPage;
-
