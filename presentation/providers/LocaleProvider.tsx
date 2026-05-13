@@ -1213,6 +1213,31 @@ const DICT: Dictionary = {
     my: "လောင်ဂျီတွဒ်",
     zh: "经度",
   },
+  productsFieldNearbyLandmarks: {
+    ko: "근처 랜드마크",
+    my: "အနီးအနား လမ်းမှတ်များ",
+    zh: "附近地标",
+  },
+  productsFieldPreferredTradeTime: {
+    ko: "선호 거래 시간",
+    my: "အလိုရှိသော အရောင်းအဝယ် အချိန်",
+    zh: "偏好交易时间",
+  },
+  productsFieldMapScreenshotUrl: {
+    ko: "지도 스크린샷 URL",
+    my: "မြေပုံ screenshot URL",
+    zh: "地图截图 URL",
+  },
+  productsFieldPreferredLocations: {
+    ko: "선호 거래 장소 (최대 3개)",
+    my: "နှစ်သက်သော လဲလှယ်နေရာများ (အများဆုံး ၃ ခု)",
+    zh: "偏好交易地点（最多3个）",
+  },
+  productsFieldPreferredLocationItem: {
+    ko: "거래 장소",
+    my: "လဲလှယ်နေရာ",
+    zh: "交易地点",
+  },
   productsFieldImages: {
     ko: "이미지 URL (쉼표 구분)",
     my: "ပုံ URL များ (ကော်မာဖြင့် ခွဲ)",
@@ -1252,6 +1277,81 @@ const DICT: Dictionary = {
     ko: "경도",
     my: "လောင်ဂျီတွဒ်",
     zh: "经度",
+  },
+  productsMapPickHint: {
+    ko: "현재 위치를 불러오거나, 지도에서 거래 지점을 선택하세요.",
+    my: "လက်ရှိတည်နေရာယူပါ သို့မဟုတ် မြေပုံပေါ်တွင် လဲလှယ်နေရာရွေးပါ။",
+    zh: "请获取当前位置，或在地图上选择交易点。",
+  },
+  productsMapUseCurrent: {
+    ko: "현재 위치로 지도 시작",
+    my: "လက်ရှိတည်နေရာဖြင့် မြေပုံစတင်",
+    zh: "使用当前位置",
+  },
+  productsMapUpdateFromCurrent: {
+    ko: "현재 위치로 갱신",
+    my: "လက်ရှိတည်နေရာဖြင့် ပြန်လည်သတ်မှတ်",
+    zh: "用当前位置更新",
+  },
+  productsMapLocating: {
+    ko: "위치 확인 중…",
+    my: "တည်နေရာရှာနေသည်…",
+    zh: "定位中…",
+  },
+  productsPreferredLocationAdd: {
+    ko: "+ 장소 추가",
+    my: "+ နေရာ ထည့်ရန်",
+    zh: "+ 添加地点",
+  },
+  productsPreferredLocationRemove: {
+    ko: "삭제",
+    my: "ဖျက်ရန်",
+    zh: "删除",
+  },
+  productsAlertPreferredLocationTitle: {
+    ko: "선호 거래 장소 확인",
+    my: "နှစ်သက်နေရာ စစ်ဆေးပါ",
+    zh: "请检查偏好交易地点",
+  },
+  productsAlertPreferredLocationBody: {
+    ko: "선호 거래 장소는 label과 address를 모두 입력해야 합니다.",
+    my: "နှစ်သက်နေရာတွင် label နှင့် address ကို နှစ်ခုလုံး ဖြည့်ပါ။",
+    zh: "偏好交易地点必须同时填写 label 和 address。",
+  },
+  productsPlaceholderNearbyLandmarks: {
+    ko: "예: 술레 파고다 신호등 근처",
+    my: "ဥပမာ Sule Pagoda မီးပွိုင့်အနီး",
+    zh: "例如：苏雷宝塔红绿灯附近",
+  },
+  productsPlaceholderPreferredTradeTime: {
+    ko: "예: 평일 오후 6시 이후",
+    my: "ဥပမာ အပတ်စဉ် ညနေ ၆ နာရီနောက်ပိုင်း",
+    zh: "例如：工作日晚上6点后",
+  },
+  productsPlaceholderMapScreenshotUrl: {
+    ko: "https://.../map-shot.jpg",
+    my: "https://.../map-shot.jpg",
+    zh: "https://.../map-shot.jpg",
+  },
+  productsPlaceholderPreferredLocationLabel: {
+    ko: "예: Location 1",
+    my: "ဥပမာ Location 1",
+    zh: "例如：地点1",
+  },
+  productsPlaceholderPreferredLocationAddress: {
+    ko: "예: Pabedan Township, Yangon",
+    my: "ဥပမာ Pabedan Township, Yangon",
+    zh: "例如：Pabedan Township, Yangon",
+  },
+  productsPlaceholderPreferredLocationLatitude: {
+    ko: "위도 (선택)",
+    my: "လတ္တီတွဒ် (ရွေးချယ်)",
+    zh: "纬度（可选）",
+  },
+  productsPlaceholderPreferredLocationLongitude: {
+    ko: "경도 (선택)",
+    my: "လောင်ဂျီတွဒ် (ရွေးချယ်)",
+    zh: "经度（可选）",
   },
   productsPlaceholderImages: {
     ko: "https://.../1.jpg, https://.../2.jpg",

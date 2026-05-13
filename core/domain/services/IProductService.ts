@@ -1,5 +1,5 @@
 import type { Product } from "../entities/Product";
-import type { PaginationParams } from "@/core/domain/types";
+implement it import type { PaginationParams } from "@/core/domain/types";
 import type {
   ClientProductCatalogPage,
   ClientProductListParams,

@@ -10,6 +10,8 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { WebView } from "react-native-webview";
+import * as Location from "expo-location";
 
 import { AddProductListingButton } from "@/components/add-product-listing-button";
 import { ThemedText } from "@/components/themed-text";
@@ -31,6 +33,7 @@ import {
   useProducts,
   useUpdateProduct,
 } from "@/presentation/hooks/useProducts";
+import { buildLeafletPickerHtml } from "@/presentation/lib/leafletPickerHtml";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -51,6 +54,50 @@ const STATUS_OPTIONS: ProductStatus[] = [
 ];
 
 type ComposerMode = "create" | "edit";
+type LocationCoords = { latitude: number; longitude: number };
+type PreferredLocationForm = {
+  label: string;
+  address: string;
+  latitude: string;
+  longitude: string;
+};
+const MAX_PREFERRED_LOCATIONS = 3;
+
+const EMPTY_PREFERRED_LOCATION: PreferredLocationForm = {
+  label: "",
+  address: "",
+  latitude: "",
+  longitude: "",
+};
+
+function parseOptionalNumber(text: string): number | undefined {
+  const t = text.trim();
+  if (!t) return undefined;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+function toPreferredLocationForm(raw: unknown): PreferredLocationForm | null {
+  if (raw == null || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const row = raw as Record<string, unknown>;
+  const label =
+    typeof row.label === "string" ? row.label.trim() : "";
+  const address =
+    typeof row.address === "string" ? row.address.trim() : "";
+  const latRaw =
+    typeof row.latitude === "number" || typeof row.latitude === "string"
+      ? String(row.latitude)
+      : "";
+  const lngRaw =
+    typeof row.longitude === "number" || typeof row.longitude === "string"
+      ? String(row.longitude)
+      : "";
+  const latitude = latRaw.trim();
+  const longitude = lngRaw.trim();
+  if (!label && !address && !latitude && !longitude) return null;
+  return { label, address, latitude, longitude };
+}
+
 type ProductFormState = {
   categoryId: string;
   title: string;
@@ -60,8 +107,11 @@ type ProductFormState = {
   status: ProductStatus;
   paymentMethods: ("CASH" | "KBZPAY")[];
   directTradeLocation: string;
-  latitude: string;
-  longitude: string;
+  mapCoords: LocationCoords | null;
+  mapScreenshotUrl: string;
+  nearbyLandmarks: string;
+  preferredTradeTime: string;
+  preferredLocations: PreferredLocationForm[];
   imagesCsv: string;
   isDeliveryAvailable: boolean;
   deliveryFeePayer: "BUYER" | "SELLER";
@@ -76,19 +126,15 @@ const EMPTY_FORM: ProductFormState = {
   status: "ACTIVE",
   paymentMethods: ["CASH"],
   directTradeLocation: "",
-  latitude: "",
-  longitude: "",
+  mapCoords: null,
+  mapScreenshotUrl: "",
+  nearbyLandmarks: "",
+  preferredTradeTime: "",
+  preferredLocations: [],
   imagesCsv: "",
   isDeliveryAvailable: false,
   deliveryFeePayer: "BUYER",
 };
-
-function parseOptionalNumber(text: string): number | undefined {
-  const t = text.trim();
-  if (!t) return undefined;
-  const n = Number(t);
-  return Number.isFinite(n) ? n : undefined;
-}
 
 function splitCsv(text: string): string[] {
   return text
@@ -122,14 +168,20 @@ function formFromProduct(product: Product): ProductFormState {
     status,
     paymentMethods: methods,
     directTradeLocation: product.directTradeLocation ?? "",
-    latitude:
-      product.directTradeLatitude != null
-        ? String(product.directTradeLatitude)
-        : "",
-    longitude:
-      product.directTradeLongitude != null
-        ? String(product.directTradeLongitude)
-        : "",
+    mapCoords:
+      product.directTradeLatitude != null && product.directTradeLongitude != null
+        ? {
+            latitude: product.directTradeLatitude,
+            longitude: product.directTradeLongitude,
+          }
+        : null,
+    mapScreenshotUrl: product.mapScreenshotUrl ?? "",
+    nearbyLandmarks: product.nearbyLandmarks ?? "",
+    preferredTradeTime: product.preferredTradeTime ?? "",
+    preferredLocations: (product.preferredLocations ?? [])
+      .map(toPreferredLocationForm)
+      .filter((v): v is PreferredLocationForm => v != null)
+      .slice(0, MAX_PREFERRED_LOCATIONS),
     imagesCsv: (product.images ?? []).join(", "),
     isDeliveryAvailable: product.isDeliveryAvailable ?? false,
     deliveryFeePayer:
@@ -236,6 +288,7 @@ export function ProductListScreen() {
   const [composerVisible, setComposerVisible] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [isLocatingTradePoint, setIsLocatingTradePoint] = useState(false);
   const detailQuery = useProduct(detailId);
   const [form, setForm] = useState<ProductFormState>(EMPTY_FORM);
   const products = useMemo(
@@ -246,6 +299,71 @@ export function ProductListScreen() {
     () =>
       (categoriesQuery.data ?? []).flatMap((root) => [root, ...root.children]),
     [categoriesQuery.data],
+  );
+  const tradeMapHtml = useMemo(() => {
+    if (!form.mapCoords) return "";
+    return buildLeafletPickerHtml(
+      form.mapCoords.latitude,
+      form.mapCoords.longitude,
+    );
+  }, [form.mapCoords]);
+
+  const applyTradeCoords = useCallback((coords: LocationCoords) => {
+    setForm((prev) => ({ ...prev, mapCoords: coords }));
+  }, []);
+
+  const handleUseCurrentTradeLocation = useCallback(async () => {
+    setIsLocatingTradePoint(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(t("productsAlertCoordsTitle"), t("productsAlertCoordsBody"));
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      applyTradeCoords({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+    } catch {
+      Alert.alert(t("productsErrorRequestTitle"), t("productsErrorRequestBody"));
+    } finally {
+      setIsLocatingTradePoint(false);
+    }
+  }, [applyTradeCoords, t]);
+
+  const addPreferredLocation = useCallback(() => {
+    setForm((prev) => {
+      if (prev.preferredLocations.length >= MAX_PREFERRED_LOCATIONS) return prev;
+      return {
+        ...prev,
+        preferredLocations: [
+          ...prev.preferredLocations,
+          { ...EMPTY_PREFERRED_LOCATION },
+        ],
+      };
+    });
+  }, []);
+
+  const removePreferredLocation = useCallback((idx: number) => {
+    setForm((prev) => ({
+      ...prev,
+      preferredLocations: prev.preferredLocations.filter((_, i) => i !== idx),
+    }));
+  }, []);
+
+  const updatePreferredLocation = useCallback(
+    (idx: number, key: keyof PreferredLocationForm, value: string) => {
+      setForm((prev) => ({
+        ...prev,
+        preferredLocations: prev.preferredLocations.map((row, i) =>
+          i === idx ? { ...row, [key]: value } : row,
+        ),
+      }));
+    },
+    [],
   );
 
   useEffect(() => {
@@ -322,11 +440,39 @@ export function ProductListScreen() {
       return;
     }
 
-    const lat = parseOptionalNumber(form.latitude);
-    const lng = parseOptionalNumber(form.longitude);
-    if ((lat == null) !== (lng == null)) {
-      Alert.alert(t("productsAlertCoordsTitle"), t("productsAlertCoordsBody"));
-      return;
+    const lat = form.mapCoords?.latitude;
+    const lng = form.mapCoords?.longitude;
+    const preferredLocations: ProductCreateInput["preferredLocations"] = [];
+    for (const row of form.preferredLocations) {
+      const label = row.label.trim();
+      const address = row.address.trim();
+      const latText = row.latitude.trim();
+      const lngText = row.longitude.trim();
+      const hasAny = !!(label || address || latText || lngText);
+      if (!hasAny) continue;
+      if (!label || !address) {
+        Alert.alert(
+          t("productsAlertPreferredLocationTitle"),
+          t("productsAlertPreferredLocationBody"),
+        );
+        return;
+      }
+      if ((latText === "") !== (lngText === "")) {
+        Alert.alert(t("productsAlertCoordsTitle"), t("productsAlertCoordsBody"));
+        return;
+      }
+      const latParsed = parseOptionalNumber(latText);
+      const lngParsed = parseOptionalNumber(lngText);
+      if ((latText && latParsed == null) || (lngText && lngParsed == null)) {
+        Alert.alert(t("productsAlertCoordsTitle"), t("productsAlertCoordsBody"));
+        return;
+      }
+      preferredLocations.push({
+        label,
+        address,
+        ...(latParsed != null ? { latitude: latParsed } : {}),
+        ...(lngParsed != null ? { longitude: lngParsed } : {}),
+      });
     }
 
     try {
@@ -352,6 +498,16 @@ export function ProductListScreen() {
             : {}),
           ...(lat != null ? { directTradeLatitude: lat } : {}),
           ...(lng != null ? { directTradeLongitude: lng } : {}),
+          ...(form.mapScreenshotUrl.trim()
+            ? { mapScreenshotUrl: form.mapScreenshotUrl.trim() }
+            : {}),
+          ...(form.nearbyLandmarks.trim()
+            ? { nearbyLandmarks: form.nearbyLandmarks.trim() }
+            : {}),
+          ...(form.preferredTradeTime.trim()
+            ? { preferredTradeTime: form.preferredTradeTime.trim() }
+            : {}),
+          ...(preferredLocations.length > 0 ? { preferredLocations } : {}),
           ...(form.isDeliveryAvailable
             ? { deliveryFeePayer: form.deliveryFeePayer }
             : {}),
@@ -375,6 +531,16 @@ export function ProductListScreen() {
             : {}),
           ...(lat != null ? { directTradeLatitude: lat } : {}),
           ...(lng != null ? { directTradeLongitude: lng } : {}),
+          ...(form.mapScreenshotUrl.trim()
+            ? { mapScreenshotUrl: form.mapScreenshotUrl.trim() }
+            : {}),
+          ...(form.nearbyLandmarks.trim()
+            ? { nearbyLandmarks: form.nearbyLandmarks.trim() }
+            : {}),
+          ...(form.preferredTradeTime.trim()
+            ? { preferredTradeTime: form.preferredTradeTime.trim() }
+            : {}),
+          ...(preferredLocations.length > 0 ? { preferredLocations } : {}),
           ...(form.isDeliveryAvailable
             ? { deliveryFeePayer: form.deliveryFeePayer }
             : {}),
@@ -751,36 +917,222 @@ export function ProductListScreen() {
                 placeholderTextColor={colors.icon}
               />
 
-              <View style={styles.coordsRow}>
-                <TextInput
-                  value={form.latitude}
-                  onChangeText={(latitude) =>
-                    setForm((prev) => ({ ...prev, latitude }))
-                  }
-                  style={[
-                    styles.input,
-                    styles.coordInput,
-                    { color: colors.text, borderColor: colors.icon + "66" },
-                  ]}
-                  keyboardType="decimal-pad"
-                  placeholder={t("productsPlaceholderLat")}
-                  placeholderTextColor={colors.icon}
-                />
-                <TextInput
-                  value={form.longitude}
-                  onChangeText={(longitude) =>
-                    setForm((prev) => ({ ...prev, longitude }))
-                  }
-                  style={[
-                    styles.input,
-                    styles.coordInput,
-                    { color: colors.text, borderColor: colors.icon + "66" },
-                  ]}
-                  keyboardType="decimal-pad"
-                  placeholder={t("productsPlaceholderLng")}
-                  placeholderTextColor={colors.icon}
-                />
+              <View style={styles.mapWrap}>
+                {form.mapCoords ? (
+                  <WebView
+                    key={`${form.mapCoords.latitude},${form.mapCoords.longitude}`}
+                    style={styles.map}
+                    originWhitelist={["*"]}
+                    source={{ html: tradeMapHtml }}
+                    onMessage={(e) => {
+                      try {
+                        const data = JSON.parse(e.nativeEvent.data) as
+                          | LocationCoords
+                          | undefined;
+                        if (
+                          typeof data?.latitude === "number" &&
+                          typeof data?.longitude === "number"
+                        ) {
+                          applyTradeCoords(data);
+                        }
+                      } catch {
+                        // ignore malformed message from webview
+                      }
+                    }}
+                  />
+                ) : (
+                  <View
+                    style={[
+                      styles.mapPlaceholder,
+                      {
+                        borderColor: colors.icon + "66",
+                        backgroundColor: colors.background,
+                      },
+                    ]}
+                  >
+                    <ThemedText style={{ opacity: 0.72, textAlign: "center" }}>
+                      {t("productsMapPickHint")}
+                    </ThemedText>
+                  </View>
+                )}
               </View>
+              <Pressable
+                onPress={() => void handleUseCurrentTradeLocation()}
+                disabled={isLocatingTradePoint}
+                style={[
+                  styles.locationButton,
+                  { borderColor: colors.tint },
+                  isLocatingTradePoint && styles.archiveButtonDisabled,
+                ]}
+              >
+                <ThemedText style={{ color: colors.tint, fontWeight: "700" }}>
+                  {isLocatingTradePoint
+                    ? t("productsMapLocating")
+                    : form.mapCoords
+                      ? t("productsMapUpdateFromCurrent")
+                      : t("productsMapUseCurrent")}
+                </ThemedText>
+              </Pressable>
+              {form.mapCoords ? (
+                <ThemedText style={styles.coordSummary}>
+                  {t("productsFieldLatitude")}:{" "}
+                  {form.mapCoords.latitude.toFixed(6)}  {t("productsFieldLongitude")}
+                  : {form.mapCoords.longitude.toFixed(6)}
+                </ThemedText>
+              ) : null}
+
+              <ThemedText style={styles.fieldLabel}>
+                {t("productsFieldNearbyLandmarks")}
+              </ThemedText>
+              <TextInput
+                value={form.nearbyLandmarks}
+                onChangeText={(nearbyLandmarks) =>
+                  setForm((prev) => ({ ...prev, nearbyLandmarks }))
+                }
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.icon + "66" },
+                ]}
+                placeholder={t("productsPlaceholderNearbyLandmarks")}
+                placeholderTextColor={colors.icon}
+              />
+
+              <ThemedText style={styles.fieldLabel}>
+                {t("productsFieldPreferredTradeTime")}
+              </ThemedText>
+              <TextInput
+                value={form.preferredTradeTime}
+                onChangeText={(preferredTradeTime) =>
+                  setForm((prev) => ({ ...prev, preferredTradeTime }))
+                }
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.icon + "66" },
+                ]}
+                placeholder={t("productsPlaceholderPreferredTradeTime")}
+                placeholderTextColor={colors.icon}
+              />
+
+              <ThemedText style={styles.fieldLabel}>
+                {t("productsFieldMapScreenshotUrl")}
+              </ThemedText>
+              <TextInput
+                value={form.mapScreenshotUrl}
+                onChangeText={(mapScreenshotUrl) =>
+                  setForm((prev) => ({ ...prev, mapScreenshotUrl }))
+                }
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.icon + "66" },
+                ]}
+                placeholder={t("productsPlaceholderMapScreenshotUrl")}
+                placeholderTextColor={colors.icon}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+
+              <View style={styles.preferredHeader}>
+                <ThemedText style={styles.fieldLabel}>
+                  {t("productsFieldPreferredLocations")}
+                </ThemedText>
+                <Pressable
+                  onPress={addPreferredLocation}
+                  disabled={
+                    form.preferredLocations.length >= MAX_PREFERRED_LOCATIONS
+                  }
+                  style={[
+                    styles.addPreferredButton,
+                    { borderColor: colors.tint },
+                    form.preferredLocations.length >= MAX_PREFERRED_LOCATIONS &&
+                      styles.archiveButtonDisabled,
+                  ]}
+                >
+                  <ThemedText style={{ color: colors.tint, fontWeight: "700" }}>
+                    {t("productsPreferredLocationAdd")}
+                  </ThemedText>
+                </Pressable>
+              </View>
+              {form.preferredLocations.map((row, idx) => (
+                <View
+                  key={`preferred-location-${idx}`}
+                  style={[
+                    styles.preferredCard,
+                    { borderColor: colors.icon + "55" },
+                  ]}
+                >
+                  <View style={styles.preferredCardHeader}>
+                    <ThemedText style={styles.preferredCardTitle}>
+                      {t("productsFieldPreferredLocationItem")} #{idx + 1}
+                    </ThemedText>
+                    <Pressable
+                      onPress={() => removePreferredLocation(idx)}
+                      style={styles.preferredRemoveBtn}
+                    >
+                      <ThemedText style={styles.preferredRemoveText}>
+                        {t("productsPreferredLocationRemove")}
+                      </ThemedText>
+                    </Pressable>
+                  </View>
+                  <TextInput
+                    value={row.label}
+                    onChangeText={(value) =>
+                      updatePreferredLocation(idx, "label", value)
+                    }
+                    style={[
+                      styles.input,
+                      { color: colors.text, borderColor: colors.icon + "66" },
+                    ]}
+                    placeholder={t("productsPlaceholderPreferredLocationLabel")}
+                    placeholderTextColor={colors.icon}
+                  />
+                  <TextInput
+                    value={row.address}
+                    onChangeText={(value) =>
+                      updatePreferredLocation(idx, "address", value)
+                    }
+                    style={[
+                      styles.input,
+                      { color: colors.text, borderColor: colors.icon + "66" },
+                    ]}
+                    placeholder={t("productsPlaceholderPreferredLocationAddress")}
+                    placeholderTextColor={colors.icon}
+                  />
+                  <View style={styles.preferredCoordsRow}>
+                    <TextInput
+                      value={row.latitude}
+                      onChangeText={(value) =>
+                        updatePreferredLocation(idx, "latitude", value)
+                      }
+                      style={[
+                        styles.input,
+                        styles.preferredCoordInput,
+                        { color: colors.text, borderColor: colors.icon + "66" },
+                      ]}
+                      keyboardType="decimal-pad"
+                      placeholder={t(
+                        "productsPlaceholderPreferredLocationLatitude",
+                      )}
+                      placeholderTextColor={colors.icon}
+                    />
+                    <TextInput
+                      value={row.longitude}
+                      onChangeText={(value) =>
+                        updatePreferredLocation(idx, "longitude", value)
+                      }
+                      style={[
+                        styles.input,
+                        styles.preferredCoordInput,
+                        { color: colors.text, borderColor: colors.icon + "66" },
+                      ]}
+                      keyboardType="decimal-pad"
+                      placeholder={t(
+                        "productsPlaceholderPreferredLocationLongitude",
+                      )}
+                      placeholderTextColor={colors.icon}
+                    />
+                  </View>
+                </View>
+              ))}
 
               <ThemedText style={styles.fieldLabel}>
                 {t("productsFieldImages")}
@@ -1072,11 +1424,79 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
-  coordsRow: {
+  mapWrap: {
+    marginTop: 8,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  map: {
+    height: 220,
+    width: "100%",
+  },
+  mapPlaceholder: {
+    height: 220,
+    width: "100%",
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  locationButton: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  coordSummary: {
+    marginTop: 8,
+    opacity: 0.7,
+    fontSize: 12,
+  },
+  preferredHeader: {
+    marginTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  addPreferredButton: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  preferredCard: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 10,
+    gap: 8,
+  },
+  preferredCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  preferredCardTitle: {
+    fontWeight: "700",
+    fontSize: 12,
+    opacity: 0.85,
+  },
+  preferredRemoveBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  preferredRemoveText: {
+    color: "#DC2626",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  preferredCoordsRow: {
     flexDirection: "row",
     gap: 8,
   },
-  coordInput: {
+  preferredCoordInput: {
     flex: 1,
   },
   saveButton: {

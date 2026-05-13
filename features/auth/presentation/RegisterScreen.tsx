@@ -879,7 +879,7 @@ export function RegisterScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
-      </ThemedView>
+    </ThemedView>
   );
 }
 
@@ -1097,4 +1097,3 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
 });
-
