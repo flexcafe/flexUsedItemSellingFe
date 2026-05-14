@@ -1,3 +1,5 @@
+import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import {
   ActivityIndicator,
   Alert,
@@ -13,8 +15,6 @@ import {
   View,
 } from "react-native";
 import { WebView } from "react-native-webview";
-import * as Location from "expo-location";
-import * as ImagePicker from "expo-image-picker";
 
 import { AddProductListingButton } from "@/components/add-product-listing-button";
 import { ThemedText } from "@/components/themed-text";
@@ -27,8 +27,8 @@ import type {
   ProductCreateInput,
   ProductPaymentMethod,
   ProductStatus,
-  UploadFile,
   ProductUpdateInput,
+  UploadFile,
 } from "@/core/domain/types/product";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useCategories } from "@/presentation/hooks/useCategories";
@@ -117,7 +117,8 @@ function inferUploadType(
   fileName: string,
 ): UploadFile["type"] | null {
   if (mimeType === "image/png") return "image/png";
-  if (mimeType === "image/jpeg" || mimeType === "image/jpg") return "image/jpeg";
+  if (mimeType === "image/jpeg" || mimeType === "image/jpg")
+    return "image/jpeg";
   if (mimeType === "image/webp") return "image/webp";
   const lower = fileName.toLowerCase();
   if (lower.endsWith(".png")) return "image/png";
@@ -126,10 +127,13 @@ function inferUploadType(
   return null;
 }
 
-function normalizeUploadFile(asset: ImagePicker.ImagePickerAsset): UploadFile | null {
+function normalizeUploadFile(
+  asset: ImagePicker.ImagePickerAsset,
+): UploadFile | null {
   const uri = asset.uri?.trim();
   if (!uri) return null;
-  const name = asset.fileName?.trim() || uri.split("/").pop() || `image-${Date.now()}.jpg`;
+  const name =
+    asset.fileName?.trim() || uri.split("/").pop() || `image-${Date.now()}.jpg`;
   const type = inferUploadType(asset.mimeType, name);
   if (!type) return null;
   return { uri, name, type };
@@ -138,10 +142,8 @@ function normalizeUploadFile(asset: ImagePicker.ImagePickerAsset): UploadFile | 
 function toPreferredLocationForm(raw: unknown): PreferredLocationForm | null {
   if (raw == null || typeof raw !== "object" || Array.isArray(raw)) return null;
   const row = raw as Record<string, unknown>;
-  const label =
-    typeof row.label === "string" ? row.label.trim() : "";
-  const address =
-    typeof row.address === "string" ? row.address.trim() : "";
+  const label = typeof row.label === "string" ? row.label.trim() : "";
+  const address = typeof row.address === "string" ? row.address.trim() : "";
   const latRaw =
     typeof row.latitude === "number" || typeof row.latitude === "string"
       ? String(row.latitude)
@@ -234,7 +236,8 @@ function formFromProduct(product: Product): ProductFormState {
     paymentMethods: methods,
     directTradeLocation: product.directTradeLocation ?? "",
     mapCoords:
-      product.directTradeLatitude != null && product.directTradeLongitude != null
+      product.directTradeLatitude != null &&
+      product.directTradeLongitude != null
         ? {
             latitude: product.directTradeLatitude,
             longitude: product.directTradeLongitude,
@@ -294,14 +297,14 @@ function ProductCard({
           <View style={styles.actionsRow}>
             <Pressable
               onPress={() => onView(product)}
-            style={[
+              style={[
                 styles.neutralButton,
                 { borderColor: colors.icon + "55" },
               ]}
             >
               <ThemedText style={[styles.neutralText, { color: colors.text }]}>
                 {t("productsDetail")}
-            </ThemedText>
+              </ThemedText>
             </Pressable>
             <Pressable
               onPress={() => onEdit(product)}
@@ -338,7 +341,7 @@ function formatProductConditionForDisplay(
   translate: (key: ReturnType<typeof productConditionLabelKey>) => string,
 ): string {
   const c = parseProductCondition(raw);
-  return c ? translate(productConditionLabelKey(c)) : raw ?? "-";
+  return c ? translate(productConditionLabelKey(c)) : (raw ?? "-");
 }
 
 export function ProductListScreen() {
@@ -417,7 +420,10 @@ export function ProductListScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(t("productsAlertCoordsTitle"), t("productsAlertCoordsBody"));
+        Alert.alert(
+          t("productsAlertCoordsTitle"),
+          t("productsAlertCoordsBody"),
+        );
         return;
       }
       const position = await Location.getCurrentPositionAsync({
@@ -428,7 +434,10 @@ export function ProductListScreen() {
         longitude: position.coords.longitude,
       });
     } catch {
-      Alert.alert(t("productsErrorRequestTitle"), t("productsErrorRequestBody"));
+      Alert.alert(
+        t("productsErrorRequestTitle"),
+        t("productsErrorRequestBody"),
+      );
     } finally {
       setIsLocatingTradePoint(false);
     }
@@ -518,7 +527,10 @@ export function ProductListScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(t("productsAlertCoordsTitle"), t("productsAlertCoordsBody"));
+        Alert.alert(
+          t("productsAlertCoordsTitle"),
+          t("productsAlertCoordsBody"),
+        );
         return;
       }
       const position = await Location.getCurrentPositionAsync({
@@ -535,7 +547,10 @@ export function ProductListScreen() {
         setMapPickerCoords(coords);
       }
     } catch {
-      Alert.alert(t("productsErrorRequestTitle"), t("productsErrorRequestBody"));
+      Alert.alert(
+        t("productsErrorRequestTitle"),
+        t("productsErrorRequestBody"),
+      );
     } finally {
       setIsLocatingMapPicker(false);
     }
@@ -552,7 +567,8 @@ export function ProductListScreen() {
 
   const addPreferredLocation = useCallback(() => {
     setForm((prev) => {
-      if (prev.preferredLocations.length >= MAX_PREFERRED_LOCATIONS) return prev;
+      if (prev.preferredLocations.length >= MAX_PREFERRED_LOCATIONS)
+        return prev;
       return {
         ...prev,
         preferredLocations: [
@@ -593,7 +609,10 @@ export function ProductListScreen() {
   const requestMediaPermission = useCallback(async (): Promise<boolean> => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(t("productsErrorRequestTitle"), t("productsAlertImagePermissionBody"));
+      Alert.alert(
+        t("productsErrorRequestTitle"),
+        t("productsAlertImagePermissionBody"),
+      );
       return false;
     }
     return true;
@@ -601,13 +620,22 @@ export function ProductListScreen() {
 
   const ensureValidImageAsset = useCallback(
     (asset: ImagePicker.ImagePickerAsset): UploadFile | null => {
-      if (typeof asset.fileSize === "number" && asset.fileSize > MAX_UPLOAD_BYTES) {
-        Alert.alert(t("productsAlertImageSizeTitle"), t("productsAlertImageSizeBody"));
+      if (
+        typeof asset.fileSize === "number" &&
+        asset.fileSize > MAX_UPLOAD_BYTES
+      ) {
+        Alert.alert(
+          t("productsAlertImageSizeTitle"),
+          t("productsAlertImageSizeBody"),
+        );
         return null;
       }
       const file = normalizeUploadFile(asset);
       if (!file || !ALLOWED_UPLOAD_TYPES.has(file.type)) {
-        Alert.alert(t("productsAlertImageTypeTitle"), t("productsAlertImageTypeBody"));
+        Alert.alert(
+          t("productsAlertImageTypeTitle"),
+          t("productsAlertImageTypeBody"),
+        );
         return null;
       }
       return file;
@@ -643,7 +671,10 @@ export function ProductListScreen() {
           fileName,
         };
       } catch {
-        Alert.alert(t("productsErrorRequestTitle"), t("productsErrorRequestBody"));
+        Alert.alert(
+          t("productsErrorRequestTitle"),
+          t("productsErrorRequestBody"),
+        );
         return null;
       }
     },
@@ -654,9 +685,14 @@ export function ProductListScreen() {
     const ok = await requestMediaPermission();
     if (!ok) return;
     const remain =
-      MAX_PRODUCT_IMAGES - form.imageFiles.length - form.existingImageUrls.length;
+      MAX_PRODUCT_IMAGES -
+      form.imageFiles.length -
+      form.existingImageUrls.length;
     if (remain <= 0) {
-      Alert.alert(t("productsAlertImagesLimitTitle"), t("productsAlertImagesLimitBody"));
+      Alert.alert(
+        t("productsAlertImagesLimitTitle"),
+        t("productsAlertImagesLimitBody"),
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -676,14 +712,24 @@ export function ProductListScreen() {
     }
     if (!selected.length) return;
     setForm((prev) => {
-      const cap = Math.max(0, MAX_PRODUCT_IMAGES - prev.existingImageUrls.length);
+      const cap = Math.max(
+        0,
+        MAX_PRODUCT_IMAGES - prev.existingImageUrls.length,
+      );
       const merged = [...prev.imageFiles, ...selected].slice(0, cap);
       return {
         ...prev,
         imageFiles: merged,
       };
     });
-  }, [ensureValidImageAsset, form.existingImageUrls.length, form.imageFiles.length, requestMediaPermission, t, toUploadReadyAsset]);
+  }, [
+    ensureValidImageAsset,
+    form.existingImageUrls.length,
+    form.imageFiles.length,
+    requestMediaPermission,
+    t,
+    toUploadReadyAsset,
+  ]);
 
   const pickMapScreenshot = useCallback(async () => {
     const ok = await requestMediaPermission();
@@ -833,7 +879,10 @@ export function ProductListScreen() {
     }
 
     if (form.isDeliveryAvailable) {
-      if (form.deliveryFeePayer !== "BUYER" && form.deliveryFeePayer !== "SELLER") {
+      if (
+        form.deliveryFeePayer !== "BUYER" &&
+        form.deliveryFeePayer !== "SELLER"
+      ) {
         Alert.alert(
           t("productsAlertDeliveryFeePayerTitle"),
           t("productsAlertDeliveryFeePayerBody"),
@@ -881,13 +930,19 @@ export function ProductListScreen() {
         return;
       }
       if ((latText === "") !== (lngText === "")) {
-        Alert.alert(t("productsAlertCoordsTitle"), t("productsAlertCoordsBody"));
+        Alert.alert(
+          t("productsAlertCoordsTitle"),
+          t("productsAlertCoordsBody"),
+        );
         return;
       }
       const latParsed = parseOptionalNumber(latText);
       const lngParsed = parseOptionalNumber(lngText);
       if ((latText && latParsed == null) || (lngText && lngParsed == null)) {
-        Alert.alert(t("productsAlertCoordsTitle"), t("productsAlertCoordsBody"));
+        Alert.alert(
+          t("productsAlertCoordsTitle"),
+          t("productsAlertCoordsBody"),
+        );
         return;
       }
       preferredLocations.push({
@@ -935,7 +990,9 @@ export function ProductListScreen() {
             ? { preferredTradeTime: form.preferredTradeTime.trim() }
             : {}),
           ...(preferredLocations.length > 0 ? { preferredLocations } : {}),
-          ...(form.imageFiles.length > 0 ? { imageFiles: form.imageFiles } : {}),
+          ...(form.imageFiles.length > 0
+            ? { imageFiles: form.imageFiles }
+            : {}),
         };
         await createMutation.mutateAsync(payload);
       } else {
@@ -966,7 +1023,9 @@ export function ProductListScreen() {
             ? { preferredTradeTime: form.preferredTradeTime.trim() }
             : {}),
           ...(preferredLocations.length > 0 ? { preferredLocations } : {}),
-          ...(form.imageFiles.length > 0 ? { imageFiles: form.imageFiles } : {}),
+          ...(form.imageFiles.length > 0
+            ? { imageFiles: form.imageFiles }
+            : {}),
         };
         await updateMutation.mutateAsync({ id: editingId, data: payload });
       }
@@ -1186,589 +1245,420 @@ export function ProductListScreen() {
               nestedScrollEnabled
             >
               {composerStep === 0 ? (
-              <>
-              <ThemedText style={styles.fieldLabel}>
-                {t("productsFieldCategory")}
-              </ThemedText>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.chipsWrap}
-              >
-                {categories.map((c) => (
-                  <Pressable
-                    key={c.id}
-                    onPress={() =>
-                      setForm((prev) => ({ ...prev, categoryId: c.id }))
-                    }
-                    style={[
-                      styles.chip,
-                      chipSelected(form.categoryId === c.id),
-                    ]}
-                  >
-                    <ThemedText
-                      style={[styles.chipText, { color: colors.text }]}
-                    >
-                      {c.name}
-                    </ThemedText>
-                  </Pressable>
-                ))}
-              </ScrollView>
-
-              <ThemedText style={styles.fieldLabel}>
-                {t("productsFieldTitle")}
-              </ThemedText>
-              <TextInput
-                value={form.title}
-                onChangeText={(title) =>
-                  setForm((prev) => ({ ...prev, title }))
-                }
-                style={[
-                  styles.input,
-                  { color: colors.text, borderColor: colors.icon + "66" },
-                ]}
-                placeholder={t("productsPlaceholderTitle")}
-                placeholderTextColor={colors.icon}
-              />
-
-              <ThemedText style={styles.fieldLabel}>
-                {t("productsFieldDescription")}
-              </ThemedText>
-              <TextInput
-                value={form.description}
-                onChangeText={(description) =>
-                  setForm((prev) => ({ ...prev, description }))
-                }
-                style={[
-                  styles.input,
-                  styles.textarea,
-                  { color: colors.text, borderColor: colors.icon + "66" },
-                ]}
-                multiline
-                placeholder={t("productsPlaceholderDescription")}
-                placeholderTextColor={colors.icon}
-              />
-
-              <ThemedText style={styles.fieldLabel}>
-                {t("productsFieldPriceCreateOnly")}
-              </ThemedText>
-              <TextInput
-                editable={composerMode === "create"}
-                value={form.price}
-                onChangeText={(price) =>
-                  setForm((prev) => ({ ...prev, price }))
-                }
-                keyboardType="numeric"
-                style={[
-                  styles.input,
-                  { color: colors.text, borderColor: colors.icon + "66" },
-                  composerMode !== "create" && styles.inputDisabled,
-                ]}
-                placeholder={t("productsPlaceholderPrice")}
-                placeholderTextColor={colors.icon}
-              />
-
-              <ThemedText style={styles.fieldLabel}>
-                {t("productsFieldCondition")}
-              </ThemedText>
-              <View style={styles.inlineWrap}>
-                {CONDITION_OPTIONS.map((option) => (
-                  <Pressable
-                    key={option}
-                    onPress={() =>
-                      setForm((prev) => ({ ...prev, condition: option }))
-                    }
-                    style={[
-                      styles.chip,
-                      chipSelected(form.condition === option),
-                    ]}
-                  >
-                    <ThemedText
-                      style={[styles.chipText, { color: colors.text }]}
-                    >
-                      {t(productConditionLabelKey(option))}
-                    </ThemedText>
-                  </Pressable>
-                ))}
-              </View>
-
-              {composerMode === "edit" ? (
                 <>
                   <ThemedText style={styles.fieldLabel}>
-                    {t("productsFieldStatus")}
+                    {t("productsFieldCategory")}
                   </ThemedText>
-                  <View style={styles.inlineWrap}>
-                    {STATUS_OPTIONS.map((option) => (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.chipsWrap}
+                  >
+                    {categories.map((c) => (
                       <Pressable
-                        key={option}
+                        key={c.id}
                         onPress={() =>
-                          setForm((prev) => ({ ...prev, status: option }))
+                          setForm((prev) => ({ ...prev, categoryId: c.id }))
                         }
                         style={[
                           styles.chip,
-                          chipSelected(form.status === option),
+                          chipSelected(form.categoryId === c.id),
                         ]}
                       >
                         <ThemedText
                           style={[styles.chipText, { color: colors.text }]}
                         >
-                          {option}
+                          {c.name}
+                        </ThemedText>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+
+                  <ThemedText style={styles.fieldLabel}>
+                    {t("productsFieldTitle")}
+                  </ThemedText>
+                  <TextInput
+                    value={form.title}
+                    onChangeText={(title) =>
+                      setForm((prev) => ({ ...prev, title }))
+                    }
+                    style={[
+                      styles.input,
+                      { color: colors.text, borderColor: colors.icon + "66" },
+                    ]}
+                    placeholder={t("productsPlaceholderTitle")}
+                    placeholderTextColor={colors.icon}
+                  />
+
+                  <ThemedText style={styles.fieldLabel}>
+                    {t("productsFieldDescription")}
+                  </ThemedText>
+                  <TextInput
+                    value={form.description}
+                    onChangeText={(description) =>
+                      setForm((prev) => ({ ...prev, description }))
+                    }
+                    style={[
+                      styles.input,
+                      styles.textarea,
+                      { color: colors.text, borderColor: colors.icon + "66" },
+                    ]}
+                    multiline
+                    placeholder={t("productsPlaceholderDescription")}
+                    placeholderTextColor={colors.icon}
+                  />
+
+                  <ThemedText style={styles.fieldLabel}>
+                    {t("productsFieldPriceCreateOnly")}
+                  </ThemedText>
+                  <TextInput
+                    editable={composerMode === "create"}
+                    value={form.price}
+                    onChangeText={(price) =>
+                      setForm((prev) => ({ ...prev, price }))
+                    }
+                    keyboardType="numeric"
+                    style={[
+                      styles.input,
+                      { color: colors.text, borderColor: colors.icon + "66" },
+                      composerMode !== "create" && styles.inputDisabled,
+                    ]}
+                    placeholder={t("productsPlaceholderPrice")}
+                    placeholderTextColor={colors.icon}
+                  />
+
+                  <ThemedText style={styles.fieldLabel}>
+                    {t("productsFieldCondition")}
+                  </ThemedText>
+                  <View style={styles.inlineWrap}>
+                    {CONDITION_OPTIONS.map((option) => (
+                      <Pressable
+                        key={option}
+                        onPress={() =>
+                          setForm((prev) => ({ ...prev, condition: option }))
+                        }
+                        style={[
+                          styles.chip,
+                          chipSelected(form.condition === option),
+                        ]}
+                      >
+                        <ThemedText
+                          style={[styles.chipText, { color: colors.text }]}
+                        >
+                          {t(productConditionLabelKey(option))}
                         </ThemedText>
                       </Pressable>
                     ))}
                   </View>
+
+                  {composerMode === "edit" ? (
+                    <>
+                      <ThemedText style={styles.fieldLabel}>
+                        {t("productsFieldStatus")}
+                      </ThemedText>
+                      <View style={styles.inlineWrap}>
+                        {STATUS_OPTIONS.map((option) => (
+                          <Pressable
+                            key={option}
+                            onPress={() =>
+                              setForm((prev) => ({ ...prev, status: option }))
+                            }
+                            style={[
+                              styles.chip,
+                              chipSelected(form.status === option),
+                            ]}
+                          >
+                            <ThemedText
+                              style={[styles.chipText, { color: colors.text }]}
+                            >
+                              {option}
+                            </ThemedText>
+                          </Pressable>
+                        ))}
+                      </View>
+                    </>
+                  ) : null}
                 </>
               ) : null}
-              </>
-              ) : null}
               {composerStep === 1 ? (
-              <>
-              <ThemedText style={styles.fieldLabel}>
-                {t("productsFieldPaymentMethods")}
-              </ThemedText>
-              <View style={styles.inlineWrap}>
-                {(["CASH", "KBZPAY"] as const).map((method) => {
-                  const selected = form.paymentMethods[0] === method;
-                  return (
+                <>
+                  <ThemedText style={styles.fieldLabel}>
+                    {t("productsFieldPaymentMethods")}
+                  </ThemedText>
+                  <View style={styles.inlineWrap}>
+                    {(["CASH", "KBZPAY"] as const).map((method) => {
+                      const selected = form.paymentMethods[0] === method;
+                      return (
+                        <Pressable
+                          key={method}
+                          onPress={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              paymentMethods: [method],
+                            }))
+                          }
+                          style={[styles.chip, chipSelected(selected)]}
+                        >
+                          <ThemedText
+                            style={[styles.chipText, { color: colors.text }]}
+                          >
+                            {method}
+                          </ThemedText>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+
+                  <ThemedText style={styles.fieldLabel}>
+                    {t("productsFieldDelivery")}
+                  </ThemedText>
+                  <View style={styles.inlineWrap}>
                     <Pressable
-                      key={method}
                       onPress={() =>
                         setForm((prev) => ({
                           ...prev,
-                          paymentMethods: [method],
+                          isDeliveryAvailable: true,
                         }))
                       }
-                      style={[styles.chip, chipSelected(selected)]}
+                      style={[
+                        styles.chip,
+                        chipSelected(form.isDeliveryAvailable),
+                      ]}
                     >
                       <ThemedText
                         style={[styles.chipText, { color: colors.text }]}
                       >
-                        {method}
+                        {t("productsDeliveryOn")}
                       </ThemedText>
                     </Pressable>
-                  );
-                })}
-              </View>
-
-              <ThemedText style={styles.fieldLabel}>
-                {t("productsFieldDelivery")}
-              </ThemedText>
-              <View style={styles.inlineWrap}>
-                <Pressable
-                  onPress={() =>
-                    setForm((prev) => ({ ...prev, isDeliveryAvailable: true }))
-                  }
-                  style={[styles.chip, chipSelected(form.isDeliveryAvailable)]}
-                >
-                  <ThemedText style={[styles.chipText, { color: colors.text }]}>
-                    {t("productsDeliveryOn")}
-                  </ThemedText>
-                </Pressable>
-                <Pressable
-                  onPress={() =>
-                    setForm((prev) => ({ ...prev, isDeliveryAvailable: false }))
-                  }
-                  style={[styles.chip, chipSelected(!form.isDeliveryAvailable)]}
-                >
-                  <ThemedText style={[styles.chipText, { color: colors.text }]}>
-                    {t("productsDeliveryOff")}
-                  </ThemedText>
-                </Pressable>
-              </View>
-              {form.isDeliveryAvailable ? (
-                <View style={[styles.inlineWrap, styles.deliveryPayerRow]}>
-                  <Pressable
-                    onPress={() =>
-                      setForm((prev) => ({
-                        ...prev,
-                        deliveryFeePayer: "BUYER",
-                      }))
-                    }
-                    style={[
-                      styles.chip,
-                      chipSelected(form.deliveryFeePayer === "BUYER"),
-                    ]}
-                  >
-                    <ThemedText
-                      style={[styles.chipText, { color: colors.text }]}
-                    >
-                      {t("productsDeliveryBuyerPays")}
-                    </ThemedText>
-                  </Pressable>
-                  <Pressable
-                    onPress={() =>
-                      setForm((prev) => ({
-                        ...prev,
-                        deliveryFeePayer: "SELLER",
-                      }))
-                    }
-                    style={[
-                      styles.chip,
-                      chipSelected(form.deliveryFeePayer === "SELLER"),
-                    ]}
-                  >
-                    <ThemedText
-                      style={[styles.chipText, { color: colors.text }]}
-                    >
-                      {t("productsDeliverySellerPays")}
-                    </ThemedText>
-                  </Pressable>
-                </View>
-              ) : null}
-              </>
-              ) : null}
-              {composerStep === 2 ? (
-              <>
-              <View
-                style={[
-                  styles.directTradeMapCard,
-                  {
-                    borderColor: colors.icon + "44",
-                    backgroundColor: colors.tint + "14",
-                  },
-                ]}
-              >
-                <ThemedText style={styles.fieldLabel}>
-                  {t("productsFieldDirectLocation")}
-                </ThemedText>
-                <ThemedText style={styles.fieldHint}>
-                  {t("productsDirectTradeSectionHelp")}
-                </ThemedText>
-                <TextInput
-                  value={form.directTradeLocation}
-                  onChangeText={(directTradeLocation) =>
-                    setForm((prev) => ({ ...prev, directTradeLocation }))
-                  }
-                  style={[
-                    styles.input,
-                    { color: colors.text, borderColor: colors.icon + "66" },
-                  ]}
-                  placeholder={t("productsPlaceholderLocation")}
-                  placeholderTextColor={colors.icon}
-                />
-
-                {form.mapCoords ? (
-                  <View
-                    style={[
-                      styles.directTradeCoordsCard,
-                      {
-                        borderColor: colors.tint + "44",
-                        borderLeftColor: colors.tint,
-                        backgroundColor: colors.background,
-                      },
-                    ]}
-                  >
-                    <ThemedText
-                      type="defaultSemiBold"
-                      style={styles.directTradeCoordsTitle}
-                    >
-                      {t("productsDirectTradeCoordsSaved")}
-                    </ThemedText>
-                    <View
+                    <Pressable
+                      onPress={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          isDeliveryAvailable: false,
+                        }))
+                      }
                       style={[
-                        styles.directTradeStaticMapWrap,
-                        { borderColor: colors.icon + "44" },
+                        styles.chip,
+                        chipSelected(!form.isDeliveryAvailable),
                       ]}
                     >
-                      <WebView
-                        key={`dt-static-${form.mapCoords.latitude.toFixed(5)}-${form.mapCoords.longitude.toFixed(5)}`}
-                        style={styles.directTradeStaticMap}
-                        originWhitelist={["*"]}
-                        source={{ html: directTradeStaticMapHtml }}
-                        scrollEnabled={false}
-                        nestedScrollEnabled={false}
-                      />
-                    </View>
-                    <ThemedText style={styles.directTradeCoordLines}>
-                      {t("productsFieldLatitude")}:{" "}
-                      {form.mapCoords.latitude.toFixed(6)}
-                      {"\n"}
-                      {t("productsFieldLongitude")}:{" "}
-                      {form.mapCoords.longitude.toFixed(6)}
-                    </ThemedText>
-                    <Pressable
-                      onPress={clearDirectTradePin}
-                      style={styles.directTradeClearPin}
-                      hitSlop={8}
-                    >
                       <ThemedText
-                        style={{
-                          color: colors.tint,
-                          fontWeight: "700",
-                          fontSize: 13,
-                        }}
+                        style={[styles.chipText, { color: colors.text }]}
                       >
-                        {t("productsDirectTradeClearPin")}
+                        {t("productsDeliveryOff")}
                       </ThemedText>
                     </Pressable>
                   </View>
-                ) : (
-                  <ThemedText style={styles.preferredNoPin}>
-                    {t("productsPreferredLocationNoPin")}
-                  </ThemedText>
-                )}
-
-                <Pressable
-                  onPress={openDirectTradeMap}
-                  style={[
-                    styles.directTradeMapPrimary,
-                    { backgroundColor: colors.tint },
-                  ]}
-                >
-                  <ThemedText style={styles.directTradeMapPrimaryText}>
-                    {t("productsDirectTradeOpenMap")}
-                  </ThemedText>
-                </Pressable>
-
-                <ThemedText style={styles.directTradeGpsHint}>
-                  {t("productsDirectTradeGpsHint")}
-                </ThemedText>
-                <Pressable
-                  onPress={() => void handleUseCurrentTradeLocation()}
-                  disabled={isLocatingTradePoint}
-                  style={[
-                    styles.locationButton,
-                    {
-                      borderColor: colors.tint,
-                      marginTop: 0,
-                    },
-                    isLocatingTradePoint && styles.archiveButtonDisabled,
-                  ]}
-                >
-                  <ThemedText style={{ color: colors.tint, fontWeight: "700" }}>
-                    {isLocatingTradePoint
-                      ? t("productsMapLocating")
-                      : form.mapCoords
-                        ? t("productsMapUpdateFromCurrent")
-                        : t("productsMapUseCurrent")}
-                  </ThemedText>
-                </Pressable>
-              </View>
-
-              <ThemedText style={styles.fieldLabel}>
-                {t("productsFieldNearbyLandmarks")}
-              </ThemedText>
-              <TextInput
-                value={form.nearbyLandmarks}
-                onChangeText={(nearbyLandmarks) =>
-                  setForm((prev) => ({ ...prev, nearbyLandmarks }))
-                }
-                style={[
-                  styles.input,
-                  { color: colors.text, borderColor: colors.icon + "66" },
-                ]}
-                placeholder={t("productsPlaceholderNearbyLandmarks")}
-                placeholderTextColor={colors.icon}
-              />
-
-              <ThemedText style={styles.fieldLabel}>
-                {t("productsFieldPreferredTradeTime")}
-              </ThemedText>
-              <TextInput
-                value={form.preferredTradeTime}
-                onChangeText={(preferredTradeTime) =>
-                  setForm((prev) => ({ ...prev, preferredTradeTime }))
-                }
-                style={[
-                  styles.input,
-                  { color: colors.text, borderColor: colors.icon + "66" },
-                ]}
-                placeholder={t("productsPlaceholderPreferredTradeTime")}
-                placeholderTextColor={colors.icon}
-              />
-
-              <ThemedText style={styles.fieldLabel}>
-                {t("productsFieldMapScreenshotUrl")}
-              </ThemedText>
-              <Pressable
-                onPress={() => void pickMapScreenshot()}
-                style={[
-                  styles.preferredMapPickButton,
-                  { borderColor: colors.tint },
-                ]}
-              >
-                <ThemedText style={{ color: colors.tint, fontWeight: "700" }}>
-                  {t("productsPickMapScreenshot")}
-                </ThemedText>
-              </Pressable>
-              {form.mapScreenshotFile ? (
-                <>
-                  <ThemedText style={styles.coordSummary}>
-                    {tf("productsSelectedMapScreenshot", {
-                      name: form.mapScreenshotFile.name,
-                    })}
-                  </ThemedText>
-                  <View
-                    style={[
-                      styles.mapScreenshotPreview,
-                      { borderColor: colors.icon + "55" },
-                    ]}
-                  >
-                    <Image
-                      source={{ uri: form.mapScreenshotFile.uri }}
-                      style={styles.mapScreenshotPreviewImage}
-                      resizeMode="contain"
-                    />
-                    <View style={styles.selectedImageMetaRow}>
-                      <ThemedText
-                        numberOfLines={1}
-                        style={styles.selectedImageName}
-                      >
-                        {form.mapScreenshotFile.name}
-                      </ThemedText>
+                  {form.isDeliveryAvailable ? (
+                    <View style={[styles.inlineWrap, styles.deliveryPayerRow]}>
                       <Pressable
-                        accessibilityLabel={t("productsClearMapScreenshot")}
                         onPress={() =>
                           setForm((prev) => ({
                             ...prev,
-                            mapScreenshotFile: null,
+                            deliveryFeePayer: "BUYER",
                           }))
                         }
-                        hitSlop={8}
+                        style={[
+                          styles.chip,
+                          chipSelected(form.deliveryFeePayer === "BUYER"),
+                        ]}
                       >
-                        <ThemedText style={styles.preferredClearPinText}>
-                          ×
+                        <ThemedText
+                          style={[styles.chipText, { color: colors.text }]}
+                        >
+                          {t("productsDeliveryBuyerPays")}
+                        </ThemedText>
+                      </Pressable>
+                      <Pressable
+                        onPress={() =>
+                          setForm((prev) => ({
+                            ...prev,
+                            deliveryFeePayer: "SELLER",
+                          }))
+                        }
+                        style={[
+                          styles.chip,
+                          chipSelected(form.deliveryFeePayer === "SELLER"),
+                        ]}
+                      >
+                        <ThemedText
+                          style={[styles.chipText, { color: colors.text }]}
+                        >
+                          {t("productsDeliverySellerPays")}
                         </ThemedText>
                       </Pressable>
                     </View>
-                  </View>
+                  ) : null}
                 </>
-              ) : form.existingMapScreenshotUrl ? (
+              ) : null}
+              {composerStep === 2 ? (
                 <>
-                  <ThemedText style={styles.coordSummary}>
-                    {t("productsExistingMapScreenshot")}
-                  </ThemedText>
                   <View
                     style={[
-                      styles.mapScreenshotPreview,
-                      { borderColor: colors.icon + "55" },
+                      styles.directTradeMapCard,
+                      {
+                        borderColor: colors.icon + "44",
+                        backgroundColor: colors.tint + "14",
+                      },
                     ]}
                   >
-                    <Image
-                      source={{
-                        uri: toAbsoluteMediaUrl(form.existingMapScreenshotUrl),
-                      }}
-                      style={styles.mapScreenshotPreviewImage}
-                      resizeMode="contain"
-                    />
-                  </View>
-                </>
-              ) : null}
-              </>
-              ) : null}
-              {composerStep === 3 ? (
-              <>
-              <ThemedText style={styles.fieldLabel}>
-                {t("productsFieldPreferredLocations")}
-              </ThemedText>
-              <ThemedText style={styles.fieldHint}>
-                {t("productsPreferredLocationsIntro")}
-              </ThemedText>
-              <View style={styles.preferredHeader}>
-                <Pressable
-                  onPress={addPreferredLocation}
-                  disabled={
-                    form.preferredLocations.length >= MAX_PREFERRED_LOCATIONS
-                  }
-                  style={[
-                    styles.addPreferredButton,
-                    { borderColor: colors.tint },
-                    form.preferredLocations.length >= MAX_PREFERRED_LOCATIONS &&
-                      styles.archiveButtonDisabled,
-                  ]}
-                >
-                  <ThemedText style={{ color: colors.tint, fontWeight: "700" }}>
-                    {t("productsPreferredLocationAdd")}
-                  </ThemedText>
-                </Pressable>
-              </View>
-              {form.preferredLocations.map((row, idx) => (
-                <View
-                  key={row.id}
-                  style={[
-                    styles.preferredCard,
-                    { borderColor: colors.icon + "55" },
-                  ]}
-                >
-                  <View style={styles.preferredCardHeader}>
-                    <ThemedText style={styles.preferredCardTitle}>
-                      {t("productsFieldPreferredLocationItem")} #{idx + 1}
+                    <ThemedText style={styles.fieldLabel}>
+                      {t("productsFieldDirectLocation")}
                     </ThemedText>
-                    <Pressable
-                      onPress={() => removePreferredLocation(idx)}
-                      disabled={form.preferredLocations.length <= 1}
+                    <ThemedText style={styles.fieldHint}>
+                      {t("productsDirectTradeSectionHelp")}
+                    </ThemedText>
+                    <TextInput
+                      value={form.directTradeLocation}
+                      onChangeText={(directTradeLocation) =>
+                        setForm((prev) => ({ ...prev, directTradeLocation }))
+                      }
                       style={[
-                        styles.preferredRemoveBtn,
-                        form.preferredLocations.length <= 1 &&
-                          styles.preferredRemoveDisabled,
+                        styles.input,
+                        { color: colors.text, borderColor: colors.icon + "66" },
+                      ]}
+                      placeholder={t("productsPlaceholderLocation")}
+                      placeholderTextColor={colors.icon}
+                    />
+
+                    {form.mapCoords ? (
+                      <View
+                        style={[
+                          styles.directTradeCoordsCard,
+                          {
+                            borderColor: colors.tint + "44",
+                            borderLeftColor: colors.tint,
+                            backgroundColor: colors.background,
+                          },
+                        ]}
+                      >
+                        <ThemedText
+                          type="defaultSemiBold"
+                          style={styles.directTradeCoordsTitle}
+                        >
+                          {t("productsDirectTradeCoordsSaved")}
+                        </ThemedText>
+                        <View
+                          style={[
+                            styles.directTradeStaticMapWrap,
+                            { borderColor: colors.icon + "44" },
+                          ]}
+                        >
+                          <WebView
+                            key={`dt-static-${form.mapCoords.latitude.toFixed(5)}-${form.mapCoords.longitude.toFixed(5)}`}
+                            style={styles.directTradeStaticMap}
+                            originWhitelist={["*"]}
+                            source={{ html: directTradeStaticMapHtml }}
+                            scrollEnabled={false}
+                            nestedScrollEnabled={false}
+                          />
+                        </View>
+                        <ThemedText style={styles.directTradeCoordLines}>
+                          {t("productsFieldLatitude")}:{" "}
+                          {form.mapCoords.latitude.toFixed(6)}
+                          {"\n"}
+                          {t("productsFieldLongitude")}:{" "}
+                          {form.mapCoords.longitude.toFixed(6)}
+                        </ThemedText>
+                        <Pressable
+                          onPress={clearDirectTradePin}
+                          style={styles.directTradeClearPin}
+                          hitSlop={8}
+                        >
+                          <ThemedText
+                            style={{
+                              color: colors.tint,
+                              fontWeight: "700",
+                              fontSize: 13,
+                            }}
+                          >
+                            {t("productsDirectTradeClearPin")}
+                          </ThemedText>
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <ThemedText style={styles.preferredNoPin}>
+                        {t("productsPreferredLocationNoPin")}
+                      </ThemedText>
+                    )}
+
+                    <Pressable
+                      onPress={openDirectTradeMap}
+                      style={[
+                        styles.directTradeMapPrimary,
+                        { backgroundColor: colors.tint },
                       ]}
                     >
-                      <ThemedText style={styles.preferredRemoveText}>
-                        {t("productsPreferredLocationRemove")}
+                      <ThemedText style={styles.directTradeMapPrimaryText}>
+                        {t("productsDirectTradeOpenMap")}
+                      </ThemedText>
+                    </Pressable>
+
+                    <ThemedText style={styles.directTradeGpsHint}>
+                      {t("productsDirectTradeGpsHint")}
+                    </ThemedText>
+                    <Pressable
+                      onPress={() => void handleUseCurrentTradeLocation()}
+                      disabled={isLocatingTradePoint}
+                      style={[
+                        styles.locationButton,
+                        {
+                          borderColor: colors.tint,
+                          marginTop: 0,
+                        },
+                        isLocatingTradePoint && styles.archiveButtonDisabled,
+                      ]}
+                    >
+                      <ThemedText
+                        style={{ color: colors.tint, fontWeight: "700" }}
+                      >
+                        {isLocatingTradePoint
+                          ? t("productsMapLocating")
+                          : form.mapCoords
+                            ? t("productsMapUpdateFromCurrent")
+                            : t("productsMapUseCurrent")}
                       </ThemedText>
                     </Pressable>
                   </View>
+
+                  <ThemedText style={styles.fieldLabel}>
+                    {t("productsFieldNearbyLandmarks")}
+                  </ThemedText>
                   <TextInput
-                    value={row.label}
-                    onChangeText={(value) =>
-                      updatePreferredLocation(idx, "label", value)
+                    value={form.nearbyLandmarks}
+                    onChangeText={(nearbyLandmarks) =>
+                      setForm((prev) => ({ ...prev, nearbyLandmarks }))
                     }
                     style={[
                       styles.input,
                       { color: colors.text, borderColor: colors.icon + "66" },
                     ]}
-                    placeholder={t("productsPlaceholderPreferredLocationLabel")}
+                    placeholder={t("productsPlaceholderNearbyLandmarks")}
                     placeholderTextColor={colors.icon}
                   />
+
+                  <ThemedText style={styles.fieldLabel}>
+                    {t("productsFieldPreferredTradeTime")}
+                  </ThemedText>
                   <TextInput
-                    value={row.address}
-                    onChangeText={(value) =>
-                      updatePreferredLocation(idx, "address", value)
+                    value={form.preferredTradeTime}
+                    onChangeText={(preferredTradeTime) =>
+                      setForm((prev) => ({ ...prev, preferredTradeTime }))
                     }
                     style={[
                       styles.input,
                       { color: colors.text, borderColor: colors.icon + "66" },
                     ]}
-                    placeholder={t("productsPlaceholderPreferredLocationAddress")}
+                    placeholder={t("productsPlaceholderPreferredTradeTime")}
                     placeholderTextColor={colors.icon}
                   />
-                  {parseOptionalNumber(row.latitude) != null &&
-                  parseOptionalNumber(row.longitude) != null ? (
-                    <>
-                      <View
-                        style={[
-                          styles.preferredStaticMapWrap,
-                          { borderColor: colors.icon + "44" },
-                        ]}
-                      >
-                        <WebView
-                          key={`pl-static-${row.id}-${row.latitude}-${row.longitude}`}
-                          style={styles.preferredStaticMap}
-                          originWhitelist={["*"]}
-                          source={{
-                            html: buildLeafletStaticViewHtml(
-                              parseOptionalNumber(row.latitude)!,
-                              parseOptionalNumber(row.longitude)!,
-                            ),
-                          }}
-                          scrollEnabled={false}
-                          nestedScrollEnabled={false}
-                        />
-                      </View>
-                      <ThemedText style={styles.preferredCoordSummary}>
-                        {t("productsFieldLatitude")}:{" "}
-                        {parseOptionalNumber(row.latitude)!.toFixed(6)}{" "}
-                        {t("productsFieldLongitude")}:{" "}
-                        {parseOptionalNumber(row.longitude)!.toFixed(6)}
-                      </ThemedText>
-                    </>
-                  ) : (
-                    <ThemedText style={styles.preferredNoPin}>
-                      {t("productsPreferredLocationNoPin")}
-                    </ThemedText>
-                  )}
+
+                  <ThemedText style={styles.fieldLabel}>
+                    {t("productsFieldMapScreenshotUrl")}
+                  </ThemedText>
                   <Pressable
-                    onPress={() => openPreferredLocationMap(idx)}
+                    onPress={() => void pickMapScreenshot()}
                     style={[
                       styles.preferredMapPickButton,
                       { borderColor: colors.tint },
@@ -1777,111 +1667,40 @@ export function ProductListScreen() {
                     <ThemedText
                       style={{ color: colors.tint, fontWeight: "700" }}
                     >
-                      {t("productsPreferredLocationPickMap")}
+                      {t("productsPickMapScreenshot")}
                     </ThemedText>
                   </Pressable>
-                  {parseOptionalNumber(row.latitude) != null &&
-                  parseOptionalNumber(row.longitude) != null ? (
-                    <Pressable
-                      onPress={() => clearPreferredLocationPin(idx)}
-                      style={styles.preferredClearPin}
-                    >
-                      <ThemedText style={styles.preferredClearPinText}>
-                        {t("productsPreferredLocationClearPin")}
+                  {form.mapScreenshotFile ? (
+                    <>
+                      <ThemedText style={styles.coordSummary}>
+                        {tf("productsSelectedMapScreenshot", {
+                          name: form.mapScreenshotFile.name,
+                        })}
                       </ThemedText>
-                    </Pressable>
-                  ) : null}
-                </View>
-              ))}
-
-              <ThemedText style={styles.fieldLabel}>
-                {t("productsFieldImages")}
-              </ThemedText>
-              <Pressable
-                onPress={() => void pickProductImages()}
-                style={[
-                  styles.preferredMapPickButton,
-                  { borderColor: colors.tint },
-                ]}
-              >
-                <ThemedText style={{ color: colors.tint, fontWeight: "700" }}>
-                  {t("productsPickImages")}
-                </ThemedText>
-              </Pressable>
-              {form.existingImageUrls.length > 0 ? (
-                <>
-                  <ThemedText style={styles.coordSummary}>
-                    {tf("productsExistingImagesCount", {
-                      count: form.existingImageUrls.length,
-                    })}
-                  </ThemedText>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.selectedImagesStrip}
-                  >
-                    {form.existingImageUrls.map((url, idx) => (
                       <View
-                        key={`existing-${url}-${idx}`}
                         style={[
-                          styles.selectedImageCard,
+                          styles.mapScreenshotPreview,
                           { borderColor: colors.icon + "55" },
                         ]}
                       >
                         <Image
-                          source={{ uri: toAbsoluteMediaUrl(url) }}
-                          style={styles.selectedImageThumb}
-                          resizeMode="cover"
-                        />
-                        <View style={styles.selectedImageMetaRow}>
-                          <ThemedText style={styles.selectedImageName}>
-                            {idx + 1}/{form.existingImageUrls.length}
-                          </ThemedText>
-                        </View>
-                      </View>
-                    ))}
-                  </ScrollView>
-                </>
-              ) : null}
-              {form.imageFiles.length > 0 ? (
-                <>
-                  <ThemedText style={styles.coordSummary}>
-                    {tf("productsSelectedImagesCount", {
-                      count: form.imageFiles.length,
-                    })}
-                  </ThemedText>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.selectedImagesStrip}
-                  >
-                    {form.imageFiles.map((file, idx) => (
-                      <View
-                        key={`${file.uri}-${idx}`}
-                        style={[
-                          styles.selectedImageCard,
-                          { borderColor: colors.icon + "55" },
-                        ]}
-                      >
-                        <Image
-                          source={{ uri: file.uri }}
-                          style={styles.selectedImageThumb}
-                          resizeMode="cover"
+                          source={{ uri: form.mapScreenshotFile.uri }}
+                          style={styles.mapScreenshotPreviewImage}
+                          resizeMode="contain"
                         />
                         <View style={styles.selectedImageMetaRow}>
                           <ThemedText
                             numberOfLines={1}
                             style={styles.selectedImageName}
                           >
-                            {file.name}
+                            {form.mapScreenshotFile.name}
                           </ThemedText>
                           <Pressable
+                            accessibilityLabel={t("productsClearMapScreenshot")}
                             onPress={() =>
                               setForm((prev) => ({
                                 ...prev,
-                                imageFiles: prev.imageFiles.filter(
-                                  (f) => f.uri !== file.uri,
-                                ),
+                                mapScreenshotFile: null,
                               }))
                             }
                             hitSlop={8}
@@ -1892,19 +1711,301 @@ export function ProductListScreen() {
                           </Pressable>
                         </View>
                       </View>
-                    ))}
-                  </ScrollView>
-                  <Pressable
-                    onPress={() => setForm((prev) => ({ ...prev, imageFiles: [] }))}
-                    style={styles.preferredClearPin}
-                  >
-                    <ThemedText style={styles.preferredClearPinText}>
-                      {t("productsClearSelectedImages")}
-                    </ThemedText>
-                  </Pressable>
+                    </>
+                  ) : form.existingMapScreenshotUrl ? (
+                    <>
+                      <ThemedText style={styles.coordSummary}>
+                        {t("productsExistingMapScreenshot")}
+                      </ThemedText>
+                      <View
+                        style={[
+                          styles.mapScreenshotPreview,
+                          { borderColor: colors.icon + "55" },
+                        ]}
+                      >
+                        <Image
+                          source={{
+                            uri: toAbsoluteMediaUrl(
+                              form.existingMapScreenshotUrl,
+                            ),
+                          }}
+                          style={styles.mapScreenshotPreviewImage}
+                          resizeMode="contain"
+                        />
+                      </View>
+                    </>
+                  ) : null}
                 </>
               ) : null}
-              </>
+              {composerStep === 3 ? (
+                <>
+                  <ThemedText style={styles.fieldLabel}>
+                    {t("productsFieldPreferredLocations")}
+                  </ThemedText>
+                  <ThemedText style={styles.fieldHint}>
+                    {t("productsPreferredLocationsIntro")}
+                  </ThemedText>
+                  <View style={styles.preferredHeader}>
+                    <Pressable
+                      onPress={addPreferredLocation}
+                      disabled={
+                        form.preferredLocations.length >=
+                        MAX_PREFERRED_LOCATIONS
+                      }
+                      style={[
+                        styles.addPreferredButton,
+                        { borderColor: colors.tint },
+                        form.preferredLocations.length >=
+                          MAX_PREFERRED_LOCATIONS &&
+                          styles.archiveButtonDisabled,
+                      ]}
+                    >
+                      <ThemedText
+                        style={{ color: colors.tint, fontWeight: "700" }}
+                      >
+                        {t("productsPreferredLocationAdd")}
+                      </ThemedText>
+                    </Pressable>
+                  </View>
+                  {form.preferredLocations.map((row, idx) => (
+                    <View
+                      key={row.id}
+                      style={[
+                        styles.preferredCard,
+                        { borderColor: colors.icon + "55" },
+                      ]}
+                    >
+                      <View style={styles.preferredCardHeader}>
+                        <ThemedText style={styles.preferredCardTitle}>
+                          {t("productsFieldPreferredLocationItem")} #{idx + 1}
+                        </ThemedText>
+                        <Pressable
+                          onPress={() => removePreferredLocation(idx)}
+                          disabled={form.preferredLocations.length <= 1}
+                          style={[
+                            styles.preferredRemoveBtn,
+                            form.preferredLocations.length <= 1 &&
+                              styles.preferredRemoveDisabled,
+                          ]}
+                        >
+                          <ThemedText style={styles.preferredRemoveText}>
+                            {t("productsPreferredLocationRemove")}
+                          </ThemedText>
+                        </Pressable>
+                      </View>
+                      <TextInput
+                        value={row.label}
+                        onChangeText={(value) =>
+                          updatePreferredLocation(idx, "label", value)
+                        }
+                        style={[
+                          styles.input,
+                          {
+                            color: colors.text,
+                            borderColor: colors.icon + "66",
+                          },
+                        ]}
+                        placeholder={t(
+                          "productsPlaceholderPreferredLocationLabel",
+                        )}
+                        placeholderTextColor={colors.icon}
+                      />
+                      <TextInput
+                        value={row.address}
+                        onChangeText={(value) =>
+                          updatePreferredLocation(idx, "address", value)
+                        }
+                        style={[
+                          styles.input,
+                          {
+                            color: colors.text,
+                            borderColor: colors.icon + "66",
+                          },
+                        ]}
+                        placeholder={t(
+                          "productsPlaceholderPreferredLocationAddress",
+                        )}
+                        placeholderTextColor={colors.icon}
+                      />
+                      {parseOptionalNumber(row.latitude) != null &&
+                      parseOptionalNumber(row.longitude) != null ? (
+                        <>
+                          <View
+                            style={[
+                              styles.preferredStaticMapWrap,
+                              { borderColor: colors.icon + "44" },
+                            ]}
+                          >
+                            <WebView
+                              key={`pl-static-${row.id}-${row.latitude}-${row.longitude}`}
+                              style={styles.preferredStaticMap}
+                              originWhitelist={["*"]}
+                              source={{
+                                html: buildLeafletStaticViewHtml(
+                                  parseOptionalNumber(row.latitude)!,
+                                  parseOptionalNumber(row.longitude)!,
+                                ),
+                              }}
+                              scrollEnabled={false}
+                              nestedScrollEnabled={false}
+                            />
+                          </View>
+                          <ThemedText style={styles.preferredCoordSummary}>
+                            {t("productsFieldLatitude")}:{" "}
+                            {parseOptionalNumber(row.latitude)!.toFixed(6)}{" "}
+                            {t("productsFieldLongitude")}:{" "}
+                            {parseOptionalNumber(row.longitude)!.toFixed(6)}
+                          </ThemedText>
+                        </>
+                      ) : (
+                        <ThemedText style={styles.preferredNoPin}>
+                          {t("productsPreferredLocationNoPin")}
+                        </ThemedText>
+                      )}
+                      <Pressable
+                        onPress={() => openPreferredLocationMap(idx)}
+                        style={[
+                          styles.preferredMapPickButton,
+                          { borderColor: colors.tint },
+                        ]}
+                      >
+                        <ThemedText
+                          style={{ color: colors.tint, fontWeight: "700" }}
+                        >
+                          {t("productsPreferredLocationPickMap")}
+                        </ThemedText>
+                      </Pressable>
+                      {parseOptionalNumber(row.latitude) != null &&
+                      parseOptionalNumber(row.longitude) != null ? (
+                        <Pressable
+                          onPress={() => clearPreferredLocationPin(idx)}
+                          style={styles.preferredClearPin}
+                        >
+                          <ThemedText style={styles.preferredClearPinText}>
+                            {t("productsPreferredLocationClearPin")}
+                          </ThemedText>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  ))}
+
+                  <ThemedText style={styles.fieldLabel}>
+                    {t("productsFieldImages")}
+                  </ThemedText>
+                  <Pressable
+                    onPress={() => void pickProductImages()}
+                    style={[
+                      styles.preferredMapPickButton,
+                      { borderColor: colors.tint },
+                    ]}
+                  >
+                    <ThemedText
+                      style={{ color: colors.tint, fontWeight: "700" }}
+                    >
+                      {t("productsPickImages")}
+                    </ThemedText>
+                  </Pressable>
+                  {form.existingImageUrls.length > 0 ? (
+                    <>
+                      <ThemedText style={styles.coordSummary}>
+                        {tf("productsExistingImagesCount", {
+                          count: form.existingImageUrls.length,
+                        })}
+                      </ThemedText>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        style={styles.selectedImagesStrip}
+                      >
+                        {form.existingImageUrls.map((url, idx) => (
+                          <View
+                            key={`existing-${url}-${idx}`}
+                            style={[
+                              styles.selectedImageCard,
+                              { borderColor: colors.icon + "55" },
+                            ]}
+                          >
+                            <Image
+                              source={{ uri: toAbsoluteMediaUrl(url) }}
+                              style={styles.selectedImageThumb}
+                              resizeMode="cover"
+                            />
+                            <View style={styles.selectedImageMetaRow}>
+                              <ThemedText style={styles.selectedImageName}>
+                                {idx + 1}/{form.existingImageUrls.length}
+                              </ThemedText>
+                            </View>
+                          </View>
+                        ))}
+                      </ScrollView>
+                    </>
+                  ) : null}
+                  {form.imageFiles.length > 0 ? (
+                    <>
+                      <ThemedText style={styles.coordSummary}>
+                        {tf("productsSelectedImagesCount", {
+                          count: form.imageFiles.length,
+                        })}
+                      </ThemedText>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        style={styles.selectedImagesStrip}
+                      >
+                        {form.imageFiles.map((file, idx) => (
+                          <View
+                            key={`${file.uri}-${idx}`}
+                            style={[
+                              styles.selectedImageCard,
+                              { borderColor: colors.icon + "55" },
+                            ]}
+                          >
+                            <Image
+                              source={{ uri: file.uri }}
+                              style={styles.selectedImageThumb}
+                              resizeMode="cover"
+                            />
+                            <View style={styles.selectedImageMetaRow}>
+                              <ThemedText
+                                numberOfLines={1}
+                                style={styles.selectedImageName}
+                              >
+                                {file.name}
+                              </ThemedText>
+                              <Pressable
+                                onPress={() =>
+                                  setForm((prev) => ({
+                                    ...prev,
+                                    imageFiles: prev.imageFiles.filter(
+                                      (f) => f.uri !== file.uri,
+                                    ),
+                                  }))
+                                }
+                                hitSlop={8}
+                              >
+                                <ThemedText
+                                  style={styles.preferredClearPinText}
+                                >
+                                  ×
+                                </ThemedText>
+                              </Pressable>
+                            </View>
+                          </View>
+                        ))}
+                      </ScrollView>
+                      <Pressable
+                        onPress={() =>
+                          setForm((prev) => ({ ...prev, imageFiles: [] }))
+                        }
+                        style={styles.preferredClearPin}
+                      >
+                        <ThemedText style={styles.preferredClearPinText}>
+                          {t("productsClearSelectedImages")}
+                        </ThemedText>
+                      </Pressable>
+                    </>
+                  ) : null}
+                </>
               ) : null}
             </ScrollView>
             <View style={styles.composerFooter}>
@@ -1919,7 +2020,10 @@ export function ProductListScreen() {
                   ]}
                 >
                   <ThemedText
-                    style={[styles.composerNavButtonText, { color: colors.text }]}
+                    style={[
+                      styles.composerNavButtonText,
+                      { color: colors.text },
+                    ]}
                   >
                     {t("productsComposerBack")}
                   </ThemedText>
@@ -1944,7 +2048,9 @@ export function ProductListScreen() {
               ) : (
                 <Pressable
                   onPress={onSave}
-                  disabled={createMutation.isPending || updateMutation.isPending}
+                  disabled={
+                    createMutation.isPending || updateMutation.isPending
+                  }
                   style={({ pressed }) => [
                     styles.composerNavButton,
                     styles.composerNavPrimary,

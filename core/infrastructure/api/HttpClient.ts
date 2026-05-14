@@ -138,6 +138,35 @@ function ensureMultipartForFormData(
   }
 }
 
+function mergeQueryIntoUrl(url: string, params?: unknown): string {
+  if (params == null || typeof params !== "object" || Array.isArray(params)) {
+    return url;
+  }
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params as Record<string, unknown>)) {
+    if (v == null) continue;
+    q.append(k, String(v));
+  }
+  const qs = q.toString();
+  if (!qs) return url;
+  return url.includes("?") ? `${url}&${qs}` : `${url}?${qs}`;
+}
+
+function headersToPlainStrings(
+  headers?: AxiosRequestConfig["headers"],
+): Record<string, string> {
+  if (!headers) return {};
+  const raw = toPlainObject(headers);
+  if (raw == null || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (v == null) continue;
+    if (k.toLowerCase() === "content-type") continue;
+    out[k] = String(v);
+  }
+  return out;
+}
+
 export class HttpClient {
   private client: AxiosInstance;
   private onUnauthorized?: OnUnauthorizedCallback;
@@ -162,7 +191,10 @@ export class HttpClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
 
-        if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+        if (
+          typeof FormData !== "undefined" &&
+          config.data instanceof FormData
+        ) {
           config.headers = config.headers ?? {};
           ensureMultipartForFormData(config.headers);
         }
@@ -254,6 +286,119 @@ export class HttpClient {
     this.onUnauthorized = callback;
   }
 
+  /**
+   * React Native + Axios XHR/fetch adapters still mishandle multipart often
+   * (urlencoded fallback, `Network request failed`). Native `fetch` with
+   * FormData and no Content-Type is the reliable path; keep axios everywhere else.
+   */
+  private async requestMultipartWithNativeFetch<T>(
+    method: "POST" | "PATCH",
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig,
+  ): Promise<T> {
+    const baseURL = this.client.defaults.baseURL ?? API_CONFIG.BASE_URL;
+    const joined = joinUrl(baseURL, url) ?? url;
+    const fullUrl = mergeQueryIntoUrl(joined, config?.params);
+    const startedAt = Date.now();
+    const requestId = `${startedAt}-${Math.random().toString(16).slice(2)}`;
+
+    const headers: Record<string, string> = {
+      Accept: "application/json, text/plain, */*",
+      ...headersToPlainStrings(config?.headers),
+    };
+    const token = await TokenStorage.getAccessToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    if (shouldLogHttp()) {
+      console.log("[HTTP →]", {
+        requestId,
+        method,
+        transport: "fetch-multipart",
+        baseURL,
+        url,
+        fullUrl,
+        params: safeJson(redact(toPlainObject(config?.params))),
+        headers: safeJson(redact(toPlainObject(headers))),
+        data: safeJson(redact(toPlainObject(data))),
+      });
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(fullUrl, {
+        method,
+        headers,
+        body: data as BodyInit | null | undefined,
+      });
+    } catch (error) {
+      if (shouldLogHttp()) {
+        console.log("[HTTP ✕]", {
+          requestId,
+          method,
+          transport: "fetch-multipart",
+          url,
+          fullUrl,
+          elapsedMs: Date.now() - startedAt,
+          errorCode: "ERR_NETWORK",
+          errorMessage:
+            error instanceof Error ? error.message : "Network request failed",
+          requestHeaders: safeJson(redact(toPlainObject(headers))),
+          requestParams: safeJson(redact(toPlainObject(config?.params))),
+          requestData: safeJson(redact(toPlainObject(data))),
+          status: undefined,
+          statusText: undefined,
+        });
+      }
+      throw error;
+    }
+
+    const elapsedMs = Date.now() - startedAt;
+    const rawText = await response.text();
+    let parsed: unknown = rawText;
+    try {
+      parsed = rawText ? JSON.parse(rawText) : null;
+    } catch {
+      // non-JSON body
+    }
+
+    if (shouldLogHttp()) {
+      const responseHeaders: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        responseHeaders[key] = value;
+      });
+      console.log(response.ok ? "[HTTP ←]" : "[HTTP ✕]", {
+        requestId,
+        method,
+        transport: "fetch-multipart",
+        url,
+        fullUrl,
+        elapsedMs,
+        status: response.status,
+        statusText: response.statusText,
+        responseHeaders: safeJson(redact(responseHeaders)),
+        data: safeJson(redact(toPlainObject(parsed))),
+      });
+    }
+
+    if (response.status === 401) {
+      await TokenStorage.clearTokens();
+      this.onUnauthorized?.();
+    }
+    if (!response.ok) {
+      const err = new Error(
+        `Request failed with status ${response.status} ${response.statusText}`,
+      ) as Error & { response?: unknown };
+      err.response = {
+        status: response.status,
+        statusText: response.statusText,
+        data: parsed,
+      };
+      throw err;
+    }
+    return unwrap<T>(parsed);
+  }
+
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const res: AxiosResponse = await this.client.get(url, config);
     return unwrap<T>(res.data);
@@ -274,14 +419,7 @@ export class HttpClient {
     data?: unknown,
     config?: AxiosRequestConfig,
   ): Promise<T> {
-    const res: AxiosResponse = await this.client.post(url, data, {
-      ...config,
-      // Use axios fetch adapter for RN multipart to avoid XHR urlencoded coercion.
-      adapter: "fetch",
-      // Keep RN FormData untouched.
-      transformRequest: [(body) => body],
-    });
-    return unwrap<T>(res.data);
+    return this.requestMultipartWithNativeFetch("POST", url, data, config);
   }
 
   async put<T>(
@@ -307,14 +445,7 @@ export class HttpClient {
     data?: unknown,
     config?: AxiosRequestConfig,
   ): Promise<T> {
-    const res: AxiosResponse = await this.client.patch(url, data, {
-      ...config,
-      // Use axios fetch adapter for RN multipart to avoid XHR urlencoded coercion.
-      adapter: "fetch",
-      // Keep RN FormData untouched.
-      transformRequest: [(body) => body],
-    });
-    return unwrap<T>(res.data);
+    return this.requestMultipartWithNativeFetch("PATCH", url, data, config);
   }
 
   async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
