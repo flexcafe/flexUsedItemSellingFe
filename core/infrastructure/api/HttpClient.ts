@@ -79,27 +79,62 @@ function shouldLogHttp(): boolean {
   return dev && flag !== "0";
 }
 
+function readContentType(
+  headers: NonNullable<AxiosRequestConfig["headers"]>,
+): string {
+  const h = headers as {
+    get?: (name: string) => unknown;
+    setContentType?: (value: unknown, rewrite?: boolean) => unknown;
+  } & Record<string, unknown>;
+  const hasSetContentType = typeof h.setContentType === "function";
+  // AxiosHeaders may store disabled content-type as boolean false.
+  if (hasSetContentType && h["Content-Type"] === false) return "";
+  const fromGet = h.get?.("Content-Type");
+  if (fromGet != null) return String(fromGet);
+  const v = h["Content-Type"] ?? h["content-type"];
+  return v != null ? String(v) : "";
+}
+
+function deleteContentType(
+  headers: NonNullable<AxiosRequestConfig["headers"]>,
+): void {
+  const h = headers as { delete?: (name: string) => boolean };
+  if (typeof h.delete === "function") {
+    h.delete("Content-Type");
+    return;
+  }
+  const raw = headers as Record<string, unknown>;
+  delete raw["Content-Type"];
+  delete raw["content-type"];
+}
+
 /**
- * Axios defaults use application/json. For FormData, transformRequest must not
- * treat the body as JSON, and dispatchRequest must not fill in
- * application/x-www-form-urlencoded when Content-Type is missing (axios 1.x
- * does that for post/put/patch). RN then sends multipart with a proper boundary.
+ * Axios instance defaults to application/json. For React Native `FormData`,
+ * you must not send `Content-Type: multipart/form-data` without a boundary —
+ * that often surfaces as `ERR_NETWORK` with no HTTP status. Remove the wrong
+ * default so the native stack / axios sets `multipart/form-data; boundary=…`.
  */
 function ensureMultipartForFormData(
   headers: NonNullable<AxiosRequestConfig["headers"]>,
 ): void {
   const h = headers as {
-    get?: (name: string) => unknown;
-    set?: (name: string, value: string, rewrite?: boolean) => void;
+    setContentType?: (value: unknown, rewrite?: boolean) => unknown;
   };
-  const raw = h.get?.("Content-Type");
-  const ct = (raw != null ? String(raw) : "").toLowerCase();
-  const needsMultipart =
+  if (typeof h.setContentType === "function") {
+    // Critical for axios RN adapters: prevent fallback to
+    // application/x-www-form-urlencoded for FormData requests.
+    h.setContentType(false, true);
+    return;
+  }
+
+  const ct = readContentType(headers).toLowerCase();
+  const strip =
     ct.length === 0 ||
     ct.includes("application/json") ||
-    ct.includes("application/x-www-form-urlencoded");
-  if (needsMultipart && typeof h.set === "function") {
-    h.set("Content-Type", "multipart/form-data", true);
+    ct.includes("application/x-www-form-urlencoded") ||
+    (ct.includes("multipart/form-data") && !ct.includes("boundary"));
+  if (strip) {
+    deleteContentType(headers);
   }
 }
 
@@ -127,11 +162,8 @@ export class HttpClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
 
-        if (
-          typeof FormData !== "undefined" &&
-          config.data instanceof FormData &&
-          config.headers
-        ) {
+        if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+          config.headers = config.headers ?? {};
           ensureMultipartForFormData(config.headers);
         }
 
@@ -158,8 +190,9 @@ export class HttpClient {
     this.client.interceptors.response.use(
       (response) => {
         if (shouldLogHttp()) {
-          const meta = (response.config as AxiosRequestConfig & { metadata?: unknown })
-            .metadata as { startedAt?: number; requestId?: string } | undefined;
+          const meta = (
+            response.config as AxiosRequestConfig & { metadata?: unknown }
+          ).metadata as { startedAt?: number; requestId?: string } | undefined;
           const elapsedMs =
             meta?.startedAt != null ? Date.now() - meta.startedAt : undefined;
 
@@ -178,8 +211,12 @@ export class HttpClient {
       },
       async (error) => {
         if (shouldLogHttp()) {
-          const cfg = (error?.config ?? {}) as AxiosRequestConfig & { metadata?: unknown };
-          const meta = cfg.metadata as { startedAt?: number; requestId?: string } | undefined;
+          const cfg = (error?.config ?? {}) as AxiosRequestConfig & {
+            metadata?: unknown;
+          };
+          const meta = cfg.metadata as
+            | { startedAt?: number; requestId?: string }
+            | undefined;
           const elapsedMs =
             meta?.startedAt != null ? Date.now() - meta.startedAt : undefined;
 
@@ -196,8 +233,12 @@ export class HttpClient {
             requestData: safeJson(redact(toPlainObject(cfg.data))),
             status: error?.response?.status,
             statusText: error?.response?.statusText,
-            responseHeaders: safeJson(redact(toPlainObject(error?.response?.headers))),
-            responseData: safeJson(redact(toPlainObject(error?.response?.data))),
+            responseHeaders: safeJson(
+              redact(toPlainObject(error?.response?.headers)),
+            ),
+            responseData: safeJson(
+              redact(toPlainObject(error?.response?.data)),
+            ),
           });
         }
         if (error.response?.status === 401) {
@@ -233,7 +274,13 @@ export class HttpClient {
     data?: unknown,
     config?: AxiosRequestConfig,
   ): Promise<T> {
-    const res: AxiosResponse = await this.client.postForm(url, data, config);
+    const res: AxiosResponse = await this.client.post(url, data, {
+      ...config,
+      // Use axios fetch adapter for RN multipart to avoid XHR urlencoded coercion.
+      adapter: "fetch",
+      // Keep RN FormData untouched.
+      transformRequest: [(body) => body],
+    });
     return unwrap<T>(res.data);
   }
 
@@ -260,7 +307,13 @@ export class HttpClient {
     data?: unknown,
     config?: AxiosRequestConfig,
   ): Promise<T> {
-    const res: AxiosResponse = await this.client.patchForm(url, data, config);
+    const res: AxiosResponse = await this.client.patch(url, data, {
+      ...config,
+      // Use axios fetch adapter for RN multipart to avoid XHR urlencoded coercion.
+      adapter: "fetch",
+      // Keep RN FormData untouched.
+      transformRequest: [(body) => body],
+    });
     return unwrap<T>(res.data);
   }
 

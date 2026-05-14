@@ -48,6 +48,7 @@ import {
   productConditionLabelKey,
   useLocale,
 } from "@/presentation/providers/LocaleProvider";
+import { File, Paths } from "expo-file-system";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -614,6 +615,41 @@ export function ProductListScreen() {
     [t],
   );
 
+  const toUploadReadyAsset = useCallback(
+    async (
+      asset: ImagePicker.ImagePickerAsset,
+    ): Promise<ImagePicker.ImagePickerAsset | null> => {
+      const uri = asset.uri?.trim();
+      if (!uri) return null;
+      if (Platform.OS !== "android" || !uri.startsWith("content://")) {
+        return asset;
+      }
+
+      const mime = asset.mimeType ?? "";
+      const extFromName = asset.fileName?.split(".").pop()?.toLowerCase();
+      const ext =
+        extFromName ||
+        (mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg");
+      const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const fileName = `upload-${stamp}.${ext}`;
+
+      try {
+        const source = new File(uri);
+        const destination = new File(Paths.cache, fileName);
+        source.copy(destination);
+        return {
+          ...asset,
+          uri: destination.uri,
+          fileName,
+        };
+      } catch {
+        Alert.alert(t("productsErrorRequestTitle"), t("productsErrorRequestBody"));
+        return null;
+      }
+    },
+    [t],
+  );
+
   const pickProductImages = useCallback(async () => {
     const ok = await requestMediaPermission();
     if (!ok) return;
@@ -632,7 +668,9 @@ export function ProductListScreen() {
     if (result.canceled) return;
     const selected: UploadFile[] = [];
     for (const asset of result.assets) {
-      const file = ensureValidImageAsset(asset);
+      const uploadReadyAsset = await toUploadReadyAsset(asset);
+      if (!uploadReadyAsset) return;
+      const file = ensureValidImageAsset(uploadReadyAsset);
       if (!file) return;
       selected.push(file);
     }
@@ -645,7 +683,7 @@ export function ProductListScreen() {
         imageFiles: merged,
       };
     });
-  }, [ensureValidImageAsset, form.existingImageUrls.length, form.imageFiles.length, requestMediaPermission, t]);
+  }, [ensureValidImageAsset, form.existingImageUrls.length, form.imageFiles.length, requestMediaPermission, t, toUploadReadyAsset]);
 
   const pickMapScreenshot = useCallback(async () => {
     const ok = await requestMediaPermission();
@@ -657,13 +695,15 @@ export function ProductListScreen() {
       allowsMultipleSelection: false,
     });
     if (result.canceled) return;
-    const file = ensureValidImageAsset(result.assets[0]);
+    const uploadReadyAsset = await toUploadReadyAsset(result.assets[0]);
+    if (!uploadReadyAsset) return;
+    const file = ensureValidImageAsset(uploadReadyAsset);
     if (!file) return;
     setForm((prev) => ({
       ...prev,
       mapScreenshotFile: file,
     }));
-  }, [ensureValidImageAsset, requestMediaPermission]);
+  }, [ensureValidImageAsset, requestMediaPermission, toUploadReadyAsset]);
 
   useEffect(() => {
     if (!composerVisible && categories.length > 0 && !form.categoryId) {

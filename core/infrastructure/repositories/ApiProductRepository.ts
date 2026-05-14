@@ -1,22 +1,20 @@
-import type {
-  IProductRepository,
-} from "@/core/domain/repositories/IProductRepository";
-import type { Product } from "@/core/domain/entities/Product";
 import type { ProductDto } from "@/core/application/dtos/ProductDto";
-import type { PaginationParams } from "@/core/domain/types";
-import type {
-  ClientProductCatalogPage,
-  ClientProductListParams,
-  ProductDeleteInput,
-  ProductCreateInput,
-  ProductStatus,
-  ProductUpdateInput,
-} from "@/core/domain/types/product";
 import {
   mapClientProductCatalogPage,
   toProduct,
   type ProductApiResponse,
 } from "@/core/application/mappers/ProductMapper";
+import type { Product } from "@/core/domain/entities/Product";
+import type { IProductRepository } from "@/core/domain/repositories/IProductRepository";
+import type { PaginationParams } from "@/core/domain/types";
+import type {
+  ClientProductCatalogPage,
+  ClientProductListParams,
+  ProductCreateInput,
+  ProductDeleteInput,
+  ProductStatus,
+  ProductUpdateInput,
+} from "@/core/domain/types/product";
 import type { HttpClient } from "../api/HttpClient";
 import { API_ENDPOINTS } from "../api/constants";
 
@@ -139,7 +137,11 @@ function buildProductFormData(
     form.append(`preferredLocations[${idx}][label]`, loc.label);
     form.append(`preferredLocations[${idx}][address]`, loc.address);
     appendIfDefined(form, `preferredLocations[${idx}][latitude]`, loc.latitude);
-    appendIfDefined(form, `preferredLocations[${idx}][longitude]`, loc.longitude);
+    appendIfDefined(
+      form,
+      `preferredLocations[${idx}][longitude]`,
+      loc.longitude,
+    );
   }
 
   for (const file of data.imageFiles ?? []) {
@@ -178,22 +180,32 @@ export class ApiProductRepository implements IProductRepository {
   async getClientList(
     params?: ClientProductListParams,
   ): Promise<ClientProductCatalogPage> {
-    const res = await this.http.get<unknown>(API_ENDPOINTS.CLIENT_PRODUCTS.LIST, {
-      params: buildClientProductQuery(params),
-    });
+    const res = await this.http.get<unknown>(
+      API_ENDPOINTS.CLIENT_PRODUCTS.LIST,
+      {
+        params: buildClientProductQuery(params),
+      },
+    );
     return mapClientProductCatalogPage(res);
   }
 
-  async getMyList(params?: PaginationParams): Promise<ClientProductCatalogPage> {
-    const res = await this.http.get<unknown>(API_ENDPOINTS.CLIENT_PRODUCTS.MY_LIST, {
-      params: buildPaginationQuery(params),
-    });
+  async getMyList(
+    params?: PaginationParams,
+  ): Promise<ClientProductCatalogPage> {
+    const res = await this.http.get<unknown>(
+      API_ENDPOINTS.CLIENT_PRODUCTS.MY_LIST,
+      {
+        params: buildPaginationQuery(params),
+      },
+    );
     return mapClientProductCatalogPage(res);
   }
 
   async getMyById(id: string): Promise<Product | null> {
     try {
-      const dto = await this.http.get<unknown>(API_ENDPOINTS.CLIENT_PRODUCTS.MY_BY_ID(id));
+      const dto = await this.http.get<unknown>(
+        API_ENDPOINTS.CLIENT_PRODUCTS.MY_BY_ID(id),
+      );
       return asProductOrNull(dto);
     } catch {
       return null;
@@ -202,7 +214,9 @@ export class ApiProductRepository implements IProductRepository {
 
   async getById(id: string): Promise<Product | null> {
     try {
-      const dto = await this.http.get<unknown>(API_ENDPOINTS.CLIENT_PRODUCTS.BY_ID(id));
+      const dto = await this.http.get<unknown>(
+        API_ENDPOINTS.CLIENT_PRODUCTS.BY_ID(id),
+      );
       return asProductOrNull(dto);
     } catch {
       return null;
@@ -246,10 +260,14 @@ export class ApiProductRepository implements IProductRepository {
   }
 
   async deleteMy(id: string, data: ProductDeleteInput): Promise<boolean> {
-    const res = await this.http.delete<unknown>(API_ENDPOINTS.CLIENT_PRODUCTS.DELETE(id), {
-      data,
-    });
-    if (res == null || typeof res !== "object" || Array.isArray(res)) return false;
+    const res = await this.http.delete<unknown>(
+      API_ENDPOINTS.CLIENT_PRODUCTS.DELETE(id),
+      {
+        data,
+      },
+    );
+    if (res == null || typeof res !== "object" || Array.isArray(res))
+      return false;
     const r = res as Record<string, unknown>;
     return r.deleted === true;
   }
