@@ -1,5 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import type { LocationGeocodedAddress } from "expo-location";
 import {
   ActivityIndicator,
   Alert,
@@ -137,6 +138,29 @@ function normalizeUploadFile(
   const type = inferUploadType(asset.mimeType, name);
   if (!type) return null;
   return { uri, name, type };
+}
+
+/** Single-line address from Expo reverse geocode (user can edit in the form). */
+function formatGeocodedAddress(a: LocationGeocodedAddress): string {
+  const parts: string[] = [];
+  const name = a.name?.trim();
+  const streetLine = [a.streetNumber?.trim(), a.street?.trim()]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  const locality = [a.district?.trim(), a.city?.trim(), a.subregion?.trim()]
+    .filter(Boolean)
+    .join(", ");
+  const admin = [a.region?.trim(), a.postalCode?.trim()].filter(Boolean).join(" ");
+  const country = a.country?.trim();
+
+  if (name && name !== streetLine) parts.push(name);
+  if (streetLine) parts.push(streetLine);
+  if (locality) parts.push(locality);
+  if (admin) parts.push(admin);
+  if (country) parts.push(country);
+
+  return parts.join(", ");
 }
 
 function toPreferredLocationForm(raw: unknown): PreferredLocationForm | null {
@@ -375,6 +399,13 @@ export function ProductListScreen() {
   );
   const [isLocatingMapPicker, setIsLocatingMapPicker] = useState(false);
   const mapPickerRef = useRef<MapPickerTarget | null>(null);
+  const mapPickerCoordsRef = useRef<LocationCoords | null>(null);
+  const directTradeGeocodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const preferredGeocodeTimersRef = useRef<
+    Map<number, ReturnType<typeof setTimeout>>
+  >(new Map());
   const detailQuery = useProduct(detailId);
   const [form, setForm] = useState<ProductFormState>(() => ({
     ...EMPTY_FORM,
@@ -393,6 +424,21 @@ export function ProductListScreen() {
     mapPickerRef.current = mapPicker;
   }, [mapPicker]);
 
+  useEffect(() => {
+    mapPickerCoordsRef.current = mapPickerCoords;
+  }, [mapPickerCoords]);
+
+  useEffect(() => {
+    const preferredTimers = preferredGeocodeTimersRef.current;
+    return () => {
+      if (directTradeGeocodeTimerRef.current) {
+        clearTimeout(directTradeGeocodeTimerRef.current);
+      }
+      preferredTimers.forEach((t) => clearTimeout(t));
+      preferredTimers.clear();
+    };
+  }, []);
+
   const mapPickerHtml = useMemo(() => {
     if (!mapPickerCoords) return "";
     return buildLeafletPickerHtml(
@@ -407,11 +453,113 @@ export function ProductListScreen() {
     return buildLeafletStaticViewHtml(c.latitude, c.longitude);
   }, [form.mapCoords]);
 
-  const applyTradeCoords = useCallback((coords: LocationCoords) => {
-    setForm((prev) => ({ ...prev, mapCoords: coords }));
+  const runReverseGeocodeDirectTrade = useCallback(
+    async (coords: LocationCoords) => {
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== "granted") return;
+        const results = await Location.reverseGeocodeAsync(coords);
+        const first = results[0];
+        if (!first) return;
+        const text = formatGeocodedAddress(first).trim();
+        if (!text) return;
+        setForm((prev) => ({ ...prev, directTradeLocation: text }));
+      } catch {
+        // Reverse geocode is optional; user can type the address manually.
+      }
+    },
+    [],
+  );
+
+  const scheduleReverseGeocodeDirectTrade = useCallback(
+    (coords: LocationCoords) => {
+      if (directTradeGeocodeTimerRef.current) {
+        clearTimeout(directTradeGeocodeTimerRef.current);
+      }
+      directTradeGeocodeTimerRef.current = setTimeout(() => {
+        directTradeGeocodeTimerRef.current = null;
+        void runReverseGeocodeDirectTrade(coords);
+      }, 450);
+    },
+    [runReverseGeocodeDirectTrade],
+  );
+
+  const flushReverseGeocodeDirectTrade = useCallback(
+    (coords: LocationCoords) => {
+      if (directTradeGeocodeTimerRef.current) {
+        clearTimeout(directTradeGeocodeTimerRef.current);
+        directTradeGeocodeTimerRef.current = null;
+      }
+      void runReverseGeocodeDirectTrade(coords);
+    },
+    [runReverseGeocodeDirectTrade],
+  );
+
+  const clearPreferredGeocodeTimer = useCallback((idx: number) => {
+    const m = preferredGeocodeTimersRef.current;
+    const t = m.get(idx);
+    if (t) {
+      clearTimeout(t);
+      m.delete(idx);
+    }
   }, []);
 
+  const runReverseGeocodePreferredRow = useCallback(
+    async (idx: number, coords: LocationCoords) => {
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== "granted") return;
+        const results = await Location.reverseGeocodeAsync(coords);
+        const first = results[0];
+        if (!first) return;
+        const text = formatGeocodedAddress(first).trim();
+        if (!text) return;
+        setForm((prev) => ({
+          ...prev,
+          preferredLocations: prev.preferredLocations.map((r, i) =>
+            i === idx ? { ...r, address: text } : r,
+          ),
+        }));
+      } catch {
+        // Reverse geocode is optional; user can type the address manually.
+      }
+    },
+    [],
+  );
+
+  const scheduleReverseGeocodePreferredRow = useCallback(
+    (idx: number, coords: LocationCoords) => {
+      clearPreferredGeocodeTimer(idx);
+      const timer = setTimeout(() => {
+        preferredGeocodeTimersRef.current.delete(idx);
+        void runReverseGeocodePreferredRow(idx, coords);
+      }, 450);
+      preferredGeocodeTimersRef.current.set(idx, timer);
+    },
+    [clearPreferredGeocodeTimer, runReverseGeocodePreferredRow],
+  );
+
+  const flushReverseGeocodePreferredRow = useCallback(
+    (idx: number, coords: LocationCoords) => {
+      clearPreferredGeocodeTimer(idx);
+      void runReverseGeocodePreferredRow(idx, coords);
+    },
+    [clearPreferredGeocodeTimer, runReverseGeocodePreferredRow],
+  );
+
+  const applyTradeCoords = useCallback(
+    (coords: LocationCoords) => {
+      setForm((prev) => ({ ...prev, mapCoords: coords }));
+      scheduleReverseGeocodeDirectTrade(coords);
+    },
+    [scheduleReverseGeocodeDirectTrade],
+  );
+
   const clearDirectTradePin = useCallback(() => {
+    if (directTradeGeocodeTimerRef.current) {
+      clearTimeout(directTradeGeocodeTimerRef.current);
+      directTradeGeocodeTimerRef.current = null;
+    }
     setForm((prev) => ({ ...prev, mapCoords: null }));
   }, []);
 
@@ -444,11 +592,18 @@ export function ProductListScreen() {
   }, [applyTradeCoords, t]);
 
   const closeMapPicker = useCallback(() => {
+    const target = mapPickerRef.current;
+    const coordsSnap = mapPickerCoordsRef.current;
     mapPickerRef.current = null;
     setMapPicker(null);
     setMapPickerCoords(null);
     setIsLocatingMapPicker(false);
-  }, []);
+    if (target?.kind === "directTrade" && coordsSnap) {
+      flushReverseGeocodeDirectTrade(coordsSnap);
+    } else if (target?.kind === "preferred" && coordsSnap) {
+      flushReverseGeocodePreferredRow(target.rowIndex, coordsSnap);
+    }
+  }, [flushReverseGeocodeDirectTrade, flushReverseGeocodePreferredRow]);
 
   useEffect(() => {
     if (!composerVisible) {
@@ -492,8 +647,9 @@ export function ProductListScreen() {
         ),
       }));
       setMapPickerCoords(coords);
+      scheduleReverseGeocodePreferredRow(idx, coords);
     },
-    [],
+    [scheduleReverseGeocodePreferredRow],
   );
 
   const handleMapPickerMessage = useCallback(
@@ -557,13 +713,14 @@ export function ProductListScreen() {
   }, [applyCoordsToPreferredRow, applyTradeCoords, t]);
 
   const clearPreferredLocationPin = useCallback((idx: number) => {
+    clearPreferredGeocodeTimer(idx);
     setForm((prev) => ({
       ...prev,
       preferredLocations: prev.preferredLocations.map((r, i) =>
         i === idx ? { ...r, latitude: "", longitude: "" } : r,
       ),
     }));
-  }, []);
+  }, [clearPreferredGeocodeTimer]);
 
   const addPreferredLocation = useCallback(() => {
     setForm((prev) => {

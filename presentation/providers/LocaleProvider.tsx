@@ -1527,9 +1527,9 @@ const DICT: Dictionary = {
     zh: "https://.../map-shot.jpg",
   },
   productsPlaceholderPreferredLocationLabel: {
-    ko: "예: Location 1",
-    my: "ဥပမာ Location 1",
-    zh: "例如：地点1",
+    ko: "예: 백화점 정문, 지하철 3번 출구",
+    my: "ဥပမာ − ဈေးအဝင်ပေါက်၊ မီထရာ ထွက်ပေါက်",
+    zh: "例如：商场正门、地铁A口",
   },
   productsPlaceholderPreferredLocationAddress: {
     ko: "예: Pabedan Township, Yangon",
