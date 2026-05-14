@@ -90,6 +90,77 @@ function extractProductList(res: unknown): ProductDto[] {
   return [];
 }
 
+function appendIfDefined(form: FormData, key: string, value: unknown): void {
+  if (value === undefined || value === null) return;
+  form.append(key, String(value));
+}
+
+function appendBoolean(form: FormData, key: string, value: boolean): void {
+  // Some BE DTO transforms coerce multipart booleans using Boolean(value),
+  // where "false" becomes true. Empty string safely coerces to false.
+  form.append(key, value ? "true" : "");
+}
+
+function buildProductFormData(
+  data: ProductCreateInput | ProductUpdateInput,
+): FormData {
+  const form = new FormData();
+
+  appendIfDefined(form, "categoryId", data.categoryId);
+  appendIfDefined(form, "title", data.title);
+  appendIfDefined(form, "description", data.description);
+  if ("price" in data) {
+    appendIfDefined(form, "price", data.price);
+  }
+  appendIfDefined(form, "condition", data.condition);
+  if ("status" in data) {
+    appendIfDefined(form, "status", data.status);
+  }
+  appendIfDefined(form, "directTradeLocation", data.directTradeLocation);
+  appendIfDefined(form, "directTradeLatitude", data.directTradeLatitude);
+  appendIfDefined(form, "directTradeLongitude", data.directTradeLongitude);
+  appendIfDefined(form, "nearbyLandmarks", data.nearbyLandmarks);
+  appendIfDefined(form, "preferredTradeTime", data.preferredTradeTime);
+  if (typeof data.isDeliveryAvailable === "boolean") {
+    appendBoolean(form, "isDeliveryAvailable", data.isDeliveryAvailable);
+  }
+
+  if ("deliveryFeePayer" in data) {
+    if (data.deliveryFeePayer != null) {
+      appendIfDefined(form, "deliveryFeePayer", data.deliveryFeePayer);
+    }
+  }
+
+  for (const method of data.paymentMethods ?? []) {
+    form.append("paymentMethods", method);
+  }
+
+  for (const [idx, loc] of (data.preferredLocations ?? []).entries()) {
+    form.append(`preferredLocations[${idx}][label]`, loc.label);
+    form.append(`preferredLocations[${idx}][address]`, loc.address);
+    appendIfDefined(form, `preferredLocations[${idx}][latitude]`, loc.latitude);
+    appendIfDefined(form, `preferredLocations[${idx}][longitude]`, loc.longitude);
+  }
+
+  for (const file of data.imageFiles ?? []) {
+    form.append("images", {
+      uri: file.uri,
+      name: file.name,
+      type: file.type,
+    } as unknown as Blob);
+  }
+
+  if (data.mapScreenshotFile) {
+    form.append("mapScreenshot", {
+      uri: data.mapScreenshotFile.uri,
+      name: data.mapScreenshotFile.name,
+      type: data.mapScreenshotFile.type,
+    } as unknown as Blob);
+  }
+
+  return form;
+}
+
 export class ApiProductRepository implements IProductRepository {
   constructor(private readonly http: HttpClient) {}
 
@@ -143,7 +214,10 @@ export class ApiProductRepository implements IProductRepository {
   }
 
   async createMy(data: ProductCreateInput): Promise<Product> {
-    const dto = await this.http.post<unknown>(API_ENDPOINTS.CLIENT_PRODUCTS.CREATE, data);
+    const dto = await this.http.postForm<unknown>(
+      API_ENDPOINTS.CLIENT_PRODUCTS.CREATE,
+      buildProductFormData(data),
+    );
     const product = asProductOrNull(dto);
     if (!product) throw new Error("Create product response missing id");
     return product;
@@ -154,7 +228,10 @@ export class ApiProductRepository implements IProductRepository {
   }
 
   async updateMy(id: string, data: ProductUpdateInput): Promise<Product> {
-    const dto = await this.http.patch<unknown>(API_ENDPOINTS.CLIENT_PRODUCTS.UPDATE(id), data);
+    const dto = await this.http.patchForm<unknown>(
+      API_ENDPOINTS.CLIENT_PRODUCTS.UPDATE(id),
+      buildProductFormData(data),
+    );
     const product = asProductOrNull(dto);
     if (!product) throw new Error("Update product response missing id");
     return product;

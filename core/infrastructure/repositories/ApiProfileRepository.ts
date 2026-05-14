@@ -131,10 +131,9 @@ export class ApiProfileRepository implements IProfileRepository {
       type: file.type,
     } as unknown as Blob);
 
-    const res = await this.http.post<unknown>(
+    const res = await this.http.postForm<unknown>(
       API_ENDPOINTS.PROFILE.AVATAR,
       form,
-      { headers: { "Content-Type": "multipart/form-data" } },
     );
     const raw = pickAvatarUrlFromUploadResponse(res);
     const avatarUrl = raw ? toAbsoluteMediaUrl(raw) : "";

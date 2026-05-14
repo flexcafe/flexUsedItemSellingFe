@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import type { AppLocale } from "@/core/domain/types/locale";
+import type { ProductCondition } from "@/core/domain/types/product";
 import { useServices } from "./ServicesProvider";
 
 type Dictionary = Record<string, Record<AppLocale, string>>;
@@ -1073,6 +1074,27 @@ const DICT: Dictionary = {
     my: "ပစ္စသစ်အတွက် မှန်ကန်သော စျေးနှုန်းထည့်ပါ။",
     zh: "请为新商品填写有效价格。",
   },
+  productsAlertDeliveryFeePayerTitle: {
+    ko: "배송비 부담",
+    my: "ပို့ဆောင်ခ ပေးချေသူ",
+    zh: "运费承担方",
+  },
+  productsAlertDeliveryFeePayerBody: {
+    ko: "배송 가능일 때는 배송비를 BUYER 또는 SELLER 중 하나로 선택해야 합니다.",
+    my:
+      "ပို့ဆောင်ရနိုင်သည့်အခါ ပို့ဆောင်ခကို BUYER သို့မဟုတ် SELLER တစ်ခုခုဖြင့် ရွေးပါ။",
+    zh: "开启配送时，必须选择由买家或卖家承担运费（BUYER 或 SELLER）。",
+  },
+  productsAlertImagesLimitTitle: {
+    ko: "이미지 개수",
+    my: "ပုံ အရေအတွက်",
+    zh: "图片数量",
+  },
+  productsAlertImagesLimitBody: {
+    ko: "이미지 URL은 최대 5개까지 보낼 수 있습니다.",
+    my: "ပုံ URL အများဆုံး ၅ ခုသာ ပို့နိုင်သည်။",
+    zh: "最多只能提交 5 个图片 URL。",
+  },
   productsSuccessTitle: {
     ko: "완료",
     my: "ပြီးပါပြီ",
@@ -1117,6 +1139,41 @@ const DICT: Dictionary = {
     ko: "상품 수정",
     my: "ပစ္စည်းပြင်မည်",
     zh: "编辑商品",
+  },
+  productsComposerProgress: {
+    ko: "{current} / {total} 단계",
+    my: "{current} / {total} အဆင့်",
+    zh: "第 {current} / {total} 步",
+  },
+  productsComposerStepHint1: {
+    ko: "카테고리, 제목, 설명, 가격·상태를 입력하세요.",
+    my: "အမျိုးအစား၊ ခေါင်းစီး၊ ဖော်ပြချက်၊ စျေးနှုန်း၊ အခြေအနေကို ဖြည့်ပါ။",
+    zh: "请填写分类、标题、描述、价格和成色。",
+  },
+  productsComposerStepHint2: {
+    ko: "결제 수단과 배송 옵션을 선택하세요.",
+    my: "ငွေပေးချေမှု နည်းလမ်းနှင့် ပို့ဆောင်မှု ရွေးချယ်ပါ။",
+    zh: "请选择支付方式和配送选项。",
+  },
+  productsComposerStepHint3: {
+    ko: "직거래 장소와 지도, 참고 정보를 입력하세요.",
+    my: "တိုက်ရိုက်လဲလှယ်ရာနေရာ၊ မြေပုံနှင့် မှတ်ချက်များ ဖြည့်ပါ။",
+    zh: "请填写当面交易地点、地图与补充说明。",
+  },
+  productsComposerStepHint4: {
+    ko: "선호 거래 장소와 이미지 URL을 입력한 뒤 저장하세요.",
+    my: "နှစ်သက်နေရာများနှင့် ပုံ URL များ ထည့်ပြီး သိမ်းပါ။",
+    zh: "请填写偏好地点与图片地址，然后保存。",
+  },
+  productsComposerNext: {
+    ko: "다음",
+    my: "နောက်တစ်ဆင့်",
+    zh: "下一步",
+  },
+  productsComposerBack: {
+    ko: "이전",
+    my: "နောက်သို့",
+    zh: "上一步",
   },
   productsDetailNoData: {
     ko: "데이터가 없습니다.",
@@ -1188,6 +1245,32 @@ const DICT: Dictionary = {
     my: "အခြေအနေ (ပစ္စည်း)",
     zh: "成色",
   },
+  /** UI label for `ProductCondition` enum; API still receives NEW / LIKE_NEW / … */
+  productsConditionNew: {
+    ko: "새상품",
+    my: "အသစ်",
+    zh: "全新",
+  },
+  productsConditionLikeNew: {
+    ko: "거의 새것",
+    my: "အသစ်နီးပါး",
+    zh: "几乎全新",
+  },
+  productsConditionGood: {
+    ko: "양호",
+    my: "ကောင်း",
+    zh: "良好",
+  },
+  productsConditionFair: {
+    ko: "보통",
+    my: "အလယ်",
+    zh: "一般",
+  },
+  productsConditionPoor: {
+    ko: "상태 나쁨",
+    my: "မကောင်း",
+    zh: "较差",
+  },
   productsFieldStatus: {
     ko: "판매 상태",
     my: "ရောင်းချမှု အခြေအနေ",
@@ -1202,6 +1285,45 @@ const DICT: Dictionary = {
     ko: "직거래 장소",
     my: "တိုက်ရိုက် လဲလှယ်ရာနေရာ",
     zh: "当面交易地点",
+  },
+  productsDirectTradeMapTitle: {
+    ko: "직거래 위치 — 지도",
+    my: "တိုက်ရိုက် လဲလှယ်ရာ — မြေပုံ",
+    zh: "当面交易地点 — 地图",
+  },
+  productsDirectTradeMapHint: {
+    ko: "지도를 탭하거나 핀을 드래그하면 직거래 좌표가 저장됩니다.",
+    my: "မြေပုံကို နှိပ်ပါ သို့မဟုတ် ပင်ကို ဆွဲပါ၊ တိုက်ရိုက်လဲလှယ်ရာ ကိုဩဒိနိတ်သိမ်းပါမည်။",
+    zh: "点击地图或拖动图钉即可保存当面交易坐标。",
+  },
+  /** Step 2 — short helper under the direct meet-up address field */
+  productsDirectTradeSectionHelp: {
+    ko: "주소를 적은 뒤 지도에서 핀을 찍거나, GPS로 현재 위치를 불러올 수 있어요.",
+    my: "လိပ်စာရေးပြီးနောက် မြေပုံတွင် ပင်ထိုးပါ သို့မဟုတ် GPS ဖြင့် လက်ရှိတည်နေရာကို ယူပါ။",
+    zh: "填写见面地址后，可在地图选点或使用 GPS 定位当前位置。",
+  },
+  /** Primary action — opens full-screen map picker for direct trade */
+  productsDirectTradeOpenMap: {
+    ko: "지도에서 위치 정하기",
+    my: "မြေပုံတွင် တည်နေရာ ရွေးပါ",
+    zh: "在地图上选点",
+  },
+  /** Secondary — GPS for direct trade pin */
+  productsDirectTradeGpsHint: {
+    ko: "GPS로 현재 위치를 불러옵니다(위치 권한 필요).",
+    my: "GPS ဖြင့် လက်ရှိတည်နေရာကို ယူပါ (တည်နေရာခွင့်ပြုချက် လိုအပ်သည်)။",
+    zh: "使用 GPS 读取当前位置（需位置权限）。",
+  },
+  /** Label above lat/lng when a pin is saved */
+  productsDirectTradeCoordsSaved: {
+    ko: "선택된 만남 좌표",
+    my: "ရွေးချယ်ထားသော တွေ့ဆုံမှု ကိုဩဒိနိတ်",
+    zh: "已选见面坐标",
+  },
+  productsDirectTradeClearPin: {
+    ko: "핀 지우기",
+    my: "ပင်ဖယ်ရန်",
+    zh: "清除图钉",
   },
   productsFieldLatitude: {
     ko: "위도",
@@ -1224,14 +1346,20 @@ const DICT: Dictionary = {
     zh: "偏好交易时间",
   },
   productsFieldMapScreenshotUrl: {
-    ko: "지도 스크린샷 URL",
-    my: "မြေပုံ screenshot URL",
-    zh: "地图截图 URL",
+    ko: "지도 스크린샷 이미지",
+    my: "မြေပုံ screenshot ပုံ",
+    zh: "地图截图图片",
   },
   productsFieldPreferredLocations: {
     ko: "선호 거래 장소 (최대 3개)",
     my: "နှစ်သက်သော လဲလှယ်နေရာများ (အများဆုံး ၃ ခု)",
     zh: "偏好交易地点（最多3个）",
+  },
+  productsPreferredLocationsIntro: {
+    ko: "직거래 외 추가로 만나기 좋은 곳입니다. 각 줄마다 이름과 주소가 필요하며, 지도에서 핀으로 위치를 선택할 수 있습니다(선택).",
+    my:
+      "တိုက်ရိုက်လဲလှယ်မှု အပြင် ထပ်မံတွေ့ရန် နေရာများ။ တစ်ကြောင်းလျှင် အမည်နှင့် လိပ်စာ လိုအပ်သည်။ မြေပုံပေါ်တွင် ပင်ထိုးခြင်းဖြင့် တည်နေရာ ရွေးချယ်နိုင်သည်။",
+    zh: "除当面交易点外，可添加最多 3 个备选见面点；每行需填写名称和地址，并可通过地图选点（可选）。",
   },
   productsFieldPreferredLocationItem: {
     ko: "거래 장소",
@@ -1239,9 +1367,49 @@ const DICT: Dictionary = {
     zh: "交易地点",
   },
   productsFieldImages: {
-    ko: "이미지 URL (쉼표 구분)",
-    my: "ပုံ URL များ (ကော်မာဖြင့် ခွဲ)",
-    zh: "图片 URL（逗号分隔）",
+    ko: "상품 이미지",
+    my: "ကုန်ပစ္စည်း ပုံများ",
+    zh: "商品图片",
+  },
+  productsPickImages: {
+    ko: "이미지 업로드",
+    my: "ပုံတင်ရန်",
+    zh: "上传图片",
+  },
+  productsPickMapScreenshot: {
+    ko: "지도 스크린샷 업로드",
+    my: "မြေပုံ screenshot တင်ရန်",
+    zh: "上传地图截图",
+  },
+  productsClearSelectedImages: {
+    ko: "선택한 이미지 지우기",
+    my: "ရွေးထားသော ပုံများ ဖယ်ရှားရန်",
+    zh: "清除已选图片",
+  },
+  productsClearMapScreenshot: {
+    ko: "스크린샷 지우기",
+    my: "screenshot ဖယ်ရှားရန်",
+    zh: "清除截图",
+  },
+  productsSelectedImagesCount: {
+    ko: "{count}개 이미지 선택됨",
+    my: "ပုံ {count} ခု ရွေးထားသည်",
+    zh: "已选择 {count} 张图片",
+  },
+  productsSelectedMapScreenshot: {
+    ko: "선택된 스크린샷: {name}",
+    my: "ရွေးထားသော screenshot: {name}",
+    zh: "已选截图：{name}",
+  },
+  productsExistingImagesCount: {
+    ko: "현재 등록 이미지: {count}개",
+    my: "လက်ရှိပုံများ: {count} ခု",
+    zh: "当前图片：{count} 张",
+  },
+  productsExistingMapScreenshot: {
+    ko: "현재 지도 스크린샷이 등록되어 있습니다.",
+    my: "လက်ရှိ မြေပုံ screenshot ရှိပါသည်။",
+    zh: "当前已存在地图截图。",
   },
   productsFieldDelivery: {
     ko: "배송",
@@ -1308,6 +1476,31 @@ const DICT: Dictionary = {
     my: "ဖျက်ရန်",
     zh: "删除",
   },
+  productsPreferredLocationPickMap: {
+    ko: "지도에서 위치 선택",
+    my: "မြေပုံပေါ်မှ တည်နေရာရွေးပါ",
+    zh: "在地图上选择位置",
+  },
+  productsPreferredLocationClearPin: {
+    ko: "지도 핀 지우기",
+    my: "မြေပုံပင်ဖယ်ရန်",
+    zh: "清除地图定位",
+  },
+  productsPreferredLocationNoPin: {
+    ko: "지도 위치 미설정 (선택)",
+    my: "မြေပုံတည်နေရာ မသတ်မှတ်ရသေး (ရွေးချယ်)",
+    zh: "尚未设置地图位置（可选）",
+  },
+  productsPreferredLocationMapTitle: {
+    ko: "선호 장소 {index} — 지도",
+    my: "နှစ်သက်နေရာ {index} — မြေပုံ",
+    zh: "偏好地点 {index} — 地图",
+  },
+  productsPreferredLocationMapHint: {
+    ko: "지도를 탭하거나 핀을 드래그하면 이 장소의 좌표가 저장됩니다.",
+    my: "မြေပုံကို နှိပ်ပါ သို့မဟုတ် ပင်ကို ဆွဲပါ၊ ဤနေရာ၏ ကိုဩဒိနိတ်သိမ်းပါမည်။",
+    zh: "点击地图或拖动图钉即可保存该地点的坐标。",
+  },
   productsAlertPreferredLocationTitle: {
     ko: "선호 거래 장소 확인",
     my: "နှစ်သက်နေရာ စစ်ဆေးပါ",
@@ -1358,6 +1551,31 @@ const DICT: Dictionary = {
     my: "https://.../1.jpg, https://.../2.jpg",
     zh: "https://.../1.jpg, https://.../2.jpg",
   },
+  productsAlertImagePermissionBody: {
+    ko: "사진 접근 권한이 필요합니다.",
+    my: "ဓာတ်ပုံခန်းသို့ ဝင်ခွင့်လိုအပ်ပါသည်။",
+    zh: "需要照片访问权限。",
+  },
+  productsAlertImageTypeTitle: {
+    ko: "이미지 형식 오류",
+    my: "ပုံဖော်မတ် အမှား",
+    zh: "图片格式错误",
+  },
+  productsAlertImageTypeBody: {
+    ko: "PNG, JPEG, WebP 파일만 업로드할 수 있습니다.",
+    my: "PNG, JPEG, WebP ပုံများသာ တင်နိုင်ပါသည်။",
+    zh: "仅支持 PNG、JPEG、WebP。",
+  },
+  productsAlertImageSizeTitle: {
+    ko: "이미지 크기 오류",
+    my: "ပုံအရွယ်အစား အမှား",
+    zh: "图片大小错误",
+  },
+  productsAlertImageSizeBody: {
+    ko: "이미지 한 장은 4MB 이하여야 합니다.",
+    my: "ပုံတစ်ပုံလျှင် 4MB အောက် ဖြစ်ရပါမည်။",
+    zh: "单张图片必须小于 4MB。",
+  },
   productsDeliveryOn: {
     ko: "배송 가능",
     my: "ပို့ဆောင်ရန်",
@@ -1402,6 +1620,31 @@ const DICT: Dictionary = {
   actionCancel: { ko: "취소", my: "မလုပ်တော့", zh: "取消" },
   actionVerify: { ko: "인증", my: "အတည်ပြု", zh: "验证" },
 };
+
+const PRODUCT_CONDITION_LABEL_KEY: Record<ProductCondition, keyof typeof DICT> =
+  {
+    NEW: "productsConditionNew",
+    LIKE_NEW: "productsConditionLikeNew",
+    GOOD: "productsConditionGood",
+    FAIR: "productsConditionFair",
+    POOR: "productsConditionPoor",
+  };
+
+/** Locale key for product condition chips / detail (API still uses `NEW`, `LIKE_NEW`, …). */
+export function productConditionLabelKey(
+  condition: ProductCondition,
+): keyof typeof DICT {
+  return PRODUCT_CONDITION_LABEL_KEY[condition];
+}
+
+export function parseProductCondition(
+  raw: string | null | undefined,
+): ProductCondition | null {
+  if (!raw || typeof raw !== "string") return null;
+  return Object.hasOwn(PRODUCT_CONDITION_LABEL_KEY, raw)
+    ? (raw as ProductCondition)
+    : null;
+}
 
 function t(key: keyof typeof DICT, locale: AppLocale): string {
   return DICT[key][locale];

@@ -13,6 +13,12 @@ export type ProductStatus =
 export type ProductPaymentMethod = "CASH" | "KBZPAY";
 export type ProductDeliveryFeePayer = "BUYER" | "SELLER";
 
+export interface UploadFile {
+  uri: string;
+  name: string;
+  type: "image/png" | "image/jpeg" | "image/webp";
+}
+
 export interface PreferredTradeLocationInput {
   label: string;
   address: string;
@@ -34,13 +40,22 @@ export interface ProductCreateInput {
   nearbyLandmarks?: string;
   preferredTradeTime?: string;
   isDeliveryAvailable: boolean;
+  /** On **create**, required when `isDeliveryAvailable` is true. Omit when delivery is off (sending BUYER/SELLER while off → 400). */
   deliveryFeePayer?: ProductDeliveryFeePayer;
+  /** Optional direct FE upload (multipart field: `images`, max 5). */
+  imageFiles?: UploadFile[];
+  /** Optional direct FE upload (multipart field: `mapScreenshot`, max 1). */
+  mapScreenshotFile?: UploadFile | null;
   images?: string[];
   preferredLocations?: PreferredTradeLocationInput[];
 }
 
-export type ProductUpdateInput = Partial<Omit<ProductCreateInput, "price">> & {
+export type ProductUpdateInput = Partial<
+  Omit<ProductCreateInput, "price" | "deliveryFeePayer">
+> & {
   status?: ProductStatus;
+  /** When delivery is off, omit or send `null` (never BUYER/SELLER). */
+  deliveryFeePayer?: ProductDeliveryFeePayer | null;
 };
 
 export interface ProductDeleteInput {

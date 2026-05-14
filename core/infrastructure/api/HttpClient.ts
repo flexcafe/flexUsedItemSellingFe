@@ -79,6 +79,30 @@ function shouldLogHttp(): boolean {
   return dev && flag !== "0";
 }
 
+/**
+ * Axios defaults use application/json. For FormData, transformRequest must not
+ * treat the body as JSON, and dispatchRequest must not fill in
+ * application/x-www-form-urlencoded when Content-Type is missing (axios 1.x
+ * does that for post/put/patch). RN then sends multipart with a proper boundary.
+ */
+function ensureMultipartForFormData(
+  headers: NonNullable<AxiosRequestConfig["headers"]>,
+): void {
+  const h = headers as {
+    get?: (name: string) => unknown;
+    set?: (name: string, value: string, rewrite?: boolean) => void;
+  };
+  const raw = h.get?.("Content-Type");
+  const ct = (raw != null ? String(raw) : "").toLowerCase();
+  const needsMultipart =
+    ct.length === 0 ||
+    ct.includes("application/json") ||
+    ct.includes("application/x-www-form-urlencoded");
+  if (needsMultipart && typeof h.set === "function") {
+    h.set("Content-Type", "multipart/form-data", true);
+  }
+}
+
 export class HttpClient {
   private client: AxiosInstance;
   private onUnauthorized?: OnUnauthorizedCallback;
@@ -103,11 +127,18 @@ export class HttpClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
 
+        if (
+          typeof FormData !== "undefined" &&
+          config.data instanceof FormData &&
+          config.headers
+        ) {
+          ensureMultipartForFormData(config.headers);
+        }
+
         if (shouldLogHttp()) {
           const plainHeaders = toPlainObject(config.headers);
           const plainBody = toPlainObject(config.data);
           // NOTE: we intentionally redact auth + password-like fields.
-          // eslint-disable-next-line no-console
           console.log("[HTTP →]", {
             requestId,
             method: (config.method ?? "GET").toUpperCase(),
@@ -132,7 +163,6 @@ export class HttpClient {
           const elapsedMs =
             meta?.startedAt != null ? Date.now() - meta.startedAt : undefined;
 
-          // eslint-disable-next-line no-console
           console.log("[HTTP ←]", {
             requestId: meta?.requestId,
             status: response.status,
@@ -153,13 +183,14 @@ export class HttpClient {
           const elapsedMs =
             meta?.startedAt != null ? Date.now() - meta.startedAt : undefined;
 
-          // eslint-disable-next-line no-console
           console.log("[HTTP ✕]", {
             requestId: meta?.requestId,
             method: (cfg.method ?? "GET").toUpperCase(),
             url: cfg.url,
             fullUrl: joinUrl(cfg.baseURL, cfg.url),
             elapsedMs,
+            errorCode: error?.code,
+            errorMessage: error?.message,
             requestHeaders: safeJson(redact(toPlainObject(cfg.headers))),
             requestParams: safeJson(redact(toPlainObject(cfg.params))),
             requestData: safeJson(redact(toPlainObject(cfg.data))),
@@ -196,6 +227,16 @@ export class HttpClient {
     return unwrap<T>(res.data);
   }
 
+  /** Multipart uploads (same as axios `postForm`; use for RN `FormData` + files). */
+  async postForm<T>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig,
+  ): Promise<T> {
+    const res: AxiosResponse = await this.client.postForm(url, data, config);
+    return unwrap<T>(res.data);
+  }
+
   async put<T>(
     url: string,
     data?: unknown,
@@ -211,6 +252,15 @@ export class HttpClient {
     config?: AxiosRequestConfig,
   ): Promise<T> {
     const res: AxiosResponse = await this.client.patch(url, data, config);
+    return unwrap<T>(res.data);
+  }
+
+  async patchForm<T>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig,
+  ): Promise<T> {
+    const res: AxiosResponse = await this.client.patchForm(url, data, config);
     return unwrap<T>(res.data);
   }
 
