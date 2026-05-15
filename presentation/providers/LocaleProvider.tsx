@@ -1275,6 +1275,86 @@ const DICT: Dictionary = {
     my: "ဒေတာမရှိပါ။",
     zh: "暂无数据。",
   },
+  productsDetailLoading: {
+    ko: "상품 정보를 불러오는 중…",
+    my: "ပစ္စည်းအချက်အလက် တင်နေသည်…",
+    zh: "正在加载商品信息…",
+  },
+  productsDetailSectionListing: {
+    ko: "상품 정보",
+    my: "ပစ္စည်းအချက်အလက်",
+    zh: "商品信息",
+  },
+  productsDetailSectionTrade: {
+    ko: "거래 · 위치",
+    my: "လဲလှယ်မှု · တည်နေရာ",
+    zh: "交易与位置",
+  },
+  productsDetailSectionDelivery: {
+    ko: "배송",
+    my: "ပို့ဆောင်မှု",
+    zh: "配送",
+  },
+  productsDetailSectionPreferred: {
+    ko: "선호 거래 장소",
+    my: "နှစ်သက်သော လဲလှယ်ရာနေရာများ",
+    zh: "偏好交易地点",
+  },
+  productsDetailSectionPhotos: {
+    ko: "사진",
+    my: "ဓာတ်ပုံများ",
+    zh: "图片",
+  },
+  productsDetailViewCount: {
+    ko: "조회수",
+    my: "ကြည့်ရှုမှု",
+    zh: "浏览量",
+  },
+  productsDetailCreatedAt: {
+    ko: "등록일",
+    my: "တင်သည့်ရက်",
+    zh: "发布时间",
+  },
+  productsDetailUpdatedAt: {
+    ko: "수정일",
+    my: "ပြင်ဆင်သည့်ရက်",
+    zh: "更新时间",
+  },
+  productsDetailCoordinates: {
+    ko: "좌표",
+    my: "ကိုဩဒိနိတ်",
+    zh: "坐标",
+  },
+  productsDetailListingId: {
+    ko: "상품 ID",
+    my: "ပစ္စည်း ID",
+    zh: "商品 ID",
+  },
+  productsPaymentCash: {
+    ko: "현금",
+    my: "ငွေသား",
+    zh: "现金",
+  },
+  productsPaymentKbzpay: {
+    ko: "KBZ Pay",
+    my: "KBZ Pay",
+    zh: "KBZ Pay",
+  },
+  productsDetailEditListing: {
+    ko: "수정",
+    my: "ပြင်မည်",
+    zh: "编辑",
+  },
+  productsDetailDescription: {
+    ko: "설명",
+    my: "ဖော်ပြချက်",
+    zh: "描述",
+  },
+  productsDetailPhotosCount: {
+    ko: "사진 {current}/{total}",
+    my: "ပုံ {current}/{total}",
+    zh: "图片 {current}/{total}",
+  },
   productsLabelStatus: {
     ko: "상태",
     my: "အခြေအနေ",
@@ -1505,6 +1585,11 @@ const DICT: Dictionary = {
     ko: "현재 지도 스크린샷이 등록되어 있습니다.",
     my: "လက်ရှိ မြေပုံ screenshot ရှိပါသည်။",
     zh: "当前已存在地图截图。",
+  },
+  productsFieldDeliveryFeePayer: {
+    ko: "배송비 부담",
+    my: "ပို့ဆောင်ခ တာဝန်",
+    zh: "运费承担",
   },
   productsFieldDelivery: {
     ko: "배송",
@@ -1752,6 +1837,15 @@ export function parseProductCondition(
   return Object.hasOwn(PRODUCT_CONDITION_LABEL_KEY, raw)
     ? (raw as ProductCondition)
     : null;
+}
+
+/** Localized condition label for detail screens (API values: `NEW`, `LIKE_NEW`, …). */
+export function formatProductConditionForDisplay(
+  raw: string | null | undefined,
+  translate: (key: keyof typeof DICT) => string,
+): string {
+  const c = parseProductCondition(raw);
+  return c ? translate(productConditionLabelKey(c)) : (raw?.trim() || "—");
 }
 
 function t(key: keyof typeof DICT, locale: AppLocale): string {

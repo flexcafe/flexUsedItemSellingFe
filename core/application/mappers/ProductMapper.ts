@@ -40,24 +40,40 @@ function parsePrice(val: unknown): number {
   return Number(val) || 0;
 }
 
+function imageUrlFromUnknown(el: unknown): string {
+  if (typeof el === "string" && el.trim()) {
+    return toAbsoluteMediaUrl(el.trim());
+  }
+  if (el != null && typeof el === "object" && !Array.isArray(el)) {
+    const u = pickStringFromRecord(el as Record<string, unknown>, [
+      "url",
+      "src",
+      "href",
+      "publicUrl",
+      "public_url",
+    ]);
+    if (u) return toAbsoluteMediaUrl(u);
+  }
+  return "";
+}
+
 function firstImageFromImages(images: unknown): string {
   if (!Array.isArray(images)) return "";
   for (const el of images) {
-    if (typeof el === "string" && el.trim()) {
-      return toAbsoluteMediaUrl(el.trim());
-    }
-    if (el != null && typeof el === "object" && !Array.isArray(el)) {
-      const u = pickStringFromRecord(el as Record<string, unknown>, [
-        "url",
-        "src",
-        "href",
-        "publicUrl",
-        "public_url",
-      ]);
-      if (u) return toAbsoluteMediaUrl(u);
-    }
+    const u = imageUrlFromUnknown(el);
+    if (u) return u;
   }
   return "";
+}
+
+function allImagesFromImages(images: unknown): string[] {
+  if (!Array.isArray(images)) return [];
+  const out: string[] = [];
+  for (const el of images) {
+    const u = imageUrlFromUnknown(el);
+    if (u) out.push(u);
+  }
+  return out;
 }
 
 function displayTitle(dto: ProductApiResponse): string {
@@ -120,6 +136,12 @@ export function toProduct(dto: ProductApiResponse): Product {
       : null;
   const fromStatus = deriveIsAvailable(dto.status);
   const isAvailable = dto.isAvailable === false ? false : fromStatus;
+  const imageUrls = allImagesFromImages(dto.images);
+  const primaryImage =
+    imageUrls[0] ??
+    (typeof dto.imageUrl === "string" && dto.imageUrl.trim()
+      ? toAbsoluteMediaUrl(dto.imageUrl.trim())
+      : null);
   return {
     id: dto.id,
     sellerId: toStringOrNull(dto.sellerId),
@@ -142,7 +164,7 @@ export function toProduct(dto: ProductApiResponse): Product {
         ? dto.isDeliveryAvailable
         : undefined,
     deliveryFeePayer: toStringOrNull(dto.deliveryFeePayer),
-    images: toStringArray(dto.images),
+    images: imageUrls.length > 0 ? imageUrls : toStringArray(dto.images),
     preferredLocations: Array.isArray(dto.preferredLocations)
       ? dto.preferredLocations
       : [],
@@ -150,7 +172,7 @@ export function toProduct(dto: ProductApiResponse): Product {
       typeof dto.viewCount === "number" && Number.isFinite(dto.viewCount)
         ? dto.viewCount
         : undefined,
-    imageUrl: catalogImageUrl(dto),
+    imageUrl: primaryImage ?? catalogImageUrl(dto),
     isAvailable,
     createdAt: dto.createdAt ?? new Date().toISOString(),
     updatedAt: dto.updatedAt ?? new Date().toISOString(),

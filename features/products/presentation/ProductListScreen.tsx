@@ -2,7 +2,6 @@ import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import type { LocationGeocodedAddress } from "expo-location";
 import {
-  ActivityIndicator,
   Alert,
   Image,
   Modal,
@@ -16,7 +15,6 @@ import {
 import { WebView } from "react-native-webview";
 
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { toAbsoluteMediaUrl } from "@/core/application/mappers/mediaUrl";
 import type { Product } from "@/core/domain/entities/Product";
@@ -33,7 +31,6 @@ import { useCategories } from "@/presentation/hooks/useCategories";
 import {
   useCreateProduct,
   useDeleteProduct,
-  useProduct,
   useProducts,
   useUpdateProduct,
 } from "@/presentation/hooks/useProducts";
@@ -41,15 +38,12 @@ import {
   buildLeafletPickerHtml,
   buildLeafletStaticViewHtml,
 } from "@/presentation/lib/leafletPickerHtml";
-import {
-  parseProductCondition,
-  productConditionLabelKey,
-  useLocale,
-} from "@/presentation/providers/LocaleProvider";
+import { productConditionLabelKey, useLocale } from "@/presentation/providers/LocaleProvider";
 import { File, Paths } from "expo-file-system";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { MyProductDetailSheet } from "./MyProductDetailSheet";
 import { MyProductsListing } from "./MyProductsListing";
 
 const CONDITION_OPTIONS: ProductCondition[] = [
@@ -282,14 +276,6 @@ function formFromProduct(product: Product): ProductFormState {
   };
 }
 
-function formatProductConditionForDisplay(
-  raw: string | null | undefined,
-  translate: (key: ReturnType<typeof productConditionLabelKey>) => string,
-): string {
-  const c = parseProductCondition(raw);
-  return c ? translate(productConditionLabelKey(c)) : (raw ?? "-");
-}
-
 export function ProductListScreen() {
   const { t, tf } = useLocale();
   const colorScheme = useColorScheme();
@@ -328,7 +314,6 @@ export function ProductListScreen() {
   const preferredGeocodeTimersRef = useRef<
     Map<number, ReturnType<typeof setTimeout>>
   >(new Map());
-  const detailQuery = useProduct(detailId);
   const [form, setForm] = useState<ProductFormState>(() => ({
     ...EMPTY_FORM,
     preferredLocations: [createEmptyPreferredRow()],
@@ -1164,76 +1149,16 @@ export function ProductListScreen() {
         onArchive={onArchive}
       />
 
-      <Modal
+      <MyProductDetailSheet
+        productId={detailId}
         visible={detailId != null}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setDetailId(null)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View
-            style={[styles.modalCard, { backgroundColor: colors.background }]}
-          >
-            <View style={styles.modalHeader}>
-              <ThemedText type="subtitle">
-                {t("productsModalDetailTitle")}
-              </ThemedText>
-              <Pressable onPress={() => setDetailId(null)}>
-                <ThemedText style={[styles.closeText, { color: colors.tint }]}>
-                  {t("productsModalClose")}
-                </ThemedText>
-              </Pressable>
-            </View>
-            {detailQuery.isLoading ? (
-              <View style={styles.centeredBlock}>
-                <ActivityIndicator color={colors.tint} />
-              </View>
-            ) : detailQuery.data ? (
-              <ScrollView style={styles.detailBody}>
-                <ThemedText style={styles.detailRow}>
-                  {t("productsLabelTitle")}: {detailQuery.data.name}
-                </ThemedText>
-                <ThemedText style={styles.detailRow}>
-                  {t("productsLabelStatus")}: {detailQuery.data.status ?? "-"}
-                </ThemedText>
-                <ThemedText style={styles.detailRow}>
-                  {t("productsLabelCondition")}:{" "}
-                  {formatProductConditionForDisplay(
-                    detailQuery.data.condition,
-                    t,
-                  )}
-                </ThemedText>
-                <ThemedText style={styles.detailRow}>
-                  {t("productsLabelCategoryId")}:{" "}
-                  {detailQuery.data.categoryId ?? "-"}
-                </ThemedText>
-                <ThemedText style={styles.detailRow}>
-                  {t("productsLabelPayment")}:{" "}
-                  {(detailQuery.data.paymentMethods ?? []).join(", ") || "-"}
-                </ThemedText>
-                <ThemedText style={styles.detailRow}>
-                  {t("productsLabelLocation")}:{" "}
-                  {detailQuery.data.directTradeLocation ?? "-"}
-                </ThemedText>
-                <ThemedText style={styles.detailRow}>
-                  {t("productsLabelPrice")}:{" "}
-                  {detailQuery.data.price.toLocaleString()} MMK
-                </ThemedText>
-                <ThemedText style={styles.detailRow}>
-                  {t("productsLabelDescription")}:
-                </ThemedText>
-                <ThemedText style={styles.detailDescription}>
-                  {detailQuery.data.description}
-                </ThemedText>
-              </ScrollView>
-            ) : (
-              <View style={styles.centeredBlock}>
-                <ThemedText>{t("productsDetailNoData")}</ThemedText>
-              </View>
-            )}
-          </View>
-        </View>
-      </Modal>
+        categoryLabelFor={categoryLabelFor}
+        onClose={() => setDetailId(null)}
+        onEdit={(p) => {
+          setDetailId(null);
+          openEdit(p);
+        }}
+      />
 
       <Modal
         visible={composerVisible}
