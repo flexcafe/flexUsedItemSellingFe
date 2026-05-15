@@ -914,6 +914,41 @@ const DICT: Dictionary = {
     my: "ရှာဖွေစာသား ဖျက်ရန်",
     zh: "清除搜索",
   },
+  homeRadiusFilterTitle: {
+    ko: "반경 필터",
+    my: "အကွာအဝေး စစ်ထုတ်မှု",
+    zh: "半径筛选",
+  },
+  homeRadiusFilterAll: {
+    ko: "전체",
+    my: "အားလုံး",
+    zh: "全部",
+  },
+  homeRadiusFilterKmUnit: {
+    ko: "km",
+    my: "km",
+    zh: "公里",
+  },
+  homeRadiusFilterHint: {
+    ko: "내 위치 기준 거리로 상품을 좁힙니다.",
+    my: "သင့်တည်နေရာမှ အကွာအဝေးအလိုက် ပစ္စည်းများကို စစ်ထုတ်ပါသည်။",
+    zh: "按与您位置的距离筛选商品。",
+  },
+  homeRadiusFilterSummaryAll: {
+    ko: "거리 제한 없음",
+    my: "အကွာအဝေး မကန့်သတ်",
+    zh: "不限距离",
+  },
+  homeRadiusFilterSummaryWithin: {
+    ko: "{km}km 이내",
+    my: "{km}km အတွင်း",
+    zh: "{km}公里内",
+  },
+  homeRadiusFilterNoLocationHint: {
+    ko: "위치를 활성화하면 반경 필터를 사용할 수 있습니다.",
+    my: "တည်နေရာဖွင့်ပြီးမှ အကွာအဝေး စစ်ထုတ်မှုကို အသုံးပြုနိုင်သည်။",
+    zh: "开启定位后可使用半径筛选。",
+  },
   homeProductsNearYouHint: {
     ko: "가까운 거래 위치 순",
     my: "အနီးဆုံး လဲလှယ်ရာ နေရာအလိုက်",

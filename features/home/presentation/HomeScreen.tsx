@@ -1,31 +1,54 @@
 import { AddProductListingButton } from "@/components/add-product-listing-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { Colors } from "@/constants/theme";
 import type { Category } from "@/core/domain/entities/Category";
 import type { Product } from "@/core/domain/entities/Product";
-import { Colors } from "@/constants/theme";
+import type { ClientCatalogRadiusSelection } from "@/core/domain/types/catalog";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useBuyerCatalogLocation } from "@/presentation/hooks/useBuyerCatalogLocation";
 import { useCategories } from "@/presentation/hooks/useCategories";
 import { useClientProductsCatalog } from "@/presentation/hooks/useClientProducts";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
-import { useRouter } from "expo-router";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "expo-router";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
+  Platform,
   Pressable,
   RefreshControl,
   StyleSheet,
   TextInput,
   View,
+  useWindowDimensions,
 } from "react-native";
+import Animated, {
+  Extrapolation,
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  LinearTransition,
+  interpolate,
+  interpolateColor,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 
 import { HomeHero } from "./HomeHero";
+import { HomeRadiusFilter } from "./HomeRadiusFilter";
 import { HomeSlider } from "./HomeSlider";
 
-const PRODUCT_IMAGE_SIZE = 76;
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const PRODUCT_IMAGE_SIZE = 80;
+const LIST_ITEM_STAGGER_MS = 52;
+const MAX_STAGGER_ITEMS = 10;
 
 function flattenCategories(tree: Category[] | undefined): Category[] {
   if (!tree || tree.length === 0) return [];
@@ -37,55 +60,166 @@ function flattenCategories(tree: Category[] | undefined): Category[] {
   return out;
 }
 
-function ProductCard({
+function cardShadow(scheme: "light" | "dark") {
+  const isDark = scheme === "dark";
+  return Platform.select({
+    ios: {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: isDark ? 8 : 6 },
+      shadowOpacity: isDark ? 0.35 : 0.1,
+      shadowRadius: isDark ? 16 : 14,
+    },
+    android: { elevation: isDark ? 6 : 4 },
+    default: {},
+  });
+}
+
+const ProductCard = memo(function ProductCard({
   item,
   categoryLabel,
+  index,
 }: {
   item: Product;
   categoryLabel: string;
+  index: number;
 }) {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const scheme = colorScheme ?? "light";
+  const colors = Colors[scheme];
+  const reduceMotion = useReducedMotion();
+  const pressed = useSharedValue(0);
+
+  const cardAnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scale: interpolate(pressed.value, [0, 1], [1, 0.985], Extrapolation.CLAMP),
+      },
+    ],
+  }));
+
+  const onPressIn = () => {
+    if (reduceMotion) return;
+    pressed.value = withTiming(1, { duration: 90 });
+  };
+
+  const onPressOut = () => {
+    if (reduceMotion) return;
+    pressed.value = withSpring(0, { damping: 14, stiffness: 320 });
+  };
+
+  const entering = reduceMotion
+    ? undefined
+    : FadeInUp.duration(420)
+        .delay(Math.min(index, MAX_STAGGER_ITEMS) * LIST_ITEM_STAGGER_MS)
+        .springify()
+        .damping(18);
 
   return (
-    <Pressable
-      style={[styles.productCard, { borderColor: `${colors.icon}30` }]}
-      accessibilityRole="button">
-      <View style={styles.productImageWrap}>
-        {item.imageUrl ? (
-          <Image source={{ uri: item.imageUrl }} style={styles.productImage} contentFit="cover" />
-        ) : (
-          <View style={[styles.productImage, styles.productImageFallback]} />
-        )}
-      </View>
-      <View style={styles.productInfo}>
-        <ThemedText type="defaultSemiBold" numberOfLines={1}>
-          {item.name}
-        </ThemedText>
-        <ThemedText style={styles.productCategory} numberOfLines={1}>
-          {categoryLabel}
-        </ThemedText>
-        {item.createdAtDisplay ? (
-          <ThemedText style={styles.productPostedAt} numberOfLines={1}>
-            {item.createdAtDisplay}
+    <Animated.View
+      entering={entering}
+      layout={LinearTransition.springify().damping(20).stiffness(200)}
+      style={cardAnimStyle}
+    >
+      <AnimatedPressable
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        style={[
+          styles.productCard,
+          cardShadow(scheme),
+          {
+            borderColor: `${colors.icon}22`,
+            backgroundColor: scheme === "dark" ? "#1C1F24" : "#FFFFFF",
+          },
+        ]}
+        accessibilityRole="button"
+      >
+        <View style={styles.productImageWrap}>
+          {item.imageUrl ? (
+            <Image
+              source={{ uri: item.imageUrl }}
+              style={styles.productImage}
+              contentFit="cover"
+              transition={280}
+            />
+          ) : (
+            <View
+              style={[
+                styles.productImage,
+                styles.productImageFallback,
+                { backgroundColor: colors.icon + "18" },
+              ]}
+            />
+          )}
+        </View>
+        <View style={styles.productInfo}>
+          <ThemedText type="defaultSemiBold" numberOfLines={2} style={styles.productTitle}>
+            {item.name}
           </ThemedText>
-        ) : null}
-        <ThemedText style={styles.productPrice}>
-          {item.price.toLocaleString()} MMK
-        </ThemedText>
+          <ThemedText style={styles.productCategory} numberOfLines={1}>
+            {categoryLabel}
+          </ThemedText>
+          {item.createdAtDisplay?.trim() ? (
+            <View style={styles.postedRow}>
+              <MaterialIcons name="schedule" size={12} color={colors.icon} />
+              <ThemedText style={styles.productPostedAt} numberOfLines={1}>
+                {item.createdAtDisplay.trim()}
+              </ThemedText>
+            </View>
+          ) : null}
+          <ThemedText style={[styles.productPrice, { color: colors.tint }]}>
+            {item.price.toLocaleString()} MMK
+          </ThemedText>
+        </View>
+      </AnimatedPressable>
+    </Animated.View>
+  );
+});
+
+function CatalogSkeleton({ tint }: { tint: string }) {
+  const reduceMotion = useReducedMotion();
+  if (reduceMotion) {
+    return (
+      <View style={styles.skeletonWrap}>
+        <ActivityIndicator color={tint} />
       </View>
-    </Pressable>
+    );
+  }
+
+  return (
+    <View style={styles.skeletonWrap}>
+      {[0, 1, 2].map((i) => (
+        <Animated.View
+          key={`sk-${i}`}
+          entering={FadeInUp.duration(400).delay(i * 80)}
+          style={styles.skeletonCard}
+        >
+          <View style={styles.skeletonThumb} />
+          <View style={styles.skeletonLines}>
+            <View style={[styles.skeletonLine, { width: "72%" }]} />
+            <View style={[styles.skeletonLine, { width: "48%", marginTop: 8 }]} />
+            <View style={[styles.skeletonLine, { width: "36%", marginTop: 8 }]} />
+          </View>
+        </Animated.View>
+      ))}
+    </View>
   );
 }
 
 export function HomeScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const scheme = colorScheme ?? "light";
+  const colors = Colors[scheme];
+  const { width } = useWindowDimensions();
   const { t } = useLocale();
+  const reduceMotion = useReducedMotion();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [searchDraft, setSearchDraft] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedRadiusKm, setSelectedRadiusKm] =
+    useState<ClientCatalogRadiusSelection>(null);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchFocus = useSharedValue(0);
 
   useEffect(() => {
     const id = setTimeout(() => {
@@ -93,6 +227,23 @@ export function HomeScreen() {
     }, 400);
     return () => clearTimeout(id);
   }, [searchDraft]);
+
+  useEffect(() => {
+    searchFocus.value = withTiming(searchFocused ? 1 : 0, { duration: 220 });
+  }, [searchFocused, searchFocus]);
+
+  const searchFieldAnimStyle = useAnimatedStyle(() => ({
+    borderColor: interpolateColor(
+      searchFocus.value,
+      [0, 1],
+      [colors.icon + "44", colors.tint + "AA"],
+    ),
+    transform: [
+      {
+        scale: interpolate(searchFocus.value, [0, 1], [1, 1.01], Extrapolation.CLAMP),
+      },
+    ],
+  }));
 
   const categoriesQuery = useCategories();
   const categories = useMemo(
@@ -120,18 +271,26 @@ export function HomeScreen() {
   );
 
   const locationQuery = useBuyerCatalogLocation();
-  const geo =
-    locationQuery.data?.latitude != null && locationQuery.data?.longitude != null
-      ? {
-          latitude: locationQuery.data.latitude,
-          longitude: locationQuery.data.longitude,
-        }
-      : {};
+  const hasGeo =
+    locationQuery.data?.latitude != null && locationQuery.data?.longitude != null;
+  const geo = hasGeo
+    ? {
+        latitude: locationQuery.data!.latitude,
+        longitude: locationQuery.data!.longitude,
+      }
+    : {};
+
+  useEffect(() => {
+    if (!hasGeo && selectedRadiusKm != null) {
+      setSelectedRadiusKm(null);
+    }
+  }, [hasGeo, selectedRadiusKm]);
 
   const productsQuery = useClientProductsCatalog({
     limit: 20,
     ...(selectedCategoryId ? { categoryId: selectedCategoryId } : {}),
     ...(debouncedSearch ? { search: debouncedSearch } : {}),
+    ...(hasGeo && selectedRadiusKm != null ? { radiusKm: selectedRadiusKm } : {}),
     ...geo,
   });
 
@@ -145,11 +304,17 @@ export function HomeScreen() {
     categoriesQuery.isRefetching ||
     locationQuery.isRefetching;
 
+  const isInitialLoading = productsQuery.isPending && products.length === 0;
+
   const onEndReached = useCallback(() => {
     if (productsQuery.hasNextPage && !productsQuery.isFetchingNextPage) {
       void productsQuery.fetchNextPage();
     }
   }, [productsQuery]);
+
+  const filterPanelEntering = reduceMotion
+    ? undefined
+    : FadeInDown.duration(480).delay(120).springify().damping(18);
 
   const listHeader = useMemo(
     () => (
@@ -163,88 +328,145 @@ export function HomeScreen() {
         <View style={styles.sliderSection}>
           <HomeSlider />
         </View>
-        <AddProductListingButton
-          horizontalPadding={16}
-          style={styles.addListingButton}
-          onPress={() =>
-            router.push({ pathname: "/(tabs)/products", params: { openCreate: "1" } })
-          }
-        />
-        <View style={styles.listHeader}>
-          <ThemedText type="subtitle">{t("homeProductsTitle")}</ThemedText>
-          {locationQuery.data != null ? (
-            <ThemedText style={styles.nearYouHint}>{t("homeProductsNearYouHint")}</ThemedText>
-          ) : null}
+        <Animated.View
+          entering={reduceMotion ? undefined : FadeInUp.duration(420).delay(80)}
+        >
+          <AddProductListingButton
+            horizontalPadding={16}
+            style={styles.addListingButton}
+            onPress={() =>
+              router.push({
+                pathname: "/(tabs)/products",
+                params: { openCreate: "1" },
+              })
+            }
+          />
+        </Animated.View>
+
+        <Animated.View
+          entering={filterPanelEntering}
+          style={[
+            styles.filtersPanel,
+            cardShadow(scheme),
+            {
+              backgroundColor: scheme === "dark" ? "#1A1D22" : "#FFFFFF",
+              borderColor: colors.icon + "20",
+              maxWidth: width - 32,
+            },
+          ]}
+        >
+          <View style={styles.productsTitleBlock}>
+            <ThemedText type="subtitle" style={styles.productsTitle}>
+              {t("homeProductsTitle")}
+            </ThemedText>
+            {locationQuery.data != null ? (
+              <View style={[styles.nearBadge, { backgroundColor: colors.tint + "18" }]}>
+                <MaterialIcons name="near-me" size={13} color={colors.tint} />
+                <ThemedText
+                  style={[styles.nearBadgeText, { color: colors.tint }]}
+                  numberOfLines={2}
+                >
+                  {t("homeProductsNearYouHint")}
+                </ThemedText>
+              </View>
+            ) : null}
+          </View>
+
           {categoriesQuery.isError ? (
             <ThemedText style={styles.categoryErrorText}>
               {t("homeCategoryErrorRetryHint")}
             </ThemedText>
           ) : null}
           {productsQuery.isError ? (
-            <ThemedText style={styles.productsErrorText}>{t("homeProductsLoadError")}</ThemedText>
+            <ThemedText style={styles.productsErrorText}>
+              {t("homeProductsLoadError")}
+            </ThemedText>
           ) : null}
-          <View style={styles.searchSection}>
-            <View
-              style={[
-                styles.searchField,
-                { borderColor: colors.icon + "55", backgroundColor: colors.background },
-              ]}
-            >
-              <TextInput
-                value={searchDraft}
-                onChangeText={setSearchDraft}
-                placeholder={t("homeSearchPlaceholder")}
-                placeholderTextColor={colors.icon}
-                style={[styles.searchInput, { color: colors.text }]}
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="search"
-              />
-              {searchDraft.length > 0 ? (
+
+          <Animated.View style={[styles.searchField, searchFieldAnimStyle]}>
+            <MaterialIcons
+              name="search"
+              size={20}
+              color={searchFocused ? colors.tint : colors.icon}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              value={searchDraft}
+              onChangeText={setSearchDraft}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              placeholder={t("homeSearchPlaceholder")}
+              placeholderTextColor={colors.icon}
+              style={[styles.searchInput, { color: colors.text }]}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+            />
+            {searchDraft.length > 0 ? (
+              <Animated.View entering={FadeIn.duration(180)} exiting={FadeIn.duration(120)}>
                 <Pressable
                   accessibilityLabel={t("homeSearchClearAccessibility")}
                   hitSlop={10}
                   onPress={() => {
                     setSearchDraft("");
                     setDebouncedSearch("");
+                    void Haptics.selectionAsync();
                   }}
-                  style={styles.searchClear}
+                  style={[styles.searchClear, { backgroundColor: colors.icon + "18" }]}
                 >
-                  <ThemedText style={styles.searchClearText}>×</ThemedText>
+                  <MaterialIcons name="close" size={16} color={colors.icon} />
                 </Pressable>
-              ) : null}
-            </View>
-          </View>
-        </View>
+              </Animated.View>
+            ) : null}
+          </Animated.View>
+
+          <HomeRadiusFilter
+            value={selectedRadiusKm}
+            onChange={setSelectedRadiusKm}
+            disabled={!hasGeo}
+          />
+        </Animated.View>
       </View>
     ),
     [
       categories,
       categoriesQuery.isError,
-      colors.background,
       colors.icon,
       colors.text,
       colors.tint,
-      productsQuery.isError,
-      router,
-      searchDraft,
-      selectedCategoryId,
-      t,
+      filterPanelEntering,
+      hasGeo,
       locationQuery.data,
+      productsQuery.isError,
+      reduceMotion,
+      router,
+      scheme,
+      searchDraft,
+      searchFieldAnimStyle,
+      searchFocused,
+      selectedCategoryId,
+      selectedRadiusKm,
+      t,
+      width,
     ],
   );
 
   const listFooter = useMemo(() => {
     if (productsQuery.isFetchingNextPage) {
       return (
-        <View style={styles.footerLoading}>
-          <ActivityIndicator />
-          <ThemedText style={styles.footerLoadingText}>{t("homeProductsLoadingMore")}</ThemedText>
-        </View>
+        <Animated.View
+          entering={FadeIn.duration(280)}
+          style={styles.footerLoading}
+        >
+          <ActivityIndicator color={colors.tint} />
+          <ThemedText style={styles.footerLoadingText}>
+            {t("homeProductsLoadingMore")}
+          </ThemedText>
+        </Animated.View>
       );
     }
-    return null;
-  }, [productsQuery.isFetchingNextPage, t]);
+    return <View style={styles.footerSpacer} />;
+  }, [colors.tint, productsQuery.isFetchingNextPage, t]);
 
   const emptyText = useMemo(() => {
     if (productsQuery.isError) return t("homeProductsLoadError");
@@ -253,20 +475,30 @@ export function HomeScreen() {
     return t("homeNoProductsForCategory");
   }, [debouncedSearch, productsQuery.isError, productsQuery.isPending, t]);
 
+  const renderItem = useCallback(
+    ({ item, index }: { item: Product; index: number }) => (
+      <ProductCard
+        item={item}
+        index={index}
+        categoryLabel={resolveCategoryLabel(item) || t("homeCategoryFallback")}
+      />
+    ),
+    [resolveCategoryLabel, t],
+  );
+
   return (
     <ThemedView style={styles.container}>
-      <FlatList
+      <Animated.FlatList
         data={products}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ProductCard
-            item={item}
-            categoryLabel={resolveCategoryLabel(item) || t("homeCategoryFallback")}
-          />
-        )}
+        renderItem={renderItem}
+        itemLayoutAnimation={
+          reduceMotion ? undefined : LinearTransition.springify().damping(22).stiffness(180)
+        }
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
+            tintColor={colors.tint}
             onRefresh={() => {
               void productsQuery.refetch();
               void categoriesQuery.refetch();
@@ -277,13 +509,21 @@ export function HomeScreen() {
         ListHeaderComponent={listHeader}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
-          <View style={styles.emptyWrap}>
-            <ThemedText style={styles.emptyText}>{emptyText}</ThemedText>
-          </View>
+          isInitialLoading ? (
+            <CatalogSkeleton tint={colors.tint} />
+          ) : (
+            <Animated.View entering={FadeIn.duration(400)} style={styles.emptyWrap}>
+              <View style={[styles.emptyIconWrap, { backgroundColor: colors.tint + "14" }]}>
+                <MaterialIcons name="inventory-2" size={28} color={colors.tint} />
+              </View>
+              <ThemedText style={styles.emptyText}>{emptyText}</ThemedText>
+            </Animated.View>
+          )
         }
         ListFooterComponent={listFooter}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.35}
+        showsVerticalScrollIndicator={false}
       />
     </ThemedView>
   );
@@ -294,18 +534,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingBottom: 24,
+    paddingBottom: 32,
     flexGrow: 1,
-  },
-  listHeader: {
-    paddingHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  nearYouHint: {
-    marginTop: 4,
-    fontSize: 12,
-    opacity: 0.65,
   },
   sliderSection: {
     marginTop: 6,
@@ -314,17 +544,61 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 4,
   },
-  searchSection: {
-    marginTop: 10,
+  filtersPanel: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 16,
+    gap: 4,
+  },
+  productsTitleBlock: {
+    gap: 8,
+    marginBottom: 4,
     width: "100%",
+  },
+  productsTitle: {
+    letterSpacing: -0.3,
+  },
+  nearBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 5,
+    maxWidth: "100%",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  nearBadgeText: {
+    flex: 1,
+    flexShrink: 1,
+    fontSize: 11,
+    fontWeight: "700",
+    lineHeight: 15,
+  },
+  categoryErrorText: {
+    marginTop: 4,
+    fontSize: 12,
+    opacity: 0.7,
+  },
+  productsErrorText: {
+    marginTop: 4,
+    fontSize: 12,
+    opacity: 0.85,
+    color: "#DC2626",
   },
   searchField: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderRadius: 12,
+    borderWidth: 1.5,
+    borderRadius: 14,
     paddingHorizontal: 12,
-    minHeight: 44,
+    minHeight: 48,
+    marginTop: 10,
+  },
+  searchIcon: {
+    marginRight: 8,
   },
   searchInput: {
     flex: 1,
@@ -332,40 +606,26 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   searchClear: {
-    paddingLeft: 4,
-    paddingVertical: 4,
-  },
-  searchClearText: {
-    fontSize: 22,
-    lineHeight: 24,
-    opacity: 0.45,
-    fontWeight: "300",
-  },
-  categoryErrorText: {
-    marginTop: 6,
-    fontSize: 12,
-    opacity: 0.7,
-  },
-  productsErrorText: {
-    marginTop: 6,
-    fontSize: 12,
-    opacity: 0.75,
-    color: "#DC2626",
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
   productCard: {
     marginHorizontal: 16,
-    marginBottom: 10,
+    marginBottom: 12,
     borderWidth: 1,
-    borderRadius: 14,
-    padding: 10,
+    borderRadius: 18,
+    padding: 12,
     flexDirection: "row",
-    gap: 12,
+    gap: 14,
     alignItems: "center",
   },
   productImageWrap: {
     width: PRODUCT_IMAGE_SIZE,
     height: PRODUCT_IMAGE_SIZE,
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: "hidden",
   },
   productImage: {
@@ -373,43 +633,98 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   productImageFallback: {
-    backgroundColor: "rgba(120,120,120,0.2)",
+    opacity: 0.5,
   },
   productInfo: {
     flex: 1,
-    gap: 2,
+    gap: 3,
+    minWidth: 0,
+  },
+  productTitle: {
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: -0.2,
   },
   productCategory: {
-    opacity: 0.6,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  productPostedAt: {
-    opacity: 0.55,
+    opacity: 0.62,
     fontSize: 12,
     lineHeight: 16,
-    marginTop: 1,
+  },
+  postedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
+  },
+  productPostedAt: {
+    opacity: 0.68,
+    fontSize: 11,
+    lineHeight: 14,
+    flex: 1,
   },
   productPrice: {
     marginTop: 6,
-    color: "#F97316",
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "800",
+    letterSpacing: -0.3,
   },
   emptyWrap: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingHorizontal: 32,
+    paddingTop: 28,
+    paddingBottom: 16,
     alignItems: "center",
+    gap: 12,
+  },
+  emptyIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
   },
   emptyText: {
-    opacity: 0.6,
+    opacity: 0.62,
+    textAlign: "center",
+    fontSize: 14,
+    lineHeight: 20,
   },
   footerLoading: {
-    paddingVertical: 16,
+    paddingVertical: 20,
     alignItems: "center",
-    gap: 8,
+    gap: 10,
   },
   footerLoadingText: {
     fontSize: 12,
     opacity: 0.6,
+  },
+  footerSpacer: {
+    height: 8,
+  },
+  skeletonWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    gap: 12,
+  },
+  skeletonCard: {
+    flexDirection: "row",
+    gap: 14,
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: "rgba(120,120,120,0.12)",
+  },
+  skeletonThumb: {
+    width: PRODUCT_IMAGE_SIZE,
+    height: PRODUCT_IMAGE_SIZE,
+    borderRadius: 14,
+    backgroundColor: "rgba(120,120,120,0.18)",
+  },
+  skeletonLines: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  skeletonLine: {
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "rgba(120,120,120,0.16)",
   },
 });
