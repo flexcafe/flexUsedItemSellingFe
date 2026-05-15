@@ -4,12 +4,10 @@ import type { LocationGeocodedAddress } from "expo-location";
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   Image,
   Modal,
   Platform,
   Pressable,
-  RefreshControl,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -17,7 +15,6 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 
-import { AddProductListingButton } from "@/components/add-product-listing-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
@@ -52,6 +49,8 @@ import {
 import { File, Paths } from "expo-file-system";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { MyProductsListing } from "./MyProductsListing";
 
 const CONDITION_OPTIONS: ProductCondition[] = [
   "NEW",
@@ -283,83 +282,6 @@ function formFromProduct(product: Product): ProductFormState {
   };
 }
 
-function ProductCard({
-  product,
-  onView,
-  onEdit,
-  onArchive,
-  archivePending,
-}: {
-  product: Product;
-  onView: (p: Product) => void;
-  onEdit: (p: Product) => void;
-  onArchive: (p: Product) => void;
-  archivePending: boolean;
-}) {
-  const { t } = useLocale();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
-  const statusText =
-    product.status ?? (product.isAvailable ? "ACTIVE" : "SOLD");
-
-  return (
-    <View style={[styles.card, { borderColor: colors.icon + "30" }]}>
-      <View style={styles.cardContent}>
-        <ThemedText type="defaultSemiBold" numberOfLines={1}>
-          {product.name}
-        </ThemedText>
-        <ThemedText style={styles.cardDescription} numberOfLines={2}>
-          {product.description}
-        </ThemedText>
-        <ThemedText style={styles.metaLine}>
-          {t("productsLabelStatus")}: {statusText}
-        </ThemedText>
-        <View style={styles.cardFooter}>
-          <ThemedText type="defaultSemiBold" style={{ color: colors.tint }}>
-            {product.price.toLocaleString()} MMK
-          </ThemedText>
-          <View style={styles.actionsRow}>
-            <Pressable
-              onPress={() => onView(product)}
-            style={[
-                styles.neutralButton,
-                { borderColor: colors.icon + "55" },
-              ]}
-            >
-              <ThemedText style={[styles.neutralText, { color: colors.text }]}>
-                {t("productsDetail")}
-            </ThemedText>
-            </Pressable>
-            <Pressable
-              onPress={() => onEdit(product)}
-              style={[styles.editButton, { backgroundColor: colors.tint }]}
-            >
-              <ThemedText style={styles.editText}>
-                {t("productsEdit")}
-              </ThemedText>
-            </Pressable>
-            <Pressable
-              disabled={archivePending}
-              onPress={() => onArchive(product)}
-              style={({ pressed }) => [
-                styles.archiveButton,
-                pressed && !archivePending && styles.archiveButtonPressed,
-                archivePending && styles.archiveButtonDisabled,
-              ]}
-            >
-              <ThemedText style={styles.archiveText}>
-                {archivePending
-                  ? t("productsArchiveShort")
-                  : t("productsArchive")}
-              </ThemedText>
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    </View>
-  );
-}
-
 function formatProductConditionForDisplay(
   raw: string | null | undefined,
   translate: (key: ReturnType<typeof productConditionLabelKey>) => string,
@@ -415,10 +337,26 @@ export function ProductListScreen() {
     () => productsQuery.data?.pages.flatMap((p) => p.items) ?? [],
     [productsQuery.data?.pages],
   );
+  const totalCount = productsQuery.data?.pages[0]?.total ?? products.length;
   const categories = useMemo(
     () =>
       (categoriesQuery.data ?? []).flatMap((root) => [root, ...root.children]),
     [categoriesQuery.data],
+  );
+  const categoryLabelById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of categories) m.set(c.id, c.name);
+    return m;
+  }, [categories]);
+  const categoryLabelFor = useCallback(
+    (product: Product): string => {
+      if (product.category?.trim()) return product.category.trim();
+      if (product.categoryId) {
+        return categoryLabelById.get(product.categoryId) ?? "";
+      }
+      return "";
+    },
+    [categoryLabelById],
   );
   useEffect(() => {
     mapPickerRef.current = mapPicker;
@@ -1202,86 +1140,28 @@ export function ProductListScreen() {
     }
   };
 
-  if (productsQuery.isLoading) {
-    return (
-      <ThemedView style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.tint} />
-        <ThemedText style={{ marginTop: 12 }}>
-          {t("productsLoading")}
-        </ThemedText>
-      </ThemedView>
-    );
-  }
-
-  if (productsQuery.error) {
-    return (
-      <ThemedView style={styles.centered}>
-        <ThemedText style={{ textAlign: "center", marginBottom: 12 }}>
-          {t("productsLoadError")}
-        </ThemedText>
-        <Pressable
-          onPress={() => productsQuery.refetch()}
-          style={[styles.retryButton, { backgroundColor: colors.tint }]}
-        >
-          <ThemedText style={styles.retryText}>{t("productsRetry")}</ThemedText>
-        </Pressable>
-      </ThemedView>
-    );
-  }
-
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.header}>
-        <ThemedText type="title">{t("productsMyTitle")}</ThemedText>
-        <ThemedText style={styles.subtitle}>
-          {t("productsMySubtitle")}
-        </ThemedText>
-      </View>
-      <AddProductListingButton
-        onPress={openCreate}
-        horizontalPadding={24}
-        style={styles.createButtonWrap}
-      />
-
-      <FlatList
-        data={products}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ProductCard
-            product={item}
-            onView={(p) => setDetailId(p.id)}
-            onEdit={openEdit}
-            onArchive={onArchive}
-            archivePending={deleteMutation.isPending}
-          />
-        )}
-        contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl
-            refreshing={productsQuery.isRefetching}
-            onRefresh={productsQuery.refetch}
-          />
-        }
+    <>
+      <MyProductsListing
+        products={products}
+        totalCount={totalCount}
+        isLoading={productsQuery.isLoading}
+        isError={productsQuery.isError}
+        isRefetching={productsQuery.isRefetching}
+        isFetchingNextPage={productsQuery.isFetchingNextPage}
+        categoryLabelFor={categoryLabelFor}
+        archivePending={deleteMutation.isPending}
+        onRefresh={() => void productsQuery.refetch()}
+        onRetry={() => void productsQuery.refetch()}
         onEndReached={() => {
           if (productsQuery.hasNextPage && !productsQuery.isFetchingNextPage) {
             void productsQuery.fetchNextPage();
           }
         }}
-        onEndReachedThreshold={0.3}
-        ListFooterComponent={
-          productsQuery.isFetchingNextPage ? (
-            <View style={styles.footerLoading}>
-              <ActivityIndicator color={colors.tint} />
-            </View>
-          ) : null
-        }
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <ThemedText style={{ opacity: 0.6 }}>
-              {t("productsEmpty")}
-            </ThemedText>
-          </View>
-        }
+        onCreatePress={openCreate}
+        onView={(p) => setDetailId(p.id)}
+        onEdit={openEdit}
+        onArchive={onArchive}
       />
 
       <Modal
@@ -2332,85 +2212,16 @@ export function ProductListScreen() {
           </View>
         </View>
       </Modal>
-    </ThemedView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 60,
-  },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-  },
-  header: {
-    paddingHorizontal: 24,
-    marginBottom: 8,
-  },
-  createButtonWrap: {
-    marginBottom: 12,
-  },
-  subtitle: {
-    opacity: 0.6,
-    marginTop: 4,
-  },
-  list: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    gap: 12,
-  },
-  card: {
-    borderWidth: 1,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  cardContent: {
-    padding: 16,
-    gap: 4,
-  },
-  cardDescription: {
-    opacity: 0.6,
-    fontSize: 14,
-  },
-  metaLine: {
-    opacity: 0.65,
-    fontSize: 12,
-  },
-  cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 8,
-  },
-  actionsRow: {
-    flexDirection: "row",
-    gap: 6,
-    alignItems: "center",
-  },
-  neutralButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "rgba(120,120,120,0.45)",
-  },
-  neutralText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  editButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-  editText: {
-    fontSize: 12,
-    color: "#fff",
-    fontWeight: "700",
   },
   archiveButton: {
     paddingHorizontal: 12,
@@ -2428,14 +2239,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 12,
     fontWeight: "700",
-  },
-  empty: {
-    alignItems: "center",
-    paddingTop: 48,
-  },
-  footerLoading: {
-    paddingVertical: 16,
-    alignItems: "center",
   },
   modalBackdrop: {
     flex: 1,

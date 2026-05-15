@@ -9,7 +9,7 @@ import {
 } from "react";
 
 import type { AppLocale } from "@/core/domain/types/locale";
-import type { ProductCondition } from "@/core/domain/types/product";
+import type { ProductCondition, ProductStatus } from "@/core/domain/types/product";
 import { useServices } from "./ServicesProvider";
 
 type Dictionary = Record<string, Record<AppLocale, string>>;
@@ -984,6 +984,11 @@ const DICT: Dictionary = {
     my: "အထွေထွေ",
     zh: "通用",
   },
+  productListingNoImage: {
+    ko: "사진 없음",
+    my: "ပုံမရှိ",
+    zh: "暂无图片",
+  },
   homeCategoryErrorRetryHint: {
     ko: "카테고리를 불러오지 못했습니다. 아래로 당겨 새로고침하세요.",
     my: "အမျိုးအစားများ မရရှိနိုင်ပါ။ အောက်သို့ ဆွဲချပြီး ပြန်လည်ရယူပါ။",
@@ -1043,6 +1048,46 @@ const DICT: Dictionary = {
     ko: "등록된 상품이 없습니다.",
     my: "ပစ္စည်းမရှိသေးပါ။",
     zh: "暂无商品。",
+  },
+  productsEmptyHint: {
+    ko: "새 등록으로 첫 상품을 올려 보세요.",
+    my: "အသစ်ထည့်ခြင်းဖြင့် ပထမပစ္စည်းကို တင်ပါ။",
+    zh: "点击新建发布你的第一件商品。",
+  },
+  productsListingCount: {
+    ko: "등록 {count}건",
+    my: "စာရင်း {count} ခု",
+    zh: "共 {count} 件",
+  },
+  productsLoadingMore: {
+    ko: "더 불러오는 중…",
+    my: "ထပ်မံတင်နေသည်…",
+    zh: "正在加载更多…",
+  },
+  productsStatusDraft: {
+    ko: "임시저장",
+    my: "မူကြမ်း",
+    zh: "草稿",
+  },
+  productsStatusActive: {
+    ko: "판매중",
+    my: "ရောင်းချနေ",
+    zh: "在售",
+  },
+  productsStatusInactive: {
+    ko: "비활성",
+    my: "ပိတ်ထား",
+    zh: "已停用",
+  },
+  productsStatusSold: {
+    ko: "판매완료",
+    my: "ရောင်းပြီး",
+    zh: "已售",
+  },
+  productsStatusDeleted: {
+    ko: "삭제됨",
+    my: "ဖျက်ပြီး",
+    zh: "已删除",
   },
   productsDetail: {
     ko: "상세",
@@ -1680,11 +1725,24 @@ const PRODUCT_CONDITION_LABEL_KEY: Record<ProductCondition, keyof typeof DICT> =
     POOR: "productsConditionPoor",
   };
 
+const PRODUCT_STATUS_LABEL_KEY: Record<ProductStatus, keyof typeof DICT> = {
+  DRAFT: "productsStatusDraft",
+  ACTIVE: "productsStatusActive",
+  INACTIVE: "productsStatusInactive",
+  SOLD: "productsStatusSold",
+  DELETED: "productsStatusDeleted",
+};
+
 /** Locale key for product condition chips / detail (API still uses `NEW`, `LIKE_NEW`, …). */
 export function productConditionLabelKey(
   condition: ProductCondition,
 ): keyof typeof DICT {
   return PRODUCT_CONDITION_LABEL_KEY[condition];
+}
+
+/** Locale key for seller listing status badge (API uses `ACTIVE`, `DRAFT`, …). */
+export function productStatusLabelKey(status: ProductStatus): keyof typeof DICT {
+  return PRODUCT_STATUS_LABEL_KEY[status];
 }
 
 export function parseProductCondition(

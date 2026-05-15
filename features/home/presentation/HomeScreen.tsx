@@ -12,7 +12,7 @@ import { useClientProductsCatalog } from "@/presentation/hooks/useClientProducts
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
-import { Image } from "expo-image";
+import { ProductListingThumbnail } from "@/components/product-listing-thumbnail";
 import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -134,22 +134,11 @@ const ProductCard = memo(function ProductCard({
         accessibilityRole="button"
       >
         <View style={styles.productImageWrap}>
-          {item.imageUrl ? (
-            <Image
-              source={{ uri: item.imageUrl }}
-              style={styles.productImage}
-              contentFit="cover"
-              transition={280}
-            />
-          ) : (
-            <View
-              style={[
-                styles.productImage,
-                styles.productImageFallback,
-                { backgroundColor: colors.icon + "18" },
-              ]}
-            />
-          )}
+          <ProductListingThumbnail
+            imageUrl={item.imageUrl}
+            size={PRODUCT_IMAGE_SIZE}
+            borderRadius={14}
+          />
         </View>
         <View style={styles.productInfo}>
           <ThemedText type="defaultSemiBold" numberOfLines={2} style={styles.productTitle}>
@@ -627,13 +616,6 @@ const styles = StyleSheet.create({
     height: PRODUCT_IMAGE_SIZE,
     borderRadius: 14,
     overflow: "hidden",
-  },
-  productImage: {
-    width: "100%",
-    height: "100%",
-  },
-  productImageFallback: {
-    opacity: 0.5,
   },
   productInfo: {
     flex: 1,

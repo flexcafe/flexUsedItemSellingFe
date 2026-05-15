@@ -14,7 +14,9 @@ export function resolveCatalogRadiusIndex(
   return idx >= 0 ? idx + 1 : 0;
 }
 
-export function catalogRadiusFromIndex(index: number): ClientCatalogRadiusSelection {
+export function catalogRadiusFromIndex(
+  index: number,
+): ClientCatalogRadiusSelection {
   if (index <= 0) return null;
   return CLIENT_CATALOG_RADIUS_KM_OPTIONS[index - 1] ?? null;
 }
