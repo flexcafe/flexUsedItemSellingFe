@@ -904,6 +904,16 @@ const DICT: Dictionary = {
     my: "ပစ္စည်းများ",
     zh: "商品",
   },
+  homeSearchPlaceholder: {
+    ko: "제목·설명 검색 (예: iphone)",
+    my: "ခေါင်းစဉ် သို့မဟုတ် ဖော်ပြချက် ရှာဖွေရန် (ဥပမာ iphone)",
+    zh: "搜索标题或描述（如 iphone）",
+  },
+  homeSearchClearAccessibility: {
+    ko: "검색어 지우기",
+    my: "ရှာဖွေစာသား ဖျက်ရန်",
+    zh: "清除搜索",
+  },
   homeProductsNearYouHint: {
     ko: "가까운 거래 위치 순",
     my: "အနီးဆုံး လဲလှယ်ရာ နေရာအလိုက်",
@@ -928,6 +938,11 @@ const DICT: Dictionary = {
     ko: "이 카테고리에 상품이 없습니다.",
     my: "ဒီအမျိုးအစားတွင် ပစ္စည်းမရှိသေးပါ။",
     zh: "该分类下暂无商品。",
+  },
+  homeNoProductsForSearch: {
+    ko: "검색과 일치하는 상품이 없습니다.",
+    my: "ရှာဖွေမှုနှင့် ကိုက်ညီသော ပစ္စည်းမရှိပါ။",
+    zh: "没有符合搜索条件的商品。",
   },
   homeCategoryFallback: {
     ko: "일반",

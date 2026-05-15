@@ -11,13 +11,14 @@ import { useClientProductsCatalog } from "@/presentation/hooks/useClientProducts
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
   StyleSheet,
+  TextInput,
   View,
 } from "react-native";
 
@@ -64,6 +65,11 @@ function ProductCard({
         <ThemedText style={styles.productCategory} numberOfLines={1}>
           {categoryLabel}
         </ThemedText>
+        {item.createdAtDisplay ? (
+          <ThemedText style={styles.productPostedAt} numberOfLines={1}>
+            {item.createdAtDisplay}
+          </ThemedText>
+        ) : null}
         <ThemedText style={styles.productPrice}>
           {item.price.toLocaleString()} MMK
         </ThemedText>
@@ -78,6 +84,15 @@ export function HomeScreen() {
   const colors = Colors[colorScheme ?? "light"];
   const { t } = useLocale();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [searchDraft, setSearchDraft] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setDebouncedSearch(searchDraft.trim());
+    }, 400);
+    return () => clearTimeout(id);
+  }, [searchDraft]);
 
   const categoriesQuery = useCategories();
   const categories = useMemo(
@@ -116,6 +131,7 @@ export function HomeScreen() {
   const productsQuery = useClientProductsCatalog({
     limit: 20,
     ...(selectedCategoryId ? { categoryId: selectedCategoryId } : {}),
+    ...(debouncedSearch ? { search: debouncedSearch } : {}),
     ...geo,
   });
 
@@ -167,15 +183,51 @@ export function HomeScreen() {
           {productsQuery.isError ? (
             <ThemedText style={styles.productsErrorText}>{t("homeProductsLoadError")}</ThemedText>
           ) : null}
+          <View style={styles.searchSection}>
+            <View
+              style={[
+                styles.searchField,
+                { borderColor: colors.icon + "55", backgroundColor: colors.background },
+              ]}
+            >
+              <TextInput
+                value={searchDraft}
+                onChangeText={setSearchDraft}
+                placeholder={t("homeSearchPlaceholder")}
+                placeholderTextColor={colors.icon}
+                style={[styles.searchInput, { color: colors.text }]}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+              />
+              {searchDraft.length > 0 ? (
+                <Pressable
+                  accessibilityLabel={t("homeSearchClearAccessibility")}
+                  hitSlop={10}
+                  onPress={() => {
+                    setSearchDraft("");
+                    setDebouncedSearch("");
+                  }}
+                  style={styles.searchClear}
+                >
+                  <ThemedText style={styles.searchClearText}>×</ThemedText>
+                </Pressable>
+              ) : null}
+            </View>
+          </View>
         </View>
       </View>
     ),
     [
       categories,
       categoriesQuery.isError,
+      colors.background,
+      colors.icon,
+      colors.text,
       colors.tint,
       productsQuery.isError,
       router,
+      searchDraft,
       selectedCategoryId,
       t,
       locationQuery.data,
@@ -194,11 +246,12 @@ export function HomeScreen() {
     return null;
   }, [productsQuery.isFetchingNextPage, t]);
 
-  const emptyText = productsQuery.isError
-    ? t("homeProductsLoadError")
-    : productsQuery.isPending
-      ? t("homeLoadingProducts")
-      : t("homeNoProductsForCategory");
+  const emptyText = useMemo(() => {
+    if (productsQuery.isError) return t("homeProductsLoadError");
+    if (productsQuery.isPending) return t("homeLoadingProducts");
+    if (debouncedSearch.length > 0) return t("homeNoProductsForSearch");
+    return t("homeNoProductsForCategory");
+  }, [debouncedSearch, productsQuery.isError, productsQuery.isPending, t]);
 
   return (
     <ThemedView style={styles.container}>
@@ -261,6 +314,33 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 4,
   },
+  searchSection: {
+    marginTop: 10,
+    width: "100%",
+  },
+  searchField: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    minHeight: 44,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 10,
+  },
+  searchClear: {
+    paddingLeft: 4,
+    paddingVertical: 4,
+  },
+  searchClearText: {
+    fontSize: 22,
+    lineHeight: 24,
+    opacity: 0.45,
+    fontWeight: "300",
+  },
   categoryErrorText: {
     marginTop: 6,
     fontSize: 12,
@@ -303,6 +383,12 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     fontSize: 13,
     lineHeight: 18,
+  },
+  productPostedAt: {
+    opacity: 0.55,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 1,
   },
   productPrice: {
     marginTop: 6,

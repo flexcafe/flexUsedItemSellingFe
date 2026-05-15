@@ -28,4 +28,6 @@ export interface Product {
   isAvailable: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Public catalog/detail only — pre-formatted age label from API (e.g. "3 h ago"). */
+  createdAtDisplay?: string | null;
 }

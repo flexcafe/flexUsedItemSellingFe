@@ -321,14 +321,14 @@ function ProductCard({
           <View style={styles.actionsRow}>
             <Pressable
               onPress={() => onView(product)}
-              style={[
+            style={[
                 styles.neutralButton,
                 { borderColor: colors.icon + "55" },
               ]}
             >
               <ThemedText style={[styles.neutralText, { color: colors.text }]}>
                 {t("productsDetail")}
-              </ThemedText>
+            </ThemedText>
             </Pressable>
             <Pressable
               onPress={() => onEdit(product)}

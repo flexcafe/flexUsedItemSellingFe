@@ -1,10 +1,7 @@
-import type { ClientProductCatalogPage } from "@/core/domain/types/product";
 import type { Product } from "@/core/domain/entities/Product";
+import type { ClientProductCatalogPage } from "@/core/domain/types/product";
 import type { ProductDto } from "../dtos/ProductDto";
-import {
-  pickStringFromRecord,
-  toAbsoluteMediaUrl,
-} from "./mediaUrl";
+import { pickStringFromRecord, toAbsoluteMediaUrl } from "./mediaUrl";
 
 export interface ProductApiResponse {
   id: string;
@@ -33,6 +30,7 @@ export interface ProductApiResponse {
   viewCount?: number | null;
   isAvailable?: boolean | null;
   createdAt?: string | null;
+  createdAtDisplay?: string | null;
   updatedAt?: string | null;
 }
 
@@ -63,11 +61,9 @@ function firstImageFromImages(images: unknown): string {
 }
 
 function displayTitle(dto: ProductApiResponse): string {
-  const fromTitle =
-    typeof dto.title === "string" ? dto.title.trim() : "";
+  const fromTitle = typeof dto.title === "string" ? dto.title.trim() : "";
   if (fromTitle) return fromTitle;
-  const fromName =
-    typeof dto.name === "string" ? dto.name.trim() : "";
+  const fromName = typeof dto.name === "string" ? dto.name.trim() : "";
   if (fromName) return fromName;
   return "Listing";
 }
@@ -76,8 +72,7 @@ function displayCategory(dto: ProductApiResponse): string {
   const named =
     typeof dto.categoryName === "string" ? dto.categoryName.trim() : "";
   if (named) return named;
-  const cat =
-    typeof dto.category === "string" ? dto.category.trim() : "";
+  const cat = typeof dto.category === "string" ? dto.category.trim() : "";
   return cat;
 }
 
@@ -129,8 +124,7 @@ export function toProduct(dto: ProductApiResponse): Product {
     id: dto.id,
     sellerId: toStringOrNull(dto.sellerId),
     name: displayTitle(dto),
-    description:
-      typeof dto.description === "string" ? dto.description : "",
+    description: typeof dto.description === "string" ? dto.description : "",
     price: parsePrice(dto.price),
     status: typeof dto.status === "string" ? dto.status : undefined,
     condition: typeof dto.condition === "string" ? dto.condition : undefined,
@@ -160,6 +154,7 @@ export function toProduct(dto: ProductApiResponse): Product {
     isAvailable,
     createdAt: dto.createdAt ?? new Date().toISOString(),
     updatedAt: dto.updatedAt ?? new Date().toISOString(),
+    createdAtDisplay: toStringOrNull(dto.createdAtDisplay),
   };
 }
 
@@ -172,7 +167,11 @@ const CATALOG_META_DEFAULT = {
   hasPrevPage: false,
 } as const;
 
-function readNum(r: Record<string, unknown>, key: string, fallback: number): number {
+function readNum(
+  r: Record<string, unknown>,
+  key: string,
+  fallback: number,
+): number {
   const v = r[key];
   if (typeof v === "number" && Number.isFinite(v)) return v;
   if (typeof v === "string") {
@@ -182,7 +181,11 @@ function readNum(r: Record<string, unknown>, key: string, fallback: number): num
   return fallback;
 }
 
-function readBool(r: Record<string, unknown>, key: string, fallback: boolean): boolean {
+function readBool(
+  r: Record<string, unknown>,
+  key: string,
+  fallback: boolean,
+): boolean {
   const v = r[key];
   if (typeof v === "boolean") return v;
   return fallback;
@@ -191,7 +194,9 @@ function readBool(r: Record<string, unknown>, key: string, fallback: boolean): b
 /**
  * Maps unwrapped `PaginatedResponseDto` from `GET /v1/client/products` into domain models.
  */
-export function mapClientProductCatalogPage(data: unknown): ClientProductCatalogPage {
+export function mapClientProductCatalogPage(
+  data: unknown,
+): ClientProductCatalogPage {
   if (data == null || typeof data !== "object" || Array.isArray(data)) {
     return { ...CATALOG_META_DEFAULT, items: [] };
   }

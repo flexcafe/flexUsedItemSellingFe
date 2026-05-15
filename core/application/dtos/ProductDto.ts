@@ -23,6 +23,8 @@ export interface ProductDto {
   category?: string | null;
   viewCount?: number | null;
   createdAt?: string | null;
+  /** Public catalog/detail — server-formatted listing age. */
+  createdAtDisplay?: string | null;
   updatedAt?: string | null;
   imageUrl?: string | null;
   isAvailable?: boolean | null;
