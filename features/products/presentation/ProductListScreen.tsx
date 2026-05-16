@@ -1,6 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
-import * as Location from "expo-location";
 import type { LocationGeocodedAddress } from "expo-location";
+import * as Location from "expo-location";
 import {
   Alert,
   Image,
@@ -38,7 +38,10 @@ import {
   buildLeafletPickerHtml,
   buildLeafletStaticViewHtml,
 } from "@/presentation/lib/leafletPickerHtml";
-import { productConditionLabelKey, useLocale } from "@/presentation/providers/LocaleProvider";
+import {
+  productConditionLabelKey,
+  useLocale,
+} from "@/presentation/providers/LocaleProvider";
 import { File, Paths } from "expo-file-system";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -144,7 +147,9 @@ function formatGeocodedAddress(a: LocationGeocodedAddress): string {
   const locality = [a.district?.trim(), a.city?.trim(), a.subregion?.trim()]
     .filter(Boolean)
     .join(", ");
-  const admin = [a.region?.trim(), a.postalCode?.trim()].filter(Boolean).join(" ");
+  const admin = [a.region?.trim(), a.postalCode?.trim()]
+    .filter(Boolean)
+    .join(" ");
   const country = a.country?.trim();
 
   if (name && name !== streetLine) parts.push(name);
@@ -308,9 +313,9 @@ export function ProductListScreen() {
   const [isLocatingMapPicker, setIsLocatingMapPicker] = useState(false);
   const mapPickerRef = useRef<MapPickerTarget | null>(null);
   const mapPickerCoordsRef = useRef<LocationCoords | null>(null);
-  const directTradeGeocodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const directTradeGeocodeTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
   const preferredGeocodeTimersRef = useRef<
     Map<number, ReturnType<typeof setTimeout>>
   >(new Map());
@@ -635,15 +640,18 @@ export function ProductListScreen() {
     }
   }, [applyCoordsToPreferredRow, applyTradeCoords, t]);
 
-  const clearPreferredLocationPin = useCallback((idx: number) => {
-    clearPreferredGeocodeTimer(idx);
-    setForm((prev) => ({
-      ...prev,
-      preferredLocations: prev.preferredLocations.map((r, i) =>
-        i === idx ? { ...r, latitude: "", longitude: "" } : r,
-      ),
-    }));
-  }, [clearPreferredGeocodeTimer]);
+  const clearPreferredLocationPin = useCallback(
+    (idx: number) => {
+      clearPreferredGeocodeTimer(idx);
+      setForm((prev) => ({
+        ...prev,
+        preferredLocations: prev.preferredLocations.map((r, i) =>
+          i === idx ? { ...r, latitude: "", longitude: "" } : r,
+        ),
+      }));
+    },
+    [clearPreferredGeocodeTimer],
+  );
 
   const addPreferredLocation = useCallback(() => {
     setForm((prev) => {

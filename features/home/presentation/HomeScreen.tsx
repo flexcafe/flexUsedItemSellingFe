@@ -1,4 +1,5 @@
 import { AddProductListingButton } from "@/components/add-product-listing-button";
+import { ProductListingThumbnail } from "@/components/product-listing-thumbnail";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
@@ -12,7 +13,6 @@ import { useClientProductsCatalog } from "@/presentation/hooks/useClientProducts
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
-import { ProductListingThumbnail } from "@/components/product-listing-thumbnail";
 import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -94,7 +94,12 @@ const ProductCard = memo(function ProductCard({
   const cardAnimStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        scale: interpolate(pressed.value, [0, 1], [1, 0.985], Extrapolation.CLAMP),
+        scale: interpolate(
+          pressed.value,
+          [0, 1],
+          [1, 0.985],
+          Extrapolation.CLAMP,
+        ),
       },
     ],
   }));
@@ -194,8 +199,12 @@ function CatalogSkeleton({ tint }: { tint: string }) {
           <View style={styles.skeletonThumb} />
           <View style={styles.skeletonLines}>
             <View style={[styles.skeletonLine, { width: "72%" }]} />
-            <View style={[styles.skeletonLine, { width: "48%", marginTop: 8 }]} />
-            <View style={[styles.skeletonLine, { width: "36%", marginTop: 8 }]} />
+            <View
+              style={[styles.skeletonLine, { width: "48%", marginTop: 8 }]}
+            />
+            <View
+              style={[styles.skeletonLine, { width: "36%", marginTop: 8 }]}
+            />
           </View>
         </Animated.View>
       ))}
@@ -211,7 +220,9 @@ export function HomeScreen() {
   const { width } = useWindowDimensions();
   const { t } = useLocale();
   const reduceMotion = useReducedMotion();
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    null,
+  );
   const [searchDraft, setSearchDraft] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedRadiusKm, setSelectedRadiusKm] =
@@ -238,7 +249,12 @@ export function HomeScreen() {
     ),
     transform: [
       {
-        scale: interpolate(searchFocus.value, [0, 1], [1, 1.01], Extrapolation.CLAMP),
+        scale: interpolate(
+          searchFocus.value,
+          [0, 1],
+          [1, 1.01],
+          Extrapolation.CLAMP,
+        ),
       },
     ],
   }));
@@ -270,7 +286,8 @@ export function HomeScreen() {
 
   const locationQuery = useBuyerCatalogLocation();
   const hasGeo =
-    locationQuery.data?.latitude != null && locationQuery.data?.longitude != null;
+    locationQuery.data?.latitude != null &&
+    locationQuery.data?.longitude != null;
   const geo = hasGeo
     ? {
         latitude: locationQuery.data!.latitude,
@@ -288,7 +305,9 @@ export function HomeScreen() {
     limit: 20,
     ...(selectedCategoryId ? { categoryId: selectedCategoryId } : {}),
     ...(debouncedSearch ? { search: debouncedSearch } : {}),
-    ...(hasGeo && selectedRadiusKm != null ? { radiusKm: selectedRadiusKm } : {}),
+    ...(hasGeo && selectedRadiusKm != null
+      ? { radiusKm: selectedRadiusKm }
+      : {}),
     ...geo,
   });
 
@@ -358,7 +377,12 @@ export function HomeScreen() {
               {t("homeProductsTitle")}
             </ThemedText>
             {locationQuery.data != null ? (
-              <View style={[styles.nearBadge, { backgroundColor: colors.tint + "18" }]}>
+              <View
+                style={[
+                  styles.nearBadge,
+                  { backgroundColor: colors.tint + "18" },
+                ]}
+              >
                 <MaterialIcons name="near-me" size={13} color={colors.tint} />
                 <ThemedText
                   style={[styles.nearBadgeText, { color: colors.tint }]}
@@ -401,7 +425,10 @@ export function HomeScreen() {
               returnKeyType="search"
             />
             {searchDraft.length > 0 ? (
-              <Animated.View entering={FadeIn.duration(180)} exiting={FadeIn.duration(120)}>
+              <Animated.View
+                entering={FadeIn.duration(180)}
+                exiting={FadeIn.duration(120)}
+              >
                 <Pressable
                   accessibilityLabel={t("homeSearchClearAccessibility")}
                   hitSlop={10}
@@ -410,7 +437,10 @@ export function HomeScreen() {
                     setDebouncedSearch("");
                     void Haptics.selectionAsync();
                   }}
-                  style={[styles.searchClear, { backgroundColor: colors.icon + "18" }]}
+                  style={[
+                    styles.searchClear,
+                    { backgroundColor: colors.icon + "18" },
+                  ]}
                 >
                   <MaterialIcons name="close" size={16} color={colors.icon} />
                 </Pressable>
@@ -497,7 +527,9 @@ export function HomeScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         itemLayoutAnimation={
-          reduceMotion ? undefined : LinearTransition.springify().damping(22).stiffness(180)
+          reduceMotion
+            ? undefined
+            : LinearTransition.springify().damping(22).stiffness(180)
         }
         refreshControl={
           <RefreshControl
@@ -516,9 +548,21 @@ export function HomeScreen() {
           isInitialLoading ? (
             <CatalogSkeleton tint={colors.tint} />
           ) : (
-            <Animated.View entering={FadeIn.duration(400)} style={styles.emptyWrap}>
-              <View style={[styles.emptyIconWrap, { backgroundColor: colors.tint + "14" }]}>
-                <MaterialIcons name="inventory-2" size={28} color={colors.tint} />
+            <Animated.View
+              entering={FadeIn.duration(400)}
+              style={styles.emptyWrap}
+            >
+              <View
+                style={[
+                  styles.emptyIconWrap,
+                  { backgroundColor: colors.tint + "14" },
+                ]}
+              >
+                <MaterialIcons
+                  name="inventory-2"
+                  size={28}
+                  color={colors.tint}
+                />
               </View>
               <ThemedText style={styles.emptyText}>{emptyText}</ThemedText>
             </Animated.View>

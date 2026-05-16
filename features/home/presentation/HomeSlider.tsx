@@ -1,5 +1,5 @@
-import type { SliderAd } from "@/core/domain/entities/SliderAd";
 import { Colors } from "@/constants/theme";
+import type { SliderAd } from "@/core/domain/entities/SliderAd";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSliderAds } from "@/presentation/hooks/useSliderAds";
 import * as Haptics from "expo-haptics";
@@ -53,9 +53,10 @@ function carouselShadow(colorScheme: "light" | "dark") {
 }
 
 async function openLink(url: string): Promise<void> {
-  const normalized = url.startsWith("http://") || url.startsWith("https://")
-    ? url
-    : `https://${url}`;
+  const normalized =
+    url.startsWith("http://") || url.startsWith("https://")
+      ? url
+      : `https://${url}`;
   const can = await Linking.canOpenURL(normalized);
   if (can) await Linking.openURL(normalized);
 }
@@ -91,20 +92,28 @@ const SliderDot = memo(function SliderDot({
     });
   }, [active, reduceMotion, progress]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    width: interpolate(
-      progress.value,
-      [0, 1],
-      [DOT_MIN_W, DOT_MAX_W],
-      Extrapolation.CLAMP,
-    ),
-    backgroundColor: interpolateColor(progress.value, [0, 1], [muted, tint]),
-    transform: [
-      {
-        scale: interpolate(progress.value, [0, 1], [1, 1.05], Extrapolation.CLAMP),
-      },
-    ],
-  }), [muted, tint]);
+  const animatedStyle = useAnimatedStyle(
+    () => ({
+      width: interpolate(
+        progress.value,
+        [0, 1],
+        [DOT_MIN_W, DOT_MAX_W],
+        Extrapolation.CLAMP,
+      ),
+      backgroundColor: interpolateColor(progress.value, [0, 1], [muted, tint]),
+      transform: [
+        {
+          scale: interpolate(
+            progress.value,
+            [0, 1],
+            [1, 1.05],
+            Extrapolation.CLAMP,
+          ),
+        },
+      ],
+    }),
+    [muted, tint],
+  );
 
   return (
     <Animated.View
@@ -196,7 +205,9 @@ export function HomeSlider() {
     ({ item }) => {
       const titleTrim = item.title?.trim();
       const inner = (
-        <View style={[styles.slide, { width: slideWidth, height: slideHeight }]}>
+        <View
+          style={[styles.slide, { width: slideWidth, height: slideHeight }]}
+        >
           <Image
             source={{ uri: item.imageUrl }}
             style={styles.image}
@@ -224,7 +235,8 @@ export function HomeSlider() {
         <Pressable
           onPress={() => void openLink(item.linkUrl!)}
           accessibilityRole="button"
-          accessibilityLabel={item.title}>
+          accessibilityLabel={item.title}
+        >
           {inner}
         </Pressable>
       );
@@ -253,9 +265,13 @@ export function HomeSlider() {
               {
                 height: slideHeight,
                 borderRadius: SLIDER_BORDER_RADIUS,
-                backgroundColor: scheme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
+                backgroundColor:
+                  scheme === "dark"
+                    ? "rgba(255,255,255,0.06)"
+                    : "rgba(0,0,0,0.06)",
               },
-            ]}>
+            ]}
+          >
             <View style={styles.loaderInner}>
               <ActivityIndicator size="small" color={tint} />
             </View>
@@ -275,8 +291,12 @@ export function HomeSlider() {
   return (
     <Animated.View
       style={[styles.root, { paddingHorizontal: HORIZONTAL_INSET }]}
-      entering={FadeIn.duration(340).delay(20)}>
-      <Animated.View style={shellStyle} entering={FadeInUp.duration(450).delay(30)}>
+      entering={FadeIn.duration(340).delay(20)}
+    >
+      <Animated.View
+        style={shellStyle}
+        entering={FadeInUp.duration(450).delay(30)}
+      >
         <View
           style={[
             styles.clip,
@@ -284,7 +304,8 @@ export function HomeSlider() {
               height: slideHeight,
               borderRadius: SLIDER_BORDER_RADIUS,
             },
-          ]}>
+          ]}
+        >
           <FlatList
             ref={listRef}
             data={data}
@@ -318,7 +339,8 @@ export function HomeSlider() {
           style={styles.dotsRow}
           entering={FadeInUp.duration(400).delay(40)}
           accessibilityRole="tablist"
-          accessibilityLabel="Promotional slides">
+          accessibilityLabel="Promotional slides"
+        >
           {data.map((ad, i) => (
             <SliderDot
               key={`slider-dot-${ad.id}`}

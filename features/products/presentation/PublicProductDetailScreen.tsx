@@ -1,6 +1,10 @@
 import { ProductListingThumbnail } from "@/components/product-listing-thumbnail";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import {
+  paddingTopBelowLanguageSwitcher,
+  topOffsetForFloatingBackButton,
+} from "@/constants/language-switcher-layout";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
@@ -8,6 +12,11 @@ import {
   useSellerReviews,
 } from "@/presentation/hooks/useClientProducts";
 import { buildLeafletStaticViewHtml } from "@/presentation/lib/leafletPickerHtml";
+import {
+  canOpenMapsForTarget,
+  openInMapsApp,
+  type MapOpenTarget,
+} from "@/presentation/lib/openMapsApp";
 import {
   formatProductConditionForDisplay,
   productStatusLabelKey,
@@ -28,6 +37,7 @@ import {
 } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -43,6 +53,7 @@ import Animated, {
   FadeIn,
   FadeInDown,
   FadeInUp,
+  FadeOut,
   interpolate,
   interpolateColor,
   useAnimatedStyle,
@@ -51,7 +62,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
 import {
@@ -230,24 +241,49 @@ const DetailField = memo(function DetailField({
   value,
   tint,
   last,
+  onPress,
+  actionLabel,
 }: {
   icon: keyof typeof MaterialIcons.glyphMap;
   label: string;
   value: string;
   tint: string;
   last?: boolean;
+  onPress?: () => void;
+  actionLabel?: string;
 }) {
   const display = value?.trim() || "—";
-  return (
+  const row = (
     <View style={[styles.fieldRow, !last && styles.fieldRowBorder]}>
       <View style={[styles.fieldIconWrap, { backgroundColor: tint + "14" }]}>
         <MaterialIcons name={icon} size={17} color={tint} />
       </View>
       <View style={styles.fieldCopy}>
         <ThemedText style={styles.fieldLabel}>{label}</ThemedText>
-        <ThemedText style={styles.fieldValue}>{display}</ThemedText>
+        <ThemedText style={[styles.fieldValue, onPress && { color: tint }]}>
+          {display}
+        </ThemedText>
+        {onPress && actionLabel ? (
+          <ThemedText style={[styles.fieldAction, { color: tint }]}>{actionLabel}</ThemedText>
+        ) : null}
       </View>
+      {onPress ? (
+        <MaterialIcons name="open-in-new" size={18} color={tint} style={styles.fieldActionIcon} />
+      ) : null}
     </View>
+  );
+
+  if (!onPress) return row;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [pressed && styles.fieldRowPressed]}
+      accessibilityRole="button"
+      accessibilityLabel={actionLabel ?? label}
+    >
+      {row}
+    </Pressable>
   );
 });
 
@@ -414,6 +450,8 @@ export function PublicProductDetailScreen({ productId }: Props) {
   const colors = Colors[scheme];
   const { width } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
+  const topContentInset = paddingTopBelowLanguageSwitcher(insets.top);
+  const backButtonTop = topOffsetForFloatingBackButton(insets.top);
 
   const detailQuery = useClientProductDetail(productId);
   const product = detailQuery.data;
@@ -426,6 +464,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
   >([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [mapLoading, setMapLoading] = useState(true);
 
   const chatPressed = useSharedValue(0);
   const backPressed = useSharedValue(0);
@@ -457,6 +496,23 @@ export function PublicProductDetailScreen({ productId }: Props) {
     );
   }, [product?.directTradeLatitude, product?.directTradeLongitude]);
 
+  const showsMapMedia =
+    hasCoordinates || Boolean(product?.mapScreenshotUrl?.trim());
+
+  useEffect(() => {
+    if (!showsMapMedia) {
+      setMapLoading(false);
+      return;
+    }
+    setMapLoading(true);
+  }, [productId, showsMapMedia, mapHtml]);
+
+  useEffect(() => {
+    if (!showsMapMedia || !mapLoading) return;
+    const timeout = setTimeout(() => setMapLoading(false), 12_000);
+    return () => clearTimeout(timeout);
+  }, [showsMapMedia, mapLoading]);
+
   const gallerySlideWidth =
     width - HERO_CARD_H_MARGIN * 2 - HERO_CARD_PADDING * 2;
 
@@ -465,6 +521,21 @@ export function PublicProductDetailScreen({ productId }: Props) {
     void Haptics.selectionAsync();
     setSelectedImage(uri.trim());
   }, []);
+
+  const openMaps = useCallback(
+    async (target: MapOpenTarget) => {
+      if (!canOpenMapsForTarget(target)) {
+        Alert.alert(t("errorTitle"), t("publicDetailMapsUnavailable"));
+        return;
+      }
+      void Haptics.selectionAsync();
+      const opened = await openInMapsApp(target);
+      if (!opened) {
+        Alert.alert(t("errorTitle"), t("publicDetailMapsUnavailable"));
+      }
+    },
+    [t],
+  );
   const surface = cardSurface(scheme);
   const borderColor = colors.icon + "22";
   const mutedDot = colors.icon + "55";
@@ -526,9 +597,29 @@ export function PublicProductDetailScreen({ productId }: Props) {
     ],
   }));
 
+  const screenBackButton = (
+    <AnimatedPressable
+      onPress={() => router.back()}
+      onPressIn={() => {
+        if (reduceMotion) return;
+        backPressed.value = withTiming(1, { duration: 80 });
+      }}
+      onPressOut={() => {
+        if (reduceMotion) return;
+        backPressed.value = withSpring(0, { damping: 14, stiffness: 320 });
+      }}
+      style={[styles.screenBackBtn, { top: backButtonTop }, backAnimStyle]}
+      accessibilityRole="button"
+      accessibilityLabel={t("productsComposerBack")}
+    >
+      <MaterialIcons name="arrow-back" size={22} color="#FFF" />
+    </AnimatedPressable>
+  );
+
   if (detailQuery.isLoading) {
     return (
-      <ThemedView style={styles.centered}>
+      <ThemedView style={[styles.centered, { paddingTop: topContentInset }]}>
+        {screenBackButton}
         <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(300)} style={styles.centered}>
           <ActivityIndicator size="large" color={colors.tint} />
           <ThemedText style={styles.loadingText}>{t("productsDetailLoading")}</ThemedText>
@@ -539,7 +630,8 @@ export function PublicProductDetailScreen({ productId }: Props) {
 
   if (!product) {
     return (
-      <ThemedView style={styles.centered}>
+      <ThemedView style={[styles.centered, { paddingTop: topContentInset }]}>
+        {screenBackButton}
         <MaterialIcons name="inventory-2" size={48} color={colors.icon} />
         <ThemedText>{t("productsDetailNoData")}</ThemedText>
       </ThemedView>
@@ -549,11 +641,24 @@ export function PublicProductDetailScreen({ productId }: Props) {
   const status = parseProductStatus(product.status, product.isAvailable);
   const statusBadge = statusBadgeColors(status, scheme);
 
+  const directTradeMapsTarget: MapOpenTarget = {
+    latitude: product.directTradeLatitude,
+    longitude: product.directTradeLongitude,
+    address: product.directTradeLocation,
+    label: product.name,
+  };
+  const canOpenDirectTradeMaps = canOpenMapsForTarget(directTradeMapsTarget);
+  const mapsActionLabel = t("publicDetailOpenInMaps");
+
   return (
     <ThemedView style={styles.container}>
+      {screenBackButton}
       <Animated.ScrollView
         entering={reduceMotion ? undefined : FadeIn.duration(240)}
-        contentContainerStyle={[styles.content, { paddingBottom: 96 + insets.bottom }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: topContentInset, paddingBottom: 96 + insets.bottom },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <Animated.View
@@ -561,14 +666,26 @@ export function PublicProductDetailScreen({ productId }: Props) {
           style={[styles.mapCard, cardShadow(scheme), { borderColor }]}
         >
           {hasCoordinates ? (
-            <WebView
-              source={{ html: mapHtml }}
-              style={styles.mapView}
-              scrollEnabled={false}
-              pointerEvents="none"
-              originWhitelist={["*"]}
-            />
-          ) : product.mapScreenshotUrl ? (
+              <>
+                <WebView
+                  source={{ html: mapHtml }}
+                  style={styles.mapView}
+                  scrollEnabled={false}
+                  pointerEvents="none"
+                  originWhitelist={["*"]}
+                  onLoadEnd={() => setMapLoading(false)}
+                  onError={() => setMapLoading(false)}
+                />
+                {!mapLoading ? (
+                  <Pressable
+                    style={styles.mapTapOverlay}
+                    onPress={() => openMaps(directTradeMapsTarget)}
+                    accessibilityRole="button"
+                    accessibilityLabel={mapsActionLabel}
+                  />
+                ) : null}
+              </>
+            ) : product.mapScreenshotUrl ? (
             <Pressable
               onPress={() => openImageViewer(product.mapScreenshotUrl ?? "")}
               accessibilityRole="imagebutton"
@@ -580,6 +697,8 @@ export function PublicProductDetailScreen({ productId }: Props) {
                 contentFit="cover"
                 transition={280}
                 pointerEvents="none"
+                onLoad={() => setMapLoading(false)}
+                onError={() => setMapLoading(false)}
               />
             </Pressable>
           ) : (
@@ -588,36 +707,56 @@ export function PublicProductDetailScreen({ productId }: Props) {
             </View>
           )}
 
+          {mapLoading && showsMapMedia ? (
+            <Animated.View
+              entering={reduceMotion ? undefined : FadeIn.duration(180)}
+              exiting={reduceMotion ? undefined : FadeOut.duration(200)}
+              style={[
+                styles.mapLoadingOverlay,
+                {
+                  backgroundColor:
+                    scheme === "dark" ? "rgba(35,39,46,0.92)" : "rgba(255,255,255,0.92)",
+                },
+              ]}
+              pointerEvents="none"
+            >
+              <ActivityIndicator size="large" color={colors.tint} />
+              <ThemedText style={[styles.mapLoadingText, { color: colors.icon }]}>
+                {t("productsDetailLoading")}
+              </ThemedText>
+            </Animated.View>
+          ) : null}
+
           <View style={styles.mapGradientTop} pointerEvents="none" />
           <View style={styles.mapGradientBottom} pointerEvents="none" />
 
-          <SafeAreaView edges={["top"]} style={styles.mapOverlayTop}>
-            <AnimatedPressable
-              onPress={() => router.back()}
-              onPressIn={() => {
-                if (reduceMotion) return;
-                backPressed.value = withTiming(1, { duration: 80 });
-              }}
-              onPressOut={() => {
-                if (reduceMotion) return;
-                backPressed.value = withSpring(0, { damping: 14, stiffness: 320 });
-              }}
-              style={[styles.floatingBackBtn, backAnimStyle]}
-              accessibilityRole="button"
-            >
-              <MaterialIcons name="arrow-back" size={22} color="#FFF" />
-            </AnimatedPressable>
+          <View style={styles.mapOverlayTop}>
             <View style={styles.mapIdPill}>
               <ThemedText style={styles.mapIdText}>#{product.id.slice(-6)}</ThemedText>
             </View>
-          </SafeAreaView>
+          </View>
 
-          <View style={styles.locationChip}>
+          <Pressable
+            onPress={() => {
+              if (!canOpenDirectTradeMaps) return;
+              void openMaps(directTradeMapsTarget);
+            }}
+            disabled={!canOpenDirectTradeMaps}
+            style={({ pressed }) => [
+              styles.locationChip,
+              pressed && canOpenDirectTradeMaps && styles.locationChipPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={mapsActionLabel}
+          >
             <MaterialIcons name="place" size={16} color="#FFF" />
             <ThemedText style={styles.locationChipText} numberOfLines={2}>
               {product.directTradeLocation ?? "—"}
             </ThemedText>
-          </View>
+            {canOpenDirectTradeMaps ? (
+              <MaterialIcons name="open-in-new" size={14} color="#FFF" style={styles.locationChipAction} />
+            ) : null}
+          </Pressable>
         </Animated.View>
 
         <Animated.View
@@ -774,22 +913,46 @@ export function PublicProductDetailScreen({ productId }: Props) {
           scheme={scheme}
           enterDelay={SECTION_STAGGER_MS * 3}
         >
-          <View style={[styles.addressHighlight, { borderColor: colors.tint + "30" }]}>
+          <Pressable
+            onPress={() => openMaps(directTradeMapsTarget)}
+            disabled={!canOpenDirectTradeMaps}
+            style={({ pressed }) => [
+              styles.addressHighlight,
+              { borderColor: colors.tint + "30" },
+              pressed && canOpenDirectTradeMaps && styles.addressHighlightPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={mapsActionLabel}
+          >
             <MaterialIcons name="place" size={18} color={colors.tint} />
-            <ThemedText style={styles.addressText}>
+            <ThemedText style={[styles.addressText, canOpenDirectTradeMaps && { color: colors.tint }]}>
               {product.directTradeLocation ?? "—"}
             </ThemedText>
-          </View>
-          {preferred.map((loc, idx) => (
-            <DetailField
-              key={`${loc.label}-${idx}`}
-              icon="location-on"
-              label={`${t("productsFieldPreferredLocationItem")} ${idx + 1}`}
-              value={`${loc.label}${loc.address ? ` (${loc.address})` : ""}`}
-              tint={colors.tint}
-              last={idx === preferred.length - 1 && !hasCoordinates && !product.preferredTradeTime}
-            />
-          ))}
+            {canOpenDirectTradeMaps ? (
+              <MaterialIcons name="open-in-new" size={16} color={colors.tint} />
+            ) : null}
+          </Pressable>
+          {preferred.map((loc, idx) => {
+            const locTarget: MapOpenTarget = {
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+              label: loc.label,
+              address: loc.address,
+            };
+            const canOpenLoc = canOpenMapsForTarget(locTarget);
+            return (
+              <DetailField
+                key={`${loc.label}-${idx}`}
+                icon="location-on"
+                label={`${t("productsFieldPreferredLocationItem")} ${idx + 1}`}
+                value={`${loc.label}${loc.address ? ` (${loc.address})` : ""}`}
+                tint={colors.tint}
+                last={idx === preferred.length - 1 && !hasCoordinates && !product.preferredTradeTime}
+                onPress={canOpenLoc ? () => openMaps(locTarget) : undefined}
+                actionLabel={canOpenLoc ? mapsActionLabel : undefined}
+              />
+            );
+          })}
           {product.preferredTradeTime ? (
             <DetailField
               icon="schedule"
@@ -808,6 +971,8 @@ export function PublicProductDetailScreen({ productId }: Props) {
               }
               tint={colors.tint}
               last
+              onPress={() => openMaps(directTradeMapsTarget)}
+              actionLabel={mapsActionLabel}
             />
           ) : null}
         </SectionCard>
@@ -1049,6 +1214,19 @@ const styles = StyleSheet.create({
     minHeight: MAP_HEIGHT,
   },
   mapView: { width: "100%", height: MAP_HEIGHT },
+  mapTapOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    bottom: 52,
+    zIndex: 1,
+  },
+  mapLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 4,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  mapLoadingText: { fontSize: 13, fontWeight: "600", opacity: 0.75 },
   mapPlaceholder: { height: MAP_HEIGHT },
   mapGradientTop: {
     position: "absolute",
@@ -1066,6 +1244,17 @@ const styles = StyleSheet.create({
     height: 120,
     backgroundColor: "rgba(0,0,0,0.42)",
   },
+  screenBackBtn: {
+    position: "absolute",
+    left: 16,
+    zIndex: 60,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
   mapOverlayTop: {
     position: "absolute",
     top: 0,
@@ -1073,17 +1262,9 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     paddingHorizontal: 12,
-    paddingTop: 4,
-  },
-  floatingBackBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.35)",
+    paddingTop: 8,
   },
   mapIdPill: {
     backgroundColor: "rgba(255,255,255,0.22)",
@@ -1098,14 +1279,16 @@ const styles = StyleSheet.create({
     left: 12,
     right: 12,
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: 8,
     backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
+  locationChipPressed: { backgroundColor: "rgba(0,0,0,0.65)" },
   locationChipText: { color: "#FFF", flex: 1, fontSize: 13, lineHeight: 18, fontWeight: "600" },
+  locationChipAction: { opacity: 0.9 },
   heroCard: {
     marginHorizontal: 12,
     borderRadius: 20,
@@ -1204,14 +1387,18 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 15, flex: 1 },
   addressHighlight: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: 10,
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
     backgroundColor: "rgba(251,109,0,0.06)",
   },
+  addressHighlightPressed: { backgroundColor: "rgba(251,109,0,0.12)" },
   addressText: { flex: 1, fontSize: 14, lineHeight: 20, fontWeight: "600" },
+  fieldAction: { fontSize: 11, fontWeight: "700", marginTop: 2 },
+  fieldActionIcon: { marginTop: 8, opacity: 0.85 },
+  fieldRowPressed: { opacity: 0.82 },
   fieldRow: {
     flexDirection: "row",
     alignItems: "flex-start",

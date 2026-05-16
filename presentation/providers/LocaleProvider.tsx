@@ -1426,6 +1426,16 @@ const DICT: Dictionary = {
     my: "မှတ်ချက်မရှိ",
     zh: "无评论",
   },
+  publicDetailOpenInMaps: {
+    ko: "지도 앱에서 열기",
+    my: "မြေပုံအက်ပ်တွင် ဖွင့်ရန်",
+    zh: "在地图应用中打开",
+  },
+  publicDetailMapsUnavailable: {
+    ko: "지도 앱을 열 수 없습니다.",
+    my: "မြေပုံအက်ပ် မဖွင့်နိုင်ပါ။",
+    zh: "无法打开地图应用。",
+  },
   userRankNewbie: {
     ko: "뉴비",
     my: "အသစ်",
