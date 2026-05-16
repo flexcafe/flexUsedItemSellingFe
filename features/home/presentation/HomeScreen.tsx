@@ -141,20 +141,26 @@ const ProductCard = memo(function ProductCard({
           />
         </View>
         <View style={styles.productInfo}>
-          <ThemedText type="defaultSemiBold" numberOfLines={2} style={styles.productTitle}>
-            {item.name}
-          </ThemedText>
+          <View style={styles.productTitleRow}>
+            <ThemedText
+              type="defaultSemiBold"
+              numberOfLines={2}
+              style={styles.productTitle}
+            >
+              {item.name}
+            </ThemedText>
+            {item.createdAtDisplay?.trim() ? (
+              <ThemedText
+                style={[styles.productPostedAt, { color: colors.icon }]}
+                numberOfLines={2}
+              >
+                {item.createdAtDisplay.trim()}
+              </ThemedText>
+            ) : null}
+          </View>
           <ThemedText style={styles.productCategory} numberOfLines={1}>
             {categoryLabel}
           </ThemedText>
-          {item.createdAtDisplay?.trim() ? (
-            <View style={styles.postedRow}>
-              <MaterialIcons name="schedule" size={12} color={colors.icon} />
-              <ThemedText style={styles.productPostedAt} numberOfLines={1}>
-                {item.createdAtDisplay.trim()}
-              </ThemedText>
-            </View>
-          ) : null}
           <ThemedText style={[styles.productPrice, { color: colors.tint }]}>
             {item.price.toLocaleString()} MMK
           </ThemedText>
@@ -609,7 +615,7 @@ const styles = StyleSheet.create({
     padding: 12,
     flexDirection: "row",
     gap: 14,
-    alignItems: "center",
+    alignItems: "flex-start",
   },
   productImageWrap: {
     width: PRODUCT_IMAGE_SIZE,
@@ -622,30 +628,34 @@ const styles = StyleSheet.create({
     gap: 3,
     minWidth: 0,
   },
+  productTitleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+  },
   productTitle: {
+    flex: 1,
     fontSize: 15,
     lineHeight: 20,
     letterSpacing: -0.2,
+    minWidth: 0,
   },
   productCategory: {
     opacity: 0.62,
     fontSize: 12,
     lineHeight: 16,
   },
-  postedRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 2,
-  },
   productPostedAt: {
-    opacity: 0.68,
     fontSize: 11,
     lineHeight: 14,
-    flex: 1,
+    fontWeight: "600",
+    opacity: 0.72,
+    textAlign: "right",
+    maxWidth: "40%",
+    flexShrink: 0,
   },
   productPrice: {
-    marginTop: 6,
+    marginTop: 4,
     fontSize: 16,
     fontWeight: "800",
     letterSpacing: -0.3,
