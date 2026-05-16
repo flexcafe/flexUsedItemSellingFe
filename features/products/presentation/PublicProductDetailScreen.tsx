@@ -12,23 +12,46 @@ import {
   formatProductConditionForDisplay,
   productStatusLabelKey,
   useLocale,
+  userRankLabelKey,
 } from "@/presentation/providers/LocaleProvider";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { memo, useEffect, useMemo, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
+  useWindowDimensions,
 } from "react-native";
-import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import Animated, {
+  Extrapolation,
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  interpolate,
+  interpolateColor,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
 import {
@@ -41,6 +64,43 @@ import { parseProductStatus, statusBadgeColors } from "./myProductStatus";
 
 type Props = { productId: string };
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const GALLERY_HEIGHT = 220;
+const SECTION_STAGGER_MS = 52;
+const DOT_MIN_W = 6;
+const DOT_MAX_W = 20;
+const MAP_HEIGHT = 260;
+const HERO_CARD_H_MARGIN = 12;
+const HERO_CARD_PADDING = 14;
+
+function cardShadow(scheme: "light" | "dark") {
+  const isDark = scheme === "dark";
+  return Platform.select({
+    ios: {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: isDark ? 10 : 8 },
+      shadowOpacity: isDark ? 0.38 : 0.12,
+      shadowRadius: isDark ? 18 : 16,
+    },
+    android: { elevation: isDark ? 8 : 5 },
+    default: {},
+  });
+}
+
+function cardSurface(scheme: "light" | "dark") {
+  return scheme === "dark" ? "#23272E" : "#FFFFFF";
+}
+
+function staggerEnter(delay: number, reduceMotion: boolean | null) {
+  if (reduceMotion) return undefined;
+  return FadeInUp.duration(440)
+    .delay(delay)
+    .springify()
+    .damping(18)
+    .stiffness(220);
+}
+
 function paymentMethodLabel(method: string, t: ReturnType<typeof useLocale>["t"]) {
   const v = method.toUpperCase();
   if (v === "CASH") return t("productsPaymentCash");
@@ -48,57 +108,312 @@ function paymentMethodLabel(method: string, t: ReturnType<typeof useLocale>["t"]
   return method;
 }
 
+const GalleryDot = memo(function GalleryDot({
+  active,
+  tint,
+  muted,
+}: {
+  active: boolean;
+  tint: string;
+  muted: string;
+}) {
+  const reduceMotion = useReducedMotion();
+  const progress = useSharedValue(active ? 1 : 0);
+
+  useEffect(() => {
+    const target = active ? 1 : 0;
+    if (reduceMotion) {
+      progress.value = target;
+      return;
+    }
+    progress.value = withSpring(target, { damping: 16, stiffness: 300, mass: 0.35 });
+  }, [active, progress, reduceMotion]);
+
+  const dotStyle = useAnimatedStyle(() => ({
+    width: interpolate(progress.value, [0, 1], [DOT_MIN_W, DOT_MAX_W], Extrapolation.CLAMP),
+    backgroundColor: interpolateColor(progress.value, [0, 1], [muted, tint]),
+    opacity: interpolate(progress.value, [0, 1], [0.4, 1], Extrapolation.CLAMP),
+  }));
+
+  return <Animated.View style={[styles.dot, dotStyle]} />;
+});
+
+const ImageThumb = memo(function ImageThumb({
+  uri,
+  active,
+  tint,
+  onPress,
+}: {
+  uri: string;
+  active: boolean;
+  tint: string;
+  onPress: () => void;
+}) {
+  const reduceMotion = useReducedMotion();
+  const pressed = useSharedValue(0);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scale: interpolate(pressed.value, [0, 1], [1, 0.94], Extrapolation.CLAMP),
+      },
+    ],
+    borderColor: interpolateColor(
+      pressed.value,
+      [0, 1],
+      [active ? tint : "transparent", tint],
+    ),
+  }));
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={() => {
+        if (reduceMotion) return;
+        pressed.value = withTiming(1, { duration: 80 });
+      }}
+      onPressOut={() => {
+        if (reduceMotion) return;
+        pressed.value = withSpring(0, { damping: 14, stiffness: 320 });
+      }}
+      style={[
+        styles.thumbWrap,
+        active && { borderColor: tint, borderWidth: 2 },
+        animStyle,
+      ]}
+    >
+      <Image source={{ uri }} style={styles.thumb} contentFit="cover" transition={240} />
+    </AnimatedPressable>
+  );
+});
+
+const SectionCard = memo(function SectionCard({
+  title,
+  icon,
+  tint,
+  surface,
+  borderColor,
+  scheme,
+  enterDelay = 0,
+  children,
+}: {
+  title: string;
+  icon: keyof typeof MaterialIcons.glyphMap;
+  tint: string;
+  surface: string;
+  borderColor: string;
+  scheme: "light" | "dark";
+  enterDelay?: number;
+  children: ReactNode;
+}) {
+  const reduceMotion = useReducedMotion();
+  return (
+    <Animated.View entering={staggerEnter(enterDelay, reduceMotion)} style={styles.sectionWrap}>
+      <View style={[styles.sectionCard, cardShadow(scheme), { backgroundColor: surface, borderColor }]}>
+        <View style={styles.sectionHeader}>
+          <View style={[styles.sectionIconWrap, { backgroundColor: tint + "18" }]}>
+            <MaterialIcons name={icon} size={18} color={tint} />
+          </View>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            {title}
+          </ThemedText>
+        </View>
+        {children}
+      </View>
+    </Animated.View>
+  );
+});
+
+const DetailField = memo(function DetailField({
+  icon,
+  label,
+  value,
+  tint,
+  last,
+}: {
+  icon: keyof typeof MaterialIcons.glyphMap;
+  label: string;
+  value: string;
+  tint: string;
+  last?: boolean;
+}) {
+  const display = value?.trim() || "—";
+  return (
+    <View style={[styles.fieldRow, !last && styles.fieldRowBorder]}>
+      <View style={[styles.fieldIconWrap, { backgroundColor: tint + "14" }]}>
+        <MaterialIcons name={icon} size={17} color={tint} />
+      </View>
+      <View style={styles.fieldCopy}>
+        <ThemedText style={styles.fieldLabel}>{label}</ThemedText>
+        <ThemedText style={styles.fieldValue}>{display}</ThemedText>
+      </View>
+    </View>
+  );
+});
+
 const ReviewRow = memo(function ReviewRow({
   stars,
   count,
   tint,
+  maxCount,
 }: {
   stars: number;
   count: number;
   tint: string;
+  maxCount: number;
 }) {
+  const reduceMotion = useReducedMotion();
+  const progress = useSharedValue(0);
+  const targetPct = maxCount > 0 ? Math.min(100, (count / maxCount) * 100) : 0;
+
+  useEffect(() => {
+    if (reduceMotion) {
+      progress.value = targetPct;
+      return;
+    }
+    progress.value = 0;
+    progress.value = withSpring(targetPct, { damping: 18, stiffness: 120 });
+  }, [count, maxCount, progress, reduceMotion, targetPct]);
+
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${progress.value}%`,
+  }));
+
   return (
     <View style={styles.reviewBreakdownRow}>
       <ThemedText style={styles.reviewBreakdownStar}>{stars}★</ThemedText>
       <View style={styles.reviewBreakdownBarTrack}>
-        <View
-          style={[
-            styles.reviewBreakdownBarFill,
-            { backgroundColor: tint, width: `${Math.min(100, count * 12)}%` },
-          ]}
-        />
+        <Animated.View style={[styles.reviewBreakdownBarFill, { backgroundColor: tint }, fillStyle]} />
       </View>
       <ThemedText style={styles.reviewBreakdownCount}>{count}</ThemedText>
     </View>
   );
 });
 
-const InfoRow = memo(function InfoRow({
-  icon,
-  label,
-  value,
+const ImageViewerModal = memo(function ImageViewerModal({
+  uri,
+  visible,
+  onClose,
 }: {
-  icon: keyof typeof MaterialIcons.glyphMap;
-  label: string;
-  value: string;
+  uri: string | null;
+  visible: boolean;
+  onClose: () => void;
 }) {
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.infoRow}>
-      <MaterialIcons name={icon} size={16} color="#FB6D00" />
-      <View style={styles.infoCopy}>
-        <ThemedText style={styles.infoLabel}>{label}</ThemedText>
-        <ThemedText style={styles.infoValue}>{value || "—"}</ThemedText>
+    <Modal
+      visible={visible && !!uri}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      presentationStyle="overFullScreen"
+      onRequestClose={onClose}
+    >
+      <View style={styles.imageViewerBackdrop}>
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Close image"
+        />
+        {uri ? (
+          <View style={styles.imageViewerContent} pointerEvents="box-none">
+            <Image
+              source={{ uri }}
+              style={{
+                width: width - 32,
+                height: Math.min(height * 0.78, height - insets.top - insets.bottom - 80),
+              }}
+              contentFit="contain"
+              recyclingKey={uri}
+              accessibilityIgnoresInvertColors
+            />
+          </View>
+        ) : null}
+        <Pressable
+          onPress={onClose}
+          style={[styles.imageViewerClose, { top: insets.top + 12 }]}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+        >
+          <MaterialIcons name="close" size={24} color="#FFF" />
+        </Pressable>
       </View>
-    </View>
+    </Modal>
   );
 });
 
+function ReviewsSheet({
+  visible,
+  onClose,
+  surface,
+  borderColor,
+  children,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  surface: string;
+  borderColor: string;
+  children: ReactNode;
+}) {
+  const reduceMotion = useReducedMotion();
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    if (!visible) {
+      progress.value = 0;
+      return;
+    }
+    if (reduceMotion) {
+      progress.value = 1;
+      return;
+    }
+    progress.value = withSpring(1, { damping: 22, stiffness: 280, mass: 0.45 });
+  }, [progress, reduceMotion, visible]);
+
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 1], [0, 1], Extrapolation.CLAMP),
+  }));
+
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY: interpolate(progress.value, [0, 1], [420, 0], Extrapolation.CLAMP),
+      },
+    ],
+  }));
+
+  return (
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+      <Animated.View style={[styles.sheetBackdrop, backdropStyle]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <Animated.View
+          style={[
+            styles.sheetCard,
+            { backgroundColor: surface, borderColor },
+            sheetStyle,
+          ]}
+        >
+          <View style={styles.sheetHandle} />
+          {children}
+        </Animated.View>
+      </Animated.View>
+    </Modal>
+  );
+}
+
 export function PublicProductDetailScreen({ productId }: Props) {
   const router = useRouter();
-  const { t, locale } = useLocale();
+  const insets = useSafeAreaInsets();
+  const { t, tf, locale } = useLocale();
   const colorScheme = useColorScheme();
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
+  const { width } = useWindowDimensions();
+  const reduceMotion = useReducedMotion();
 
   const detailQuery = useClientProductDetail(productId);
   const product = detailQuery.data;
@@ -110,6 +425,11 @@ export function PublicProductDetailScreen({ productId }: Props) {
     NonNullable<ReturnType<typeof useSellerReviews>["data"]>["items"]
   >([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [photoIndex, setPhotoIndex] = useState(0);
+
+  const chatPressed = useSharedValue(0);
+  const backPressed = useSharedValue(0);
+
   const reviewsQuery = useSellerReviews(reviewsOpen ? sellerUserId : null, {
     page: reviewsPage,
     limit: 20,
@@ -137,6 +457,37 @@ export function PublicProductDetailScreen({ productId }: Props) {
     );
   }, [product?.directTradeLatitude, product?.directTradeLongitude]);
 
+  const gallerySlideWidth =
+    width - HERO_CARD_H_MARGIN * 2 - HERO_CARD_PADDING * 2;
+
+  const openImageViewer = useCallback((uri: string) => {
+    if (!uri.trim()) return;
+    void Haptics.selectionAsync();
+    setSelectedImage(uri.trim());
+  }, []);
+  const surface = cardSurface(scheme);
+  const borderColor = colors.icon + "22";
+  const mutedDot = colors.icon + "55";
+
+  const maxReviewCount = useMemo(() => {
+    const rows = reviewsQuery.data?.starBreakdown ?? [];
+    return Math.max(1, ...rows.map((r) => r.count));
+  }, [reviewsQuery.data?.starBreakdown]);
+
+  const onGalleryScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const slide = gallerySlideWidth;
+      if (slide <= 0) return;
+      const idx = Math.round(e.nativeEvent.contentOffset.x / slide);
+      setPhotoIndex(Math.min(Math.max(idx, 0), Math.max(images.length - 1, 0)));
+    },
+    [gallerySlideWidth, images.length],
+  );
+
+  useEffect(() => {
+    setPhotoIndex(0);
+  }, [productId, images.length]);
+
   useEffect(() => {
     if (!reviewsOpen) {
       setReviewsPage(1);
@@ -159,11 +510,29 @@ export function PublicProductDetailScreen({ productId }: Props) {
     });
   }, [reviewsPage, reviewsQuery.data]);
 
+  const chatAnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scale: interpolate(chatPressed.value, [0, 1], [1, 0.97], Extrapolation.CLAMP),
+      },
+    ],
+  }));
+
+  const backAnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scale: interpolate(backPressed.value, [0, 1], [1, 0.9], Extrapolation.CLAMP),
+      },
+    ],
+  }));
+
   if (detailQuery.isLoading) {
     return (
       <ThemedView style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.tint} />
-        <ThemedText style={styles.loadingText}>{t("productsDetailLoading")}</ThemedText>
+        <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(300)} style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.tint} />
+          <ThemedText style={styles.loadingText}>{t("productsDetailLoading")}</ThemedText>
+        </Animated.View>
       </ThemedView>
     );
   }
@@ -171,6 +540,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
   if (!product) {
     return (
       <ThemedView style={styles.centered}>
+        <MaterialIcons name="inventory-2" size={48} color={colors.icon} />
         <ThemedText>{t("productsDetailNoData")}</ThemedText>
       </ThemedView>
     );
@@ -178,400 +548,800 @@ export function PublicProductDetailScreen({ productId }: Props) {
 
   const status = parseProductStatus(product.status, product.isAvailable);
   const statusBadge = statusBadgeColors(status, scheme);
-  const rank = product.seller?.currentRank?.trim() || "NEWBIE";
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
-      <ThemedView style={styles.container}>
-        <Animated.ScrollView
-          entering={FadeIn.duration(220)}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
+    <ThemedView style={styles.container}>
+      <Animated.ScrollView
+        entering={reduceMotion ? undefined : FadeIn.duration(240)}
+        contentContainerStyle={[styles.content, { paddingBottom: 96 + insets.bottom }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View
+          entering={staggerEnter(0, reduceMotion)}
+          style={[styles.mapCard, cardShadow(scheme), { borderColor }]}
         >
-          <Animated.View entering={FadeInUp.duration(340)} style={styles.mapCard}>
-            <View style={[styles.topBar, { backgroundColor: colors.tint }]}>
-              <Pressable onPress={() => router.back()} style={styles.backButton}>
-                <MaterialIcons name="arrow-back" size={20} color="#FFF" />
-              </Pressable>
-              <ThemedText style={styles.topTitle} numberOfLines={1}>
-                {t("productsModalDetailTitle")}
-              </ThemedText>
-              <View style={styles.idBadge}>
-                <ThemedText style={styles.idBadgeText}>#{product.id.slice(-6)}</ThemedText>
-              </View>
-            </View>
-
-            {hasCoordinates ? (
-              <WebView
-                source={{ html: mapHtml }}
+          {hasCoordinates ? (
+            <WebView
+              source={{ html: mapHtml }}
+              style={styles.mapView}
+              scrollEnabled={false}
+              pointerEvents="none"
+              originWhitelist={["*"]}
+            />
+          ) : product.mapScreenshotUrl ? (
+            <Pressable
+              onPress={() => openImageViewer(product.mapScreenshotUrl ?? "")}
+              accessibilityRole="imagebutton"
+              accessibilityLabel={t("productsDetailPhotosCount")}
+            >
+              <Image
+                source={{ uri: product.mapScreenshotUrl }}
                 style={styles.mapView}
-                scrollEnabled={false}
+                contentFit="cover"
+                transition={280}
                 pointerEvents="none"
-                originWhitelist={["*"]}
               />
-            ) : product.mapScreenshotUrl ? (
-              <Pressable onPress={() => setSelectedImage(product.mapScreenshotUrl ?? null)}>
-                <Image
-                  source={{ uri: product.mapScreenshotUrl }}
-                  style={styles.mapView}
-                  contentFit="cover"
-                />
-              </Pressable>
-            ) : (
-              <ProductListingThumbnail imageUrl={null} size={240} borderRadius={0} />
-            )}
-
-            <View style={styles.locationOverlay}>
-              <MaterialIcons name="place" size={15} color="#FFF" />
-              <ThemedText style={styles.locationOverlayText} numberOfLines={1}>
-                {product.directTradeLocation ?? "—"}
-              </ThemedText>
+            </Pressable>
+          ) : (
+            <View style={styles.mapPlaceholder}>
+              <ProductListingThumbnail imageUrl={null} size={MAP_HEIGHT} borderRadius={0} />
             </View>
-          </Animated.View>
+          )}
 
-          <Animated.View entering={FadeInUp.duration(360).delay(40)} style={styles.sectionCard}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imagesRow}>
-              {images.length > 0 ? (
-                images.map((uri) => (
-                  <Pressable key={uri} onPress={() => setSelectedImage(uri)}>
-                    <Image source={{ uri }} style={styles.thumb} contentFit="cover" transition={220} />
-                  </Pressable>
-                ))
-              ) : (
-                <ProductListingThumbnail imageUrl={null} size={88} borderRadius={10} />
-              )}
-            </ScrollView>
-            <View style={styles.titleRow}>
-              <ThemedText type="defaultSemiBold" style={styles.name}>
-                {product.name}
-              </ThemedText>
-              <View style={[styles.statusChip, { backgroundColor: statusBadge.backgroundColor }]}>
-                <ThemedText style={[styles.statusChipText, { color: statusBadge.color }]}>
-                  {t(productStatusLabelKey(status))}
-                </ThemedText>
-              </View>
+          <View style={styles.mapGradientTop} pointerEvents="none" />
+          <View style={styles.mapGradientBottom} pointerEvents="none" />
+
+          <SafeAreaView edges={["top"]} style={styles.mapOverlayTop}>
+            <AnimatedPressable
+              onPress={() => router.back()}
+              onPressIn={() => {
+                if (reduceMotion) return;
+                backPressed.value = withTiming(1, { duration: 80 });
+              }}
+              onPressOut={() => {
+                if (reduceMotion) return;
+                backPressed.value = withSpring(0, { damping: 14, stiffness: 320 });
+              }}
+              style={[styles.floatingBackBtn, backAnimStyle]}
+              accessibilityRole="button"
+            >
+              <MaterialIcons name="arrow-back" size={22} color="#FFF" />
+            </AnimatedPressable>
+            <View style={styles.mapIdPill}>
+              <ThemedText style={styles.mapIdText}>#{product.id.slice(-6)}</ThemedText>
             </View>
-            <ThemedText style={[styles.price, { color: colors.tint }]}>
-              {product.price.toLocaleString()} MMK
+          </SafeAreaView>
+
+          <View style={styles.locationChip}>
+            <MaterialIcons name="place" size={16} color="#FFF" />
+            <ThemedText style={styles.locationChipText} numberOfLines={2}>
+              {product.directTradeLocation ?? "—"}
             </ThemedText>
-          </Animated.View>
+          </View>
+        </Animated.View>
 
-          <Animated.View entering={FadeInUp.duration(380).delay(80)} style={styles.sectionCard}>
-            <View style={styles.sellerTop}>
-              <Pressable
-                style={styles.sellerProfileWrap}
-                onPress={() => {
-                  if (!product.seller?.userId) return;
-                  router.push({
-                    pathname: "/seller/[userId]",
-                    params: { userId: product.seller.userId },
-                  });
-                }}
+        <Animated.View
+          entering={staggerEnter(SECTION_STAGGER_MS, reduceMotion)}
+          style={[styles.heroCard, cardShadow(scheme), { backgroundColor: surface, borderColor }]}
+        >
+          {images.length > 0 ? (
+            <>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={onGalleryScroll}
+                scrollEventThrottle={16}
+                decelerationRate="fast"
+                snapToInterval={gallerySlideWidth}
+                snapToAlignment="start"
+                disableIntervalMomentum
+                style={{ width: gallerySlideWidth }}
+                contentContainerStyle={styles.galleryScroll}
               >
-                <Image
-                  source={product.seller?.avatar ? { uri: product.seller.avatar } : undefined}
-                  style={[styles.avatar, { backgroundColor: colors.icon + "1f" }]}
-                />
-                <View style={styles.sellerCopy}>
-                  <ThemedText type="defaultSemiBold">{product.seller?.nickname ?? "—"}</ThemedText>
-                  <ThemedText style={styles.sellerRank}>{rank}</ThemedText>
-                  <ThemedText style={styles.sellerMeta}>
-                    ★ {(product.seller?.averageStars ?? 0).toFixed(1)} · {product.seller?.totalReviews ?? 0}
-                  </ThemedText>
-                  <ThemedText style={[styles.sellerViewLink, { color: colors.tint }]}>
-                    {t("publicDetailViewSeller")}
-                  </ThemedText>
+                {images.map((uri) => (
+                  <Pressable
+                    key={uri}
+                    onPress={() => openImageViewer(uri)}
+                    style={{ width: gallerySlideWidth, height: GALLERY_HEIGHT }}
+                    accessibilityRole="imagebutton"
+                  >
+                    <Image
+                      source={{ uri }}
+                      style={styles.galleryImage}
+                      contentFit="cover"
+                      transition={300}
+                      pointerEvents="none"
+                    />
+                  </Pressable>
+                ))}
+              </ScrollView>
+              {images.length > 1 ? (
+                <View style={styles.dotsRow}>
+                  {images.map((uri, i) => (
+                    <GalleryDot key={uri} active={i === photoIndex} tint={colors.tint} muted={mutedDot} />
+                  ))}
                 </View>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  void Haptics.selectionAsync();
-                  setReviewsOpen(true);
-                }}
-                style={[styles.reviewsBtn, { backgroundColor: colors.tint }]}
+              ) : null}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.thumbsRow}
               >
-                <MaterialIcons name="star" size={14} color="#FFF" />
-                <ThemedText style={styles.reviewsBtnText}>{t("publicDetailSellerReviews")}</ThemedText>
-              </Pressable>
+                {images.map((uri, i) => (
+                  <ImageThumb
+                    key={`thumb-${uri}`}
+                    uri={uri}
+                    active={i === photoIndex}
+                    tint={colors.tint}
+                    onPress={() => {
+                      setPhotoIndex(i);
+                      openImageViewer(uri);
+                    }}
+                  />
+                ))}
+              </ScrollView>
+            </>
+          ) : (
+            <View style={styles.galleryEmpty}>
+              <ProductListingThumbnail imageUrl={null} size={GALLERY_HEIGHT - 24} borderRadius={14} />
             </View>
-          </Animated.View>
+          )}
 
-          <Animated.View entering={FadeInUp.duration(400).delay(120)} style={styles.sectionCard}>
-            <ThemedText type="defaultSemiBold">{t("productsDetailSectionTrade")}</ThemedText>
-            <InfoRow icon="place" label={t("productsFieldDirectLocation")} value={product.directTradeLocation ?? "—"} />
-            {preferred.map((loc, idx) => (
-              <InfoRow
-                key={`${loc.label}-${idx}`}
-                icon="location-on"
-                label={`${t("productsFieldPreferredLocationItem")} ${idx + 1}`}
-                value={`${loc.label}${loc.address ? ` (${loc.address})` : ""}`}
-              />
-            ))}
-            <InfoRow icon="schedule" label={t("productsFieldPreferredTradeTime")} value={product.preferredTradeTime ?? "—"} />
-            {hasCoordinates ? (
-              <InfoRow
-                icon="my-location"
-                label={t("productsDetailCoordinates")}
-                value={formatCoordinates(product.directTradeLatitude, product.directTradeLongitude) ?? "—"}
-              />
+          <View style={styles.titleRow}>
+            <ThemedText type="defaultSemiBold" style={styles.name} numberOfLines={3}>
+              {product.name}
+            </ThemedText>
+            <View style={[styles.statusChip, { backgroundColor: statusBadge.backgroundColor }]}>
+              <ThemedText style={[styles.statusChipText, { color: statusBadge.color }]}>
+                {t(productStatusLabelKey(status))}
+              </ThemedText>
+            </View>
+          </View>
+
+          <View style={[styles.pricePanel, { backgroundColor: colors.tint + "12" }]}>
+            <ThemedText style={styles.priceLabel}>MMK</ThemedText>
+            <ThemedText style={[styles.price, { color: colors.tint }]}>
+              {product.price.toLocaleString()}
+            </ThemedText>
+            {product.createdAtDisplay?.trim() ? (
+              <ThemedText style={[styles.postedAt, { color: colors.icon }]}>
+                {product.createdAtDisplay.trim()}
+              </ThemedText>
             ) : null}
-          </Animated.View>
+          </View>
+        </Animated.View>
 
-          <Animated.View entering={FadeInUp.duration(420).delay(160)} style={styles.sectionCard}>
-            <ThemedText type="defaultSemiBold">{t("productsFieldPaymentMethods")}</ThemedText>
-            <View style={styles.chipsWrap}>
-              {(product.paymentMethods ?? []).map((m) => (
-                <View key={m} style={[styles.methodChip, { borderColor: colors.tint + "40" }]}>
-                  <MaterialIcons name="check-circle" size={14} color={colors.tint} />
-                  <ThemedText style={styles.methodChipText}>{paymentMethodLabel(m, t)}</ThemedText>
-                </View>
-              ))}
-            </View>
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.duration(440).delay(190)} style={styles.sectionCard}>
-            <ThemedText type="defaultSemiBold">{t("productsDetailSectionDelivery")}</ThemedText>
-            <InfoRow
-              icon="local-shipping"
-              label={t("productsFieldDelivery")}
-              value={product.isDeliveryAvailable ? t("productsDeliveryOn") : t("productsDeliveryOff")}
-            />
-            <InfoRow
-              icon="payments"
-              label={t("productsFieldDeliveryFeePayer")}
-              value={
-                product.deliveryFeePayer === "SELLER"
-                  ? t("productsDeliverySellerPays")
-                  : product.deliveryFeePayer === "BUYER"
-                    ? t("productsDeliveryBuyerPays")
-                    : "—"
-              }
-            />
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.duration(460).delay(220)} style={styles.sectionCard}>
-            <ThemedText type="defaultSemiBold">{t("productsDetailDescription")}</ThemedText>
-            <ThemedText style={styles.description}>{product.description}</ThemedText>
-            <InfoRow
-              icon="access-time"
-              label={t("productsDetailCreatedAt")}
-              value={product.createdAtDisplay?.trim() || formatListingDate(product.createdAt, locale)}
-            />
-            <InfoRow
-              icon="update"
-              label={t("productsDetailUpdatedAt")}
-              value={formatListingDate(product.updatedAt, locale)}
-            />
-            <InfoRow
-              icon="category"
-              label={t("productsFieldCondition")}
-              value={formatProductConditionForDisplay(product.condition, t)}
-            />
-          </Animated.View>
-        </Animated.ScrollView>
-
-        <View style={[styles.chatBar, { borderTopColor: colors.icon + "22" }]}>
+        <Animated.View
+          entering={staggerEnter(SECTION_STAGGER_MS * 2, reduceMotion)}
+          style={[styles.sellerCard, cardShadow(scheme), { backgroundColor: surface, borderColor }]}
+        >
           <Pressable
+            style={styles.sellerRow}
             onPress={() => {
-              if (!product.seller?.userId) {
-                Alert.alert("Chat", t("publicDetailChatSoon"));
-                return;
-              }
+              if (!product.seller?.userId) return;
+              void Haptics.selectionAsync();
               router.push({
-                pathname: "/chat/[sellerId]",
-                params: {
-                  sellerId: product.seller.userId,
-                  productId: product.id,
-                  productName: product.name,
-                  sellerName: product.seller.nickname ?? "",
-                },
+                pathname: "/seller/[userId]",
+                params: { userId: product.seller.userId },
               });
             }}
-            style={[styles.chatButton, { backgroundColor: colors.tint }]}
           >
-            <MaterialIcons name="chat-bubble-outline" size={18} color="#FFF" />
-            <ThemedText style={styles.chatButtonText}>{t("publicDetailChatSeller")}</ThemedText>
+            <View style={[styles.avatarRing, { borderColor: colors.tint + "55" }]}>
+              <Image
+                source={product.seller?.avatar ? { uri: product.seller.avatar } : undefined}
+                style={[styles.avatar, { backgroundColor: colors.icon + "1f" }]}
+              />
+            </View>
+            <View style={styles.sellerCopy}>
+              <ThemedText type="defaultSemiBold" style={styles.sellerName}>
+                {product.seller?.nickname ?? "—"}
+              </ThemedText>
+              <ThemedText style={styles.sellerRank}>
+                {t(userRankLabelKey(product.seller?.currentRank))}
+              </ThemedText>
+              <ThemedText style={styles.sellerMeta}>
+                {tf("publicProfileRatingSummary", {
+                  avg: (product.seller?.averageStars ?? 0).toFixed(1),
+                  count: product.seller?.totalReviews ?? 0,
+                })}
+              </ThemedText>
+              <ThemedText style={[styles.sellerViewLink, { color: colors.tint }]}>
+                {t("publicDetailViewSeller")}
+              </ThemedText>
+            </View>
+            <MaterialIcons name="chevron-right" size={22} color={colors.icon} />
+          </Pressable>
+
+          <AnimatedPressable
+            onPress={() => {
+              void Haptics.selectionAsync();
+              setReviewsOpen(true);
+            }}
+            style={[styles.reviewsBtn, { backgroundColor: colors.tint }]}
+          >
+            <MaterialIcons name="star" size={16} color="#FFF" />
+            <ThemedText style={styles.reviewsBtnText}>{t("publicDetailSellerReviews")}</ThemedText>
+          </AnimatedPressable>
+        </Animated.View>
+
+        <SectionCard
+          title={t("productsDetailSectionTrade")}
+          icon="storefront"
+          tint={colors.tint}
+          surface={surface}
+          borderColor={borderColor}
+          scheme={scheme}
+          enterDelay={SECTION_STAGGER_MS * 3}
+        >
+          <View style={[styles.addressHighlight, { borderColor: colors.tint + "30" }]}>
+            <MaterialIcons name="place" size={18} color={colors.tint} />
+            <ThemedText style={styles.addressText}>
+              {product.directTradeLocation ?? "—"}
+            </ThemedText>
+          </View>
+          {preferred.map((loc, idx) => (
+            <DetailField
+              key={`${loc.label}-${idx}`}
+              icon="location-on"
+              label={`${t("productsFieldPreferredLocationItem")} ${idx + 1}`}
+              value={`${loc.label}${loc.address ? ` (${loc.address})` : ""}`}
+              tint={colors.tint}
+              last={idx === preferred.length - 1 && !hasCoordinates && !product.preferredTradeTime}
+            />
+          ))}
+          {product.preferredTradeTime ? (
+            <DetailField
+              icon="schedule"
+              label={t("productsFieldPreferredTradeTime")}
+              value={product.preferredTradeTime}
+              tint={colors.tint}
+              last={!hasCoordinates}
+            />
+          ) : null}
+          {hasCoordinates ? (
+            <DetailField
+              icon="my-location"
+              label={t("productsDetailCoordinates")}
+              value={
+                formatCoordinates(product.directTradeLatitude, product.directTradeLongitude) ?? "—"
+              }
+              tint={colors.tint}
+              last
+            />
+          ) : null}
+        </SectionCard>
+
+        <SectionCard
+          title={t("productsFieldPaymentMethods")}
+          icon="payments"
+          tint={colors.tint}
+          surface={surface}
+          borderColor={borderColor}
+          scheme={scheme}
+          enterDelay={SECTION_STAGGER_MS * 4}
+        >
+          <View style={styles.chipsWrap}>
+            {(product.paymentMethods ?? []).map((m) => (
+              <View
+                key={m}
+                style={[styles.methodChip, { borderColor: colors.tint + "40", backgroundColor: colors.tint + "10" }]}
+              >
+                <MaterialIcons name="check-circle" size={15} color={colors.tint} />
+                <ThemedText style={[styles.methodChipText, { color: colors.tint }]}>
+                  {paymentMethodLabel(m, t)}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+        </SectionCard>
+
+        <SectionCard
+          title={t("productsDetailSectionDelivery")}
+          icon="local-shipping"
+          tint={colors.tint}
+          surface={surface}
+          borderColor={borderColor}
+          scheme={scheme}
+          enterDelay={SECTION_STAGGER_MS * 5}
+        >
+          <DetailField
+            icon="local-shipping"
+            label={t("productsFieldDelivery")}
+            value={
+              product.isDeliveryAvailable ? t("productsDeliveryOn") : t("productsDeliveryOff")
+            }
+            tint={colors.tint}
+          />
+          <DetailField
+            icon="account-balance-wallet"
+            label={t("productsFieldDeliveryFeePayer")}
+            value={
+              product.deliveryFeePayer === "SELLER"
+                ? t("productsDeliverySellerPays")
+                : product.deliveryFeePayer === "BUYER"
+                  ? t("productsDeliveryBuyerPays")
+                  : "—"
+            }
+            tint={colors.tint}
+            last
+          />
+        </SectionCard>
+
+        <SectionCard
+          title={t("productsDetailDescription")}
+          icon="description"
+          tint={colors.tint}
+          surface={surface}
+          borderColor={borderColor}
+          scheme={scheme}
+          enterDelay={SECTION_STAGGER_MS * 6}
+        >
+          <ThemedText style={styles.description}>{product.description}</ThemedText>
+          <DetailField
+            icon="access-time"
+            label={t("productsDetailCreatedAt")}
+            value={product.createdAtDisplay?.trim() || formatListingDate(product.createdAt, locale)}
+            tint={colors.tint}
+          />
+          <DetailField
+            icon="update"
+            label={t("productsDetailUpdatedAt")}
+            value={formatListingDate(product.updatedAt, locale)}
+            tint={colors.tint}
+          />
+          <DetailField
+            icon="category"
+            label={t("productsFieldCondition")}
+            value={formatProductConditionForDisplay(product.condition, t)}
+            tint={colors.tint}
+            last
+          />
+        </SectionCard>
+      </Animated.ScrollView>
+
+      <Animated.View
+        entering={reduceMotion ? undefined : FadeInDown.duration(380).springify().damping(20)}
+        style={[
+          styles.chatBar,
+          cardShadow(scheme),
+          {
+            borderTopColor: borderColor,
+            backgroundColor: surface,
+            paddingBottom: Math.max(insets.bottom, 12),
+          },
+        ]}
+      >
+        <AnimatedPressable
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (!product.seller?.userId) return;
+            router.push({
+              pathname: "/chat/[sellerId]",
+              params: {
+                sellerId: product.seller.userId,
+                productId: product.id,
+                productName: product.name,
+                sellerName: product.seller.nickname ?? "",
+              },
+            });
+          }}
+          onPressIn={() => {
+            if (reduceMotion) return;
+            chatPressed.value = withTiming(1, { duration: 90 });
+          }}
+          onPressOut={() => {
+            if (reduceMotion) return;
+            chatPressed.value = withSpring(0, { damping: 14, stiffness: 320 });
+          }}
+          style={[styles.chatButton, { backgroundColor: colors.tint }, chatAnimStyle]}
+        >
+          <MaterialIcons name="chat-bubble-outline" size={20} color="#FFF" />
+          <ThemedText style={styles.chatButtonText}>{t("publicDetailChatSeller")}</ThemedText>
+        </AnimatedPressable>
+      </Animated.View>
+
+      <ReviewsSheet
+        visible={reviewsOpen}
+        onClose={() => setReviewsOpen(false)}
+        surface={surface}
+        borderColor={borderColor}
+      >
+        <View style={styles.reviewsHeader}>
+          <ThemedText type="subtitle">{t("publicDetailSellerReviews")}</ThemedText>
+          <Pressable onPress={() => setReviewsOpen(false)} hitSlop={12}>
+            <MaterialIcons name="close" size={24} color={colors.icon} />
           </Pressable>
         </View>
 
-        <Modal visible={reviewsOpen} transparent animationType="fade" onRequestClose={() => setReviewsOpen(false)}>
-          <View style={styles.reviewsModalBackdrop}>
-            <View style={[styles.reviewsModalCard, { backgroundColor: colors.background }]}>
-              <View style={styles.reviewsHeader}>
-                <ThemedText type="subtitle">{t("publicDetailSellerReviews")}</ThemedText>
-                <Pressable onPress={() => setReviewsOpen(false)}>
-                  <MaterialIcons name="close" size={22} color={colors.icon} />
-                </Pressable>
-              </View>
-
-              {reviewsQuery.isLoading ? (
-                <View style={styles.centeredBlock}>
-                  <ActivityIndicator color={colors.tint} />
-                </View>
-              ) : reviewsQuery.data ? (
-                <ScrollView style={styles.reviewsScroll}>
-                  <View style={styles.reviewBreakdownWrap}>
-                    {[...reviewsQuery.data.starBreakdown]
-                      .sort((a, b) => b.stars - a.stars)
-                      .map((row) => (
-                        <ReviewRow key={`s-${row.stars}`} stars={row.stars} count={row.count} tint={colors.tint} />
-                      ))}
-                  </View>
-                  {reviewItems.map((item) => (
-                    <View key={item.id} style={styles.reviewItem}>
-                      <ThemedText style={styles.reviewStars}>{"★".repeat(Math.max(1, item.stars))}</ThemedText>
-                      <ThemedText style={styles.reviewNickname}>{item.reviewerNickname ?? "—"}</ThemedText>
-                      <ThemedText style={styles.reviewComment}>{item.comment ?? "-"}</ThemedText>
-                      <ThemedText style={styles.reviewDate}>
-                        {item.createdAt ? formatListingDate(item.createdAt, locale) : "—"}
-                      </ThemedText>
-                    </View>
-                  ))}
-                  {reviewsQuery.data.hasNextPage ? (
-                    <Pressable
-                      onPress={() => setReviewsPage((p) => p + 1)}
-                      disabled={reviewsQuery.isFetching}
-                      style={[
-                        styles.loadMoreBtn,
-                        { borderColor: colors.tint },
-                        reviewsQuery.isFetching && { opacity: 0.6 },
-                      ]}
-                    >
-                      {reviewsQuery.isFetching ? (
-                        <ActivityIndicator color={colors.tint} size="small" />
-                      ) : (
-                        <ThemedText style={[styles.loadMoreText, { color: colors.tint }]}>
-                          {t("publicDetailLoadMoreReviews")}
-                        </ThemedText>
-                      )}
-                    </Pressable>
-                  ) : null}
-                </ScrollView>
-              ) : (
-                <View style={styles.centeredBlock}>
-                  <ThemedText>{t("productsDetailNoData")}</ThemedText>
-                </View>
-              )}
+        {reviewsQuery.isLoading ? (
+          <View style={styles.centeredBlock}>
+            <ActivityIndicator color={colors.tint} />
+          </View>
+        ) : reviewsQuery.data ? (
+          <ScrollView style={styles.reviewsScroll} showsVerticalScrollIndicator={false}>
+            <View style={styles.reviewBreakdownWrap}>
+              {[...reviewsQuery.data.starBreakdown]
+                .sort((a, b) => b.stars - a.stars)
+                .map((row) => (
+                  <ReviewRow
+                    key={`s-${row.stars}`}
+                    stars={row.stars}
+                    count={row.count}
+                    tint={colors.tint}
+                    maxCount={maxReviewCount}
+                  />
+                ))}
             </View>
-          </View>
-        </Modal>
-
-        <Modal
-          visible={selectedImage != null}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setSelectedImage(null)}
-        >
-          <View style={styles.imageViewerBackdrop}>
-            <Pressable
-              style={StyleSheet.absoluteFill}
-              onPress={() => setSelectedImage(null)}
-            />
-            {selectedImage ? (
-              <Image
-                source={{ uri: selectedImage }}
-                style={styles.imageViewerImage}
-                contentFit="contain"
-              />
+            {reviewItems.map((item, idx) => (
+              <Animated.View
+                key={item.id}
+                entering={
+                  reduceMotion
+                    ? undefined
+                    : FadeInUp.duration(320)
+                        .delay(Math.min(idx, 8) * 40)
+                        .springify()
+                        .damping(18)
+                }
+                style={[styles.reviewItem, { borderColor: borderColor }]}
+              >
+                <ThemedText style={styles.reviewStars}>
+                  {"★".repeat(Math.max(1, item.stars))}
+                </ThemedText>
+                <ThemedText style={styles.reviewNickname}>
+                  {item.reviewerNickname ?? "—"}
+                </ThemedText>
+                <ThemedText style={styles.reviewComment}>
+                  {item.comment?.trim() || t("publicProfileNoComment")}
+                </ThemedText>
+                <ThemedText style={styles.reviewDate}>
+                  {item.createdAt ? formatListingDate(item.createdAt, locale) : "—"}
+                </ThemedText>
+              </Animated.View>
+            ))}
+            {reviewsQuery.data.hasNextPage ? (
+              <Pressable
+                onPress={() => setReviewsPage((p) => p + 1)}
+                disabled={reviewsQuery.isFetching}
+                style={[
+                  styles.loadMoreBtn,
+                  { borderColor: colors.tint },
+                  reviewsQuery.isFetching && { opacity: 0.6 },
+                ]}
+              >
+                {reviewsQuery.isFetching ? (
+                  <ActivityIndicator color={colors.tint} size="small" />
+                ) : (
+                  <ThemedText style={[styles.loadMoreText, { color: colors.tint }]}>
+                    {t("publicDetailLoadMoreReviews")}
+                  </ThemedText>
+                )}
+              </Pressable>
             ) : null}
-            <Pressable
-              onPress={() => setSelectedImage(null)}
-              style={styles.imageViewerClose}
-            >
-              <MaterialIcons name="close" size={24} color="#FFF" />
-            </Pressable>
+          </ScrollView>
+        ) : (
+          <View style={styles.centeredBlock}>
+            <ThemedText>{t("productsDetailNoData")}</ThemedText>
           </View>
-        </Modal>
-      </ThemedView>
-    </SafeAreaView>
+        )}
+      </ReviewsSheet>
+
+      <ImageViewerModal
+        uri={selectedImage}
+        visible={selectedImage != null}
+        onClose={() => setSelectedImage(null)}
+      />
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
   container: { flex: 1 },
-  centered: { flex: 1, justifyContent: "center", alignItems: "center", gap: 10 },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12, padding: 24 },
   loadingText: { opacity: 0.65 },
-  content: { paddingBottom: 96, gap: 12 },
-  mapCard: { marginHorizontal: 12, borderRadius: 20, overflow: "hidden", backgroundColor: "#FFF" },
-  topBar: { height: 52, flexDirection: "row", alignItems: "center", paddingHorizontal: 10, gap: 8 },
-  backButton: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
-  topTitle: { color: "#FFF", fontSize: 18, fontWeight: "800", flex: 1, textAlign: "center" },
-  idBadge: { backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
-  idBadgeText: { color: "#FFF", fontSize: 11, fontWeight: "800" },
-  mapView: { width: "100%", height: 240 },
-  locationOverlay: { position: "absolute", bottom: 10, left: 10, right: 10, backgroundColor: "rgba(0,0,0,0.55)", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, flexDirection: "row", gap: 6, alignItems: "center" },
-  locationOverlayText: { color: "#FFF", flex: 1, fontSize: 12 },
-  sectionCard: { marginHorizontal: 12, borderRadius: 16, padding: 12, gap: 10, backgroundColor: "#FFF" },
-  imagesRow: { gap: 8, marginBottom: 10 },
-  thumb: { width: 88, height: 88, borderRadius: 10 },
-  titleRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  name: { flex: 1, fontSize: 20, lineHeight: 26 },
-  statusChip: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  content: { gap: 14, paddingTop: 0 },
+  mapCard: {
+    marginHorizontal: 12,
+    borderRadius: 22,
+    overflow: "hidden",
+    borderWidth: 1,
+    minHeight: MAP_HEIGHT,
+  },
+  mapView: { width: "100%", height: MAP_HEIGHT },
+  mapPlaceholder: { height: MAP_HEIGHT },
+  mapGradientTop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+    backgroundColor: "rgba(0,0,0,0.38)",
+  },
+  mapGradientBottom: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+    backgroundColor: "rgba(0,0,0,0.42)",
+  },
+  mapOverlayTop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingTop: 4,
+  },
+  floatingBackBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  mapIdPill: {
+    backgroundColor: "rgba(255,255,255,0.22)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  mapIdText: { color: "#FFF", fontSize: 11, fontWeight: "800" },
+  locationChip: {
+    position: "absolute",
+    bottom: 12,
+    left: 12,
+    right: 12,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  locationChipText: { color: "#FFF", flex: 1, fontSize: 13, lineHeight: 18, fontWeight: "600" },
+  heroCard: {
+    marginHorizontal: 12,
+    borderRadius: 20,
+    padding: 14,
+    gap: 12,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  galleryScroll: {},
+  galleryImage: {
+    width: "100%",
+    height: GALLERY_HEIGHT,
+    borderRadius: 16,
+  },
+  galleryEmpty: {
+    height: GALLERY_HEIGHT,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dotsRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 4,
+  },
+  dot: { height: 6, borderRadius: 3 },
+  thumbsRow: { gap: 8, paddingVertical: 4 },
+  thumbWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  thumb: { width: "100%", height: "100%" },
+  titleRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  name: { flex: 1, fontSize: 22, lineHeight: 28, fontWeight: "800" },
+  statusChip: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
   statusChipText: { fontSize: 11, fontWeight: "800" },
-  price: { marginTop: 6, fontSize: 30, fontWeight: "900" },
-  sellerTop: { gap: 10 },
-  sellerProfileWrap: { flexDirection: "row", gap: 10 },
-  avatar: { width: 56, height: 56, borderRadius: 28 },
-  sellerCopy: { flex: 1, gap: 2 },
+  pricePanel: {
+    borderRadius: 14,
+    padding: 14,
+    gap: 2,
+  },
+  priceLabel: { fontSize: 12, fontWeight: "700", opacity: 0.55 },
+  price: { fontSize: 32, fontWeight: "900", letterSpacing: -0.5 },
+  postedAt: { fontSize: 12, marginTop: 4, fontWeight: "600" },
+  sellerCard: {
+    marginHorizontal: 12,
+    borderRadius: 20,
+    padding: 14,
+    gap: 12,
+    borderWidth: 1,
+  },
+  sellerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  avatarRing: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    padding: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatar: { width: 52, height: 52, borderRadius: 26 },
+  sellerCopy: { flex: 1, gap: 3, minWidth: 0 },
+  sellerName: { fontSize: 16 },
   sellerRank: { fontSize: 12, opacity: 0.7, fontWeight: "700" },
   sellerMeta: { fontSize: 12, opacity: 0.65 },
-  sellerViewLink: { fontSize: 12, fontWeight: "700" },
-  reviewsBtn: { alignSelf: "flex-start", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, flexDirection: "row", alignItems: "center", gap: 5 },
-  reviewsBtnText: { color: "#FFF", fontWeight: "700", fontSize: 12 },
+  sellerViewLink: { fontSize: 12, fontWeight: "700", marginTop: 2 },
+  reviewsBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderRadius: 14,
+    paddingVertical: 12,
+  },
+  reviewsBtnText: { color: "#FFF", fontWeight: "800", fontSize: 14 },
+  sectionWrap: { marginHorizontal: 12 },
+  sectionCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 14,
+    gap: 10,
+  },
+  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  sectionIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionTitle: { fontSize: 15, flex: 1 },
+  addressHighlight: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    backgroundColor: "rgba(251,109,0,0.06)",
+  },
+  addressText: { flex: 1, fontSize: 14, lineHeight: 20, fontWeight: "600" },
+  fieldRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    paddingVertical: 10,
+  },
+  fieldRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(128,128,128,0.2)",
+  },
+  fieldIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fieldCopy: { flex: 1, minWidth: 0, gap: 3 },
+  fieldLabel: { fontSize: 11, fontWeight: "600", opacity: 0.55 },
+  fieldValue: { fontSize: 14, lineHeight: 20 },
   chipsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  methodChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
-  methodChipText: { fontSize: 12, fontWeight: "700" },
-  infoRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  infoCopy: { flex: 1, minWidth: 0 },
-  infoLabel: { fontSize: 11, opacity: 0.55 },
-  infoValue: { fontSize: 14, lineHeight: 20 },
-  description: { fontSize: 14, lineHeight: 21 },
-  chatBar: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "#FFF", paddingHorizontal: 12, paddingTop: 10, paddingBottom: 14, borderTopWidth: StyleSheet.hairlineWidth },
-  chatButton: { borderRadius: 14, minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
-  chatButtonText: { color: "#FFF", fontSize: 15, fontWeight: "800" },
-  reviewsModalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.42)", justifyContent: "center", padding: 16 },
-  reviewsModalCard: { borderRadius: 16, maxHeight: "80%", padding: 14 },
-  reviewsHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+  methodChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  methodChipText: { fontSize: 13, fontWeight: "700" },
+  description: { fontSize: 14, lineHeight: 22, opacity: 0.85, marginBottom: 4 },
+  chatBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  chatButton: {
+    borderRadius: 16,
+    minHeight: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  chatButtonText: { color: "#FFF", fontSize: 16, fontWeight: "800" },
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.48)",
+    justifyContent: "flex-end",
+  },
+  sheetCard: {
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    borderWidth: 1,
+    maxHeight: "82%",
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(128,128,128,0.45)",
+    alignSelf: "center",
+    marginTop: 10,
+    marginBottom: 12,
+  },
+  reviewsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
   reviewsScroll: { maxHeight: 480 },
-  reviewBreakdownWrap: { gap: 8, marginBottom: 14 },
+  reviewBreakdownWrap: { gap: 10, marginBottom: 16 },
   reviewBreakdownRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  reviewBreakdownStar: { width: 26, fontSize: 12, fontWeight: "700" },
-  reviewBreakdownBarTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: "rgba(120,120,120,0.22)", overflow: "hidden" },
+  reviewBreakdownStar: { width: 28, fontSize: 12, fontWeight: "700" },
+  reviewBreakdownBarTrack: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "rgba(120,120,120,0.22)",
+    overflow: "hidden",
+  },
   reviewBreakdownBarFill: { height: "100%", borderRadius: 4 },
   reviewBreakdownCount: { width: 28, textAlign: "right", fontSize: 12, opacity: 0.7 },
-  reviewItem: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: "rgba(120,120,120,0.3)", paddingTop: 10, paddingBottom: 8, gap: 2 },
+  reviewItem: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 12,
+    paddingBottom: 10,
+    gap: 4,
+  },
   reviewStars: { color: "#FB6D00", fontSize: 12, fontWeight: "700" },
   reviewNickname: { fontSize: 13, fontWeight: "700" },
   reviewComment: { fontSize: 13, lineHeight: 18 },
   reviewDate: { fontSize: 11, opacity: 0.55 },
   loadMoreBtn: {
-    marginTop: 8,
-    borderWidth: 1,
-    borderRadius: 10,
-    minHeight: 38,
+    marginTop: 12,
+    borderWidth: 1.5,
+    borderRadius: 12,
+    minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
   },
-  loadMoreText: { fontSize: 13, fontWeight: "700" },
-  centeredBlock: { paddingVertical: 24, alignItems: "center" },
+  loadMoreText: { fontSize: 14, fontWeight: "700" },
+  centeredBlock: { paddingVertical: 28, alignItems: "center" },
   imageViewerBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.9)",
+    backgroundColor: "rgba(0,0,0,0.94)",
+  },
+  imageViewerContent: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
-    padding: 16,
+    zIndex: 1,
   },
-  imageViewerImage: { width: "100%", height: "85%" },
   imageViewerClose: {
     position: "absolute",
-    top: 44,
     right: 20,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    zIndex: 2,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.18)",
   },
 });
