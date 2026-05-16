@@ -32,6 +32,7 @@ export interface ProductApiResponse {
   createdAt?: string | null;
   createdAtDisplay?: string | null;
   updatedAt?: string | null;
+  seller?: unknown;
 }
 
 function parsePrice(val: unknown): number {
@@ -129,6 +130,58 @@ function toStringArray(v: unknown): string[] {
     .filter((item) => item.length > 0);
 }
 
+function parseSellerSummary(
+  raw: unknown,
+): Product["seller"] {
+  if (raw == null || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  const userId = typeof r.userId === "string" ? r.userId.trim() : "";
+  const nickname = typeof r.nickname === "string" ? r.nickname.trim() : "";
+  if (!userId || !nickname) return null;
+  return {
+    userId,
+    nickname,
+    avatar:
+      typeof r.avatar === "string" && r.avatar.trim()
+        ? toAbsoluteMediaUrl(r.avatar.trim())
+        : null,
+    currentRank: toStringOrNull(r.currentRank),
+    averageStars:
+      typeof r.averageStars === "number" && Number.isFinite(r.averageStars)
+        ? r.averageStars
+        : null,
+    totalReviews:
+      typeof r.totalReviews === "number" && Number.isFinite(r.totalReviews)
+        ? r.totalReviews
+        : null,
+  };
+}
+
+function parsePreferredLocations(raw: unknown): Product["preferredLocations"] {
+  if (!Array.isArray(raw)) return [];
+  const out: NonNullable<Product["preferredLocations"]> = [];
+  for (const item of raw) {
+    if (item == null || typeof item !== "object" || Array.isArray(item)) continue;
+    const row = item as Record<string, unknown>;
+    const label = typeof row.label === "string" ? row.label.trim() : "";
+    const address = typeof row.address === "string" ? row.address.trim() : "";
+    if (!label && !address) continue;
+    out.push({
+      id: toStringOrNull(row.id) ?? undefined,
+      label,
+      address,
+      latitude: toNumberOrNull(row.latitude),
+      longitude: toNumberOrNull(row.longitude),
+      sortOrder:
+        typeof row.sortOrder === "number" && Number.isFinite(row.sortOrder)
+          ? row.sortOrder
+          : null,
+    });
+  }
+  out.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  return out;
+}
+
 export function toProduct(dto: ProductApiResponse): Product {
   const categoryId =
     typeof dto.categoryId === "string" && dto.categoryId.trim()
@@ -165,9 +218,8 @@ export function toProduct(dto: ProductApiResponse): Product {
         : undefined,
     deliveryFeePayer: toStringOrNull(dto.deliveryFeePayer),
     images: imageUrls.length > 0 ? imageUrls : toStringArray(dto.images),
-    preferredLocations: Array.isArray(dto.preferredLocations)
-      ? dto.preferredLocations
-      : [],
+    preferredLocations: parsePreferredLocations(dto.preferredLocations),
+    seller: parseSellerSummary(dto.seller),
     viewCount:
       typeof dto.viewCount === "number" && Number.isFinite(dto.viewCount)
         ? dto.viewCount

@@ -1,8 +1,11 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import type { PaginationParams } from "@/core/domain/types";
 import type { ClientProductListParams } from "@/core/domain/types/product";
 import { useServices } from "../providers/ServicesProvider";
 
 export const CLIENT_PRODUCTS_QUERY_KEY = ["client", "products"] as const;
+export const CLIENT_PRODUCT_REVIEWS_QUERY_KEY = ["client", "seller-reviews"] as const;
+export const CLIENT_PUBLIC_PROFILE_QUERY_KEY = ["client", "public-profile"] as const;
 
 const DEFAULT_LIMIT = 20;
 
@@ -38,5 +41,44 @@ export function useClientProductsCatalog(params?: UseClientProductsCatalogParams
       }),
     getNextPageParam: (last) =>
       last.hasNextPage ? last.page + 1 : undefined,
+  });
+}
+
+/** Public product detail (`GET /v1/client/products/:productId`). */
+export function useClientProductDetail(productId: string | null) {
+  const { productService } = useServices();
+  return useQuery({
+    queryKey: [...CLIENT_PRODUCTS_QUERY_KEY, "detail", productId],
+    queryFn: () => productService.getById(productId!),
+    enabled: !!productId,
+  });
+}
+
+/** Public seller reviews (`GET /v1/client/users/:userId/reviews`). */
+export function useSellerReviews(
+  sellerUserId: string | null,
+  params?: PaginationParams,
+) {
+  const { productService } = useServices();
+  const limit = params?.limit ?? 20;
+  const page = params?.page ?? 1;
+  return useQuery({
+    queryKey: [...CLIENT_PRODUCT_REVIEWS_QUERY_KEY, sellerUserId, page, limit],
+    queryFn: () =>
+      productService.getSellerReviews(sellerUserId!, {
+        page,
+        limit,
+      }),
+    enabled: !!sellerUserId,
+  });
+}
+
+/** Public user profile (`GET /v1/client/users/:userId/public-profile`). */
+export function usePublicUserProfile(userId: string | null) {
+  const { productService } = useServices();
+  return useQuery({
+    queryKey: [...CLIENT_PUBLIC_PROFILE_QUERY_KEY, userId],
+    queryFn: () => productService.getPublicProfile(userId!),
+    enabled: !!userId,
   });
 }

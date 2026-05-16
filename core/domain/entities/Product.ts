@@ -1,5 +1,23 @@
 import type { Id } from "@/core/domain/types";
 
+export interface ProductSellerSummary {
+  userId: string;
+  nickname: string;
+  avatar?: string | null;
+  currentRank?: string | null;
+  averageStars?: number | null;
+  totalReviews?: number | null;
+}
+
+export interface ProductPreferredLocation {
+  id?: string;
+  label: string;
+  address: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  sortOrder?: number | null;
+}
+
 export interface Product {
   id: Id;
   sellerId?: string | null;
@@ -22,7 +40,8 @@ export interface Product {
   isDeliveryAvailable?: boolean;
   deliveryFeePayer?: string | null;
   images?: string[];
-  preferredLocations?: unknown[];
+  preferredLocations?: ProductPreferredLocation[];
+  seller?: ProductSellerSummary | null;
   viewCount?: number;
   imageUrl?: string | null;
   isAvailable: boolean;

@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 
+import type { UserRankTier } from "@/core/domain/entities/ProfileRewards";
 import type { AppLocale } from "@/core/domain/types/locale";
 import type { ProductCondition, ProductStatus } from "@/core/domain/types/product";
 import { useServices } from "./ServicesProvider";
@@ -1355,6 +1356,101 @@ const DICT: Dictionary = {
     my: "ပုံ {current}/{total}",
     zh: "图片 {current}/{total}",
   },
+  publicDetailSellerReviews: {
+    ko: "리뷰",
+    my: "သုံးသပ်ချက်များ",
+    zh: "评价",
+  },
+  publicDetailViewSeller: {
+    ko: "판매자 프로필 보기",
+    my: "ရောင်းသူ ပရိုဖိုင်ကြည့်ရန်",
+    zh: "查看卖家资料",
+  },
+  publicDetailLoadMoreReviews: {
+    ko: "리뷰 더 보기",
+    my: "သုံးသပ်ချက်များ ထပ်ကြည့်ရန်",
+    zh: "加载更多评价",
+  },
+  publicDetailChatSeller: {
+    ko: "판매자에게 메시지",
+    my: "ရောင်းသူကို စာပို့မည်",
+    zh: "联系卖家",
+  },
+  publicDetailChatSoon: {
+    ko: "채팅 기능은 곧 제공됩니다.",
+    my: "ချတ် 기능ကို မကြာမီ ရပါမည်။",
+    zh: "聊天功能即将上线。",
+  },
+  publicProfileTitle: {
+    ko: "판매자 프로필",
+    my: "ရောင်းသူ ပရိုဖိုင်",
+    zh: "卖家资料",
+  },
+  publicProfileRegion: {
+    ko: "지역: {region}",
+    my: "ဒေသ: {region}",
+    zh: "地区：{region}",
+  },
+  publicProfileRatingSummary: {
+    ko: "★ {avg} · 리뷰 {count}건",
+    my: "★ {avg} · သုံးသပ်ချက် {count}",
+    zh: "★ {avg} · {count} 条评价",
+  },
+  publicProfileMemberSince: {
+    ko: "가입일",
+    my: "အဖွဲ့ဝင်စတင်ရက်",
+    zh: "注册时间",
+  },
+  publicProfileReviewsSection: {
+    ko: "리뷰",
+    my: "သုံးသပ်ချက်များ",
+    zh: "评价",
+  },
+  publicProfilePrev: {
+    ko: "이전",
+    my: "ယခင်",
+    zh: "上一页",
+  },
+  publicProfileNext: {
+    ko: "다음",
+    my: "နောက်",
+    zh: "下一页",
+  },
+  publicProfilePage: {
+    ko: "페이지 {page}",
+    my: "စာမျက်နှာ {page}",
+    zh: "第 {page} 页",
+  },
+  publicProfileNoComment: {
+    ko: "코멘트 없음",
+    my: "မှတ်ချက်မရှိ",
+    zh: "无评论",
+  },
+  userRankNewbie: {
+    ko: "뉴비",
+    my: "အသစ်",
+    zh: "新手",
+  },
+  userRankBronze: {
+    ko: "브론즈",
+    my: "ကြေးဝါ",
+    zh: "青铜",
+  },
+  userRankSilver: {
+    ko: "실버",
+    my: "ငွေ",
+    zh: "白银",
+  },
+  userRankGold: {
+    ko: "골드",
+    my: "ရွှေ",
+    zh: "黄金",
+  },
+  userRankVip: {
+    ko: "VIP",
+    my: "VIP",
+    zh: "VIP",
+  },
   productsLabelStatus: {
     ko: "상태",
     my: "အခြေအနေ",
@@ -1828,6 +1924,20 @@ export function productConditionLabelKey(
 /** Locale key for seller listing status badge (API uses `ACTIVE`, `DRAFT`, …). */
 export function productStatusLabelKey(status: ProductStatus): keyof typeof DICT {
   return PRODUCT_STATUS_LABEL_KEY[status];
+}
+
+const USER_RANK_LABEL_KEY: Record<UserRankTier, keyof typeof DICT> = {
+  NEWBIE: "userRankNewbie",
+  BRONZE: "userRankBronze",
+  SILVER: "userRankSilver",
+  GOLD: "userRankGold",
+  VIP: "userRankVip",
+};
+
+/** Locale key for public profile rank badge (`NEWBIE`, `BRONZE`, …). */
+export function userRankLabelKey(rank: string | null | undefined): keyof typeof DICT {
+  const tier = rank?.trim().toUpperCase() as UserRankTier;
+  return USER_RANK_LABEL_KEY[tier] ?? "userRankNewbie";
 }
 
 export function parseProductCondition(

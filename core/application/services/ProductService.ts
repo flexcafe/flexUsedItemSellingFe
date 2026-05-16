@@ -8,6 +8,8 @@ import type {
   ProductDeleteInput,
   ProductCreateInput,
   ProductStatus,
+  PublicUserProfile,
+  SellerReviewPage,
   ProductUpdateInput,
 } from "@/core/domain/types/product";
 
@@ -32,6 +34,17 @@ export class ProductService implements IProductService {
 
   getById(id: string): Promise<Product | null> {
     return this.repo.getById(id);
+  }
+
+  getSellerReviews(
+    userId: string,
+    params?: PaginationParams,
+  ): Promise<SellerReviewPage> {
+    return this.repo.getSellerReviews(userId, params);
+  }
+
+  getPublicProfile(userId: string): Promise<PublicUserProfile | null> {
+    return this.repo.getPublicProfile(userId);
   }
 
   create(data: ProductCreateInput): Promise<Product> {

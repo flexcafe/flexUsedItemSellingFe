@@ -52,6 +52,11 @@ export const API_ENDPOINTS = {
     UPDATE: (productId: string) => `/v1/client/products/${productId}`,
     DELETE: (productId: string) => `/v1/client/products/${productId}`,
   },
+  CLIENT_USERS: {
+    REVIEWS: (userId: string) => `/v1/client/users/${userId}/reviews`,
+    PUBLIC_PROFILE: (userId: string) =>
+      `/v1/client/users/${userId}/public-profile`,
+  },
   PRODUCTS: {
     LIST: "/v1/products",
     BY_ID: (id: string) => `/v1/products/${id}`,

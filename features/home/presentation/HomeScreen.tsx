@@ -78,10 +78,12 @@ const ProductCard = memo(function ProductCard({
   item,
   categoryLabel,
   index,
+  onPress,
 }: {
   item: Product;
   categoryLabel: string;
   index: number;
+  onPress: (productId: string) => void;
 }) {
   const colorScheme = useColorScheme();
   const scheme = colorScheme ?? "light";
@@ -121,6 +123,7 @@ const ProductCard = memo(function ProductCard({
       style={cardAnimStyle}
     >
       <AnimatedPressable
+        onPress={() => onPress(item.id)}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
         style={[
@@ -476,9 +479,15 @@ export function HomeScreen() {
         item={item}
         index={index}
         categoryLabel={resolveCategoryLabel(item) || t("homeCategoryFallback")}
+        onPress={(productId) =>
+          router.push({
+            pathname: "/product/[productId]",
+            params: { productId },
+          })
+        }
       />
     ),
-    [resolveCategoryLabel, t],
+    [resolveCategoryLabel, router, t],
   );
 
   return (

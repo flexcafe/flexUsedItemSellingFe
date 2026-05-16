@@ -17,6 +17,7 @@ export interface ProductDto {
   deliveryFeePayer?: unknown;
   images?: unknown;
   preferredLocations?: unknown;
+  seller?: unknown;
   sellerId?: string | null;
   categoryId?: string | null;
   categoryName?: string | null;

@@ -86,3 +86,41 @@ export interface ClientProductCatalogPage {
 
 /** `GET /v1/client/products/my` — seller's own listings page. */
 export type MyProductListPage = ClientProductCatalogPage;
+
+export interface SellerReviewItem {
+  id: string;
+  stars: number;
+  comment?: string | null;
+  reviewerNickname?: string | null;
+  reviewerAvatar?: string | null;
+  createdAt?: string | null;
+}
+
+export interface SellerReviewStarBreakdownItem {
+  stars: number;
+  count: number;
+}
+
+export interface SellerReviewPage {
+  starBreakdown: SellerReviewStarBreakdownItem[];
+  items: SellerReviewItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export interface PublicUserProfile {
+  userId: string;
+  nickname: string;
+  avatar?: string | null;
+  region?: string | null;
+  currentRank: "NEWBIE" | "BRONZE" | "SILVER" | "GOLD" | "VIP";
+  averageStars: number;
+  totalReviews: number;
+  completedSales: number;
+  completedPurchases: number;
+  memberSince?: string | null;
+}

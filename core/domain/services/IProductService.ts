@@ -1,12 +1,14 @@
 import type { Product } from "../entities/Product";
-implement it import type { PaginationParams } from "@/core/domain/types";
+import type { PaginationParams } from "@/core/domain/types";
 import type {
   ClientProductCatalogPage,
   ClientProductListParams,
-  ProductDeleteInput,
   ProductCreateInput,
+  ProductDeleteInput,
   ProductStatus,
   ProductUpdateInput,
+  PublicUserProfile,
+  SellerReviewPage,
 } from "@/core/domain/types/product";
 
 export interface IProductService {
@@ -15,6 +17,11 @@ export interface IProductService {
   getMyList(params?: PaginationParams): Promise<ClientProductCatalogPage>;
   getMyById(id: string): Promise<Product | null>;
   getById(id: string): Promise<Product | null>;
+  getSellerReviews(
+    userId: string,
+    params?: PaginationParams,
+  ): Promise<SellerReviewPage>;
+  getPublicProfile(userId: string): Promise<PublicUserProfile | null>;
   create(data: ProductCreateInput): Promise<Product>;
   createMy(data: ProductCreateInput): Promise<Product>;
   update(id: string, data: ProductUpdateInput): Promise<Product>;
