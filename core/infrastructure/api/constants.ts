@@ -61,6 +61,14 @@ export const API_ENDPOINTS = {
     ROOMS: "/v1/client/chats/rooms",
     MESSAGES: (chatRoomId: string) => `/v1/client/chats/${chatRoomId}/messages`,
     MARK_READ: (chatRoomId: string) => `/v1/client/chats/${chatRoomId}/read`,
+    DIRECT_TRADE: (chatRoomId: string) =>
+      `/v1/client/chats/${chatRoomId}/direct-trade`,
+    LOCATION_START: (chatRoomId: string) =>
+      `/v1/client/chats/${chatRoomId}/location/start`,
+    LOCATION_UPDATE: (chatRoomId: string) =>
+      `/v1/client/chats/${chatRoomId}/location`,
+    LOCATION_STOP: (chatRoomId: string) =>
+      `/v1/client/chats/${chatRoomId}/location/stop`,
   },
   PRODUCTS: {
     LIST: "/v1/products",

@@ -3,6 +3,10 @@ import type { IChatRepository } from "@/core/domain/repositories/IChatRepository
 import type {
   CursorPage,
   CursorPaginationParams,
+  DirectTradeRequestInput,
+  DirectTradeTransaction,
+  LocationShareInput,
+  LocationShareStartResult,
   OpenChatRoomInput,
   SendChatMessageInput,
 } from "@/core/domain/types/chat";
@@ -233,6 +237,41 @@ function readMarkedCount(value: unknown): number {
   return Math.max(0, Math.round(toFiniteNumber(fromKnown, 0)));
 }
 
+function mapDirectTradeTransaction(value: unknown): DirectTradeTransaction | null {
+  const row = asRecord(value);
+  if (!row) return null;
+  const id = toNonEmptyString(row.id);
+  const chatRoomId = toNonEmptyString(row.chatRoomId);
+  const type = toNonEmptyString(row.type);
+  const status = toNonEmptyString(row.status);
+  if (!id || !chatRoomId || !type || !status) return null;
+  const completedAt = toNonEmptyString(row.completedAt);
+  return {
+    id,
+    chatRoomId,
+    type,
+    status,
+    amount: toFiniteNumber(row.amount, 0),
+    buyerCompleted: toBoolean(row.buyerCompleted),
+    sellerCompleted: toBoolean(row.sellerCompleted),
+    completedAt,
+  };
+}
+
+function readLocationStart(value: unknown): LocationShareStartResult {
+  const row = asRecord(value);
+  if (!row) return { alreadyActive: false };
+  return { alreadyActive: toBoolean(row.alreadyActive, false) };
+}
+
+function readBooleanPayload(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  const row = asRecord(value);
+  if (!row) return false;
+  const fromKnown = row.success ?? row.ok ?? row.result ?? row.data;
+  return toBoolean(fromKnown, false);
+}
+
 export class ApiChatRepository implements IChatRepository {
   constructor(private readonly http: HttpClient) {}
 
@@ -289,5 +328,72 @@ export class ApiChatRepository implements IChatRepository {
       {},
     );
     return readMarkedCount(data);
+  }
+
+  async requestDirectTrade(
+    chatRoomId: string,
+    input: DirectTradeRequestInput,
+  ): Promise<DirectTradeTransaction> {
+    const body: Record<string, unknown> = {
+      meetingDate: input.meetingDate,
+      meetingTime: input.meetingTime,
+    };
+    const location = input.meetingLocation?.trim();
+    if (location) body.meetingLocation = location;
+    if (
+      typeof input.meetingLatitude === "number" &&
+      Number.isFinite(input.meetingLatitude) &&
+      typeof input.meetingLongitude === "number" &&
+      Number.isFinite(input.meetingLongitude)
+    ) {
+      body.meetingLatitude = input.meetingLatitude;
+      body.meetingLongitude = input.meetingLongitude;
+    }
+
+    const data = await this.http.post<unknown>(
+      API_ENDPOINTS.CLIENT_CHATS.DIRECT_TRADE(chatRoomId),
+      body,
+    );
+    const trade = mapDirectTradeTransaction(data);
+    if (!trade) throw new Error("Direct trade response is invalid");
+    return trade;
+  }
+
+  async startLocationShare(
+    chatRoomId: string,
+    input: LocationShareInput,
+  ): Promise<LocationShareStartResult> {
+    const data = await this.http.post<unknown>(
+      API_ENDPOINTS.CLIENT_CHATS.LOCATION_START(chatRoomId),
+      {
+        latitude: input.latitude,
+        longitude: input.longitude,
+        expiresInSeconds: input.expiresInSeconds,
+      },
+    );
+    return readLocationStart(data);
+  }
+
+  async updateLocationShare(
+    chatRoomId: string,
+    input: LocationShareInput,
+  ): Promise<boolean> {
+    const data = await this.http.post<unknown>(
+      API_ENDPOINTS.CLIENT_CHATS.LOCATION_UPDATE(chatRoomId),
+      {
+        latitude: input.latitude,
+        longitude: input.longitude,
+        expiresInSeconds: input.expiresInSeconds,
+      },
+    );
+    return readBooleanPayload(data);
+  }
+
+  async stopLocationShare(chatRoomId: string): Promise<boolean> {
+    const data = await this.http.post<unknown>(
+      API_ENDPOINTS.CLIENT_CHATS.LOCATION_STOP(chatRoomId),
+      {},
+    );
+    return readBooleanPayload(data);
   }
 }

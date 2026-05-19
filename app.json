@@ -55,7 +55,8 @@
         {
           "photosPermission": "Allow Flex Used Market to access your photos to set a profile avatar."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -1183,11 +1183,11 @@ export function ProductListScreen() {
                 {composerMode === "create"
                   ? t("productsModalCreateTitle")
                   : t("productsModalEditTitle")}
-              </ThemedText>
+        </ThemedText>
               <Pressable onPress={() => setComposerVisible(false)}>
                 <ThemedText style={[styles.closeText, { color: colors.tint }]}>
                   {t("productsModalClose")}
-                </ThemedText>
+        </ThemedText>
               </Pressable>
             </View>
             <ThemedText
@@ -1197,7 +1197,7 @@ export function ProductListScreen() {
                 current: String(composerStep + 1),
                 total: String(COMPOSER_STEP_COUNT),
               })}
-            </ThemedText>
+          </ThemedText>
             <ThemedText
               style={[styles.composerStepHint, { color: colors.text }]}
             >
@@ -1464,8 +1464,8 @@ export function ProductListScreen() {
               ) : null}
               {composerStep === 2 ? (
                 <>
-                  <View
-                    style={[
+          <View
+            style={[
                       styles.directTradeMapCard,
                       {
                         borderColor: colors.icon + "44",
@@ -1536,17 +1536,17 @@ export function ProductListScreen() {
                           style={styles.directTradeClearPin}
                           hitSlop={8}
                         >
-                          <ThemedText
-                            style={{
+            <ThemedText
+              style={{
                               color: colors.tint,
                               fontWeight: "700",
                               fontSize: 13,
                             }}
                           >
                             {t("productsDirectTradeClearPin")}
-                          </ThemedText>
+            </ThemedText>
                         </Pressable>
-                      </View>
+          </View>
                     ) : (
                       <ThemedText style={styles.preferredNoPin}>
                         {t("productsPreferredLocationNoPin")}
@@ -1590,7 +1590,7 @@ export function ProductListScreen() {
                             : t("productsMapUseCurrent")}
                       </ThemedText>
                     </Pressable>
-                  </View>
+        </View>
 
                   <ThemedText style={styles.fieldLabel}>
                     {t("productsFieldNearbyLandmarks")}
@@ -1626,7 +1626,7 @@ export function ProductListScreen() {
 
                   <ThemedText style={styles.fieldLabel}>
                     {t("productsFieldMapScreenshotUrl")}
-                  </ThemedText>
+        </ThemedText>
                   <Pressable
                     onPress={() => void pickMapScreenshot()}
                     style={[
@@ -1639,7 +1639,7 @@ export function ProductListScreen() {
                     >
                       {t("productsPickMapScreenshot")}
                     </ThemedText>
-                  </Pressable>
+        </Pressable>
                   {form.mapScreenshotFile ? (
                     <>
                       <ThemedText style={styles.coordSummary}>
@@ -1677,9 +1677,9 @@ export function ProductListScreen() {
                           >
                             <ThemedText style={styles.preferredClearPinText}>
                               ×
-                            </ThemedText>
+        </ThemedText>
                           </Pressable>
-                        </View>
+      </View>
                       </View>
                     </>
                   ) : form.existingMapScreenshotUrl ? (
@@ -1957,9 +1957,9 @@ export function ProductListScreen() {
                                   style={styles.preferredClearPinText}
                                 >
                                   ×
-                                </ThemedText>
+            </ThemedText>
                               </Pressable>
-                            </View>
+          </View>
                           </View>
                         ))}
                       </ScrollView>

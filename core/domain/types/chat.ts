@@ -20,3 +20,32 @@ export interface SendChatMessageInput {
   type?: ChatMessageType;
   idempotencyKey?: string;
 }
+
+export interface DirectTradeRequestInput {
+  meetingDate: string;
+  meetingTime: string;
+  meetingLocation?: string;
+  meetingLatitude?: number;
+  meetingLongitude?: number;
+}
+
+export interface DirectTradeTransaction {
+  id: string;
+  chatRoomId: string;
+  type: string;
+  status: string;
+  amount: number;
+  buyerCompleted: boolean;
+  sellerCompleted: boolean;
+  completedAt: string | null;
+}
+
+export interface LocationShareInput {
+  latitude: number;
+  longitude: number;
+  expiresInSeconds?: number;
+}
+
+export interface LocationShareStartResult {
+  alreadyActive: boolean;
+}

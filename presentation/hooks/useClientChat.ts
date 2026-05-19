@@ -2,6 +2,8 @@ import type { ChatMessage } from "@/core/domain/entities/Chat";
 import type {
   CursorPaginationParams,
   CursorPage,
+  DirectTradeRequestInput,
+  LocationShareInput,
   OpenChatRoomInput,
   SendChatMessageInput,
 } from "@/core/domain/types/chat";
@@ -118,6 +120,54 @@ export function useMarkChatRoomRead(chatRoomId: string | null) {
     mutationFn: () => chatService.markRead(chatRoomId!),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"] });
+    },
+  });
+}
+
+export function useRequestDirectTrade(chatRoomId: string | null) {
+  const { chatService } = useServices();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: DirectTradeRequestInput) =>
+      chatService.requestDirectTrade(chatRoomId!, input),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId] });
+      void qc.invalidateQueries({ queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"] });
+    },
+  });
+}
+
+export function useStartLocationShare(chatRoomId: string | null) {
+  const { chatService } = useServices();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: LocationShareInput) =>
+      chatService.startLocationShare(chatRoomId!, input),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId] });
+    },
+  });
+}
+
+export function useUpdateLocationShare(chatRoomId: string | null) {
+  const { chatService } = useServices();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: LocationShareInput) =>
+      chatService.updateLocationShare(chatRoomId!, input),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId] });
+    },
+  });
+}
+
+export function useStopLocationShare(chatRoomId: string | null) {
+  const { chatService } = useServices();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => chatService.stopLocationShare(chatRoomId!),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId] });
     },
   });
 }

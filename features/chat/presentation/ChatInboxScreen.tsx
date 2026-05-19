@@ -1,3 +1,6 @@
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import {
   ActivityIndicator,
@@ -7,9 +10,6 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Image } from "expo-image";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
@@ -70,7 +70,9 @@ export function ChatInboxScreen() {
       t("chatBuyerFallback"),
     );
     const preview = messagePreview(item.lastMessage);
-    const time = formatChatTimestamp(item.lastMessage?.createdAt ?? item.updatedAt);
+    const time = formatChatTimestamp(
+      item.lastMessage?.createdAt ?? item.updatedAt,
+    );
 
     return (
       <Pressable
@@ -84,19 +86,35 @@ export function ChatInboxScreen() {
           item.unreadCount > 0 && { borderColor: colors.tint + "55" },
         ]}
       >
-        <View style={[styles.avatarWrap, { backgroundColor: colors.tint + "18" }]}>
+        <View
+          style={[styles.avatarWrap, { backgroundColor: colors.tint + "18" }]}
+        >
           {item.listingImageUrl ? (
-            <Image source={{ uri: item.listingImageUrl }} style={styles.avatarImage} contentFit="cover" />
+            <Image
+              source={{ uri: item.listingImageUrl }}
+              style={styles.avatarImage}
+              contentFit="cover"
+            />
           ) : (
-            <MaterialIcons name="chat-bubble-outline" size={22} color={colors.tint} />
+            <MaterialIcons
+              name="chat-bubble-outline"
+              size={22}
+              color={colors.tint}
+            />
           )}
         </View>
         <View style={styles.rowBody}>
           <View style={styles.rowTop}>
-            <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.rowTitle}>
+            <ThemedText
+              type="defaultSemiBold"
+              numberOfLines={1}
+              style={styles.rowTitle}
+            >
               {title}
             </ThemedText>
-            {time ? <ThemedText style={styles.rowTime}>{time}</ThemedText> : null}
+            {time ? (
+              <ThemedText style={styles.rowTime}>{time}</ThemedText>
+            ) : null}
           </View>
           <ThemedText style={styles.rowPeer} numberOfLines={1}>
             {peer}
@@ -120,7 +138,9 @@ export function ChatInboxScreen() {
     <ThemedView style={styles.screen}>
       <View style={[styles.header, { paddingTop: topInset }]}>
         <ThemedText type="title">{t("chatInboxTitle")}</ThemedText>
-        <ThemedText style={styles.subtitle}>{t("chatInboxSubtitle")}</ThemedText>
+        <ThemedText style={styles.subtitle}>
+          {t("chatInboxSubtitle")}
+        </ThemedText>
       </View>
 
       {authLoading || (isAuthenticated && roomsQuery.isPending) ? (
@@ -129,12 +149,16 @@ export function ChatInboxScreen() {
         </View>
       ) : roomsQuery.isError ? (
         <View style={styles.center}>
-          <ThemedText style={styles.errorText}>{t("chatInboxLoadFailed")}</ThemedText>
+          <ThemedText style={styles.errorText}>
+            {t("chatInboxLoadFailed")}
+          </ThemedText>
           <Pressable
             onPress={() => void roomsQuery.refetch()}
             style={[styles.retryBtn, { backgroundColor: colors.tint }]}
           >
-            <ThemedText style={styles.retryBtnText}>{t("chatRetry")}</ThemedText>
+            <ThemedText style={styles.retryBtnText}>
+              {t("chatRetry")}
+            </ThemedText>
           </Pressable>
         </View>
       ) : (
@@ -162,8 +186,12 @@ export function ChatInboxScreen() {
           ListEmptyComponent={
             <View style={[styles.emptyBox, { borderColor: colors.icon }]}>
               <MaterialIcons name="forum" size={40} color={colors.icon} />
-              <ThemedText style={styles.emptyTitle}>{t("chatInboxEmpty")}</ThemedText>
-              <ThemedText style={styles.emptyHint}>{t("chatInboxEmptyHint")}</ThemedText>
+              <ThemedText style={styles.emptyTitle}>
+                {t("chatInboxEmpty")}
+              </ThemedText>
+              <ThemedText style={styles.emptyHint}>
+                {t("chatInboxEmptyHint")}
+              </ThemedText>
             </View>
           }
           ListFooterComponent={
@@ -229,9 +257,19 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   emptyTitle: { fontSize: 16, fontWeight: "700", textAlign: "center" },
-  emptyHint: { fontSize: 13, opacity: 0.7, textAlign: "center", lineHeight: 18 },
+  emptyHint: {
+    fontSize: 13,
+    opacity: 0.7,
+    textAlign: "center",
+    lineHeight: 18,
+  },
   footerLoader: { paddingVertical: 16, alignItems: "center" },
   errorText: { color: "#D14343", textAlign: "center", fontSize: 14 },
-  retryBtn: { marginTop: 8, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10 },
+  retryBtn: {
+    marginTop: 8,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
   retryBtnText: { color: "#FFF", fontWeight: "700" },
 });

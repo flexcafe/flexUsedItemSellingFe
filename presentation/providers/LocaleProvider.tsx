@@ -757,6 +757,171 @@ const DICT: Dictionary = {
     my: "စနစ်မက်ဆေ့ချ်",
     zh: "系统消息",
   },
+  chatDirectTradeButton: {
+    ko: "직거래",
+    my: "တိုက်ရိုက်တွေ့ဆုံ",
+    zh: "当面交易",
+  },
+  chatDirectTradeTitle: {
+    ko: "직거래 일정 설정",
+    my: "တိုက်ရိုက်တွေ့ဆုံ အချိန်သတ်မှတ်",
+    zh: "设置当面交易",
+  },
+  chatDirectTradeSave: {
+    ko: "직거래 요청 저장",
+    my: "တိုက်ရိုက်တွေ့ဆုံ တောင်းဆိုချက် သိမ်းမည်",
+    zh: "保存当面交易请求",
+  },
+  chatDirectTradeValidation: {
+    ko: "날짜와 시간을 입력해주세요.",
+    my: "ရက်စွဲနှင့် အချိန်ကို ဖြည့်ပါ။",
+    zh: "请填写日期和时间。",
+  },
+  chatDirectTradeSaved: {
+    ko: "직거래 일정이 업데이트되었습니다.",
+    my: "တိုက်ရိုက်တွေ့ဆုံ အချက်အလက်ကို ပြင်ပြီးပါပြီ။",
+    zh: "当面交易信息已更新。",
+  },
+  chatDirectTradeFailed: {
+    ko: "직거래 요청에 실패했습니다.",
+    my: "တိုက်ရိုက်တွေ့ဆုံ တောင်းဆိုမှု မအောင်မြင်ပါ။",
+    zh: "提交当面交易失败。",
+  },
+  chatMeetingDateLabel: {
+    ko: "만남 날짜",
+    my: "တွေ့ဆုံမည့် ရက်စွဲ",
+    zh: "见面日期",
+  },
+  chatMeetingTimeLabel: {
+    ko: "만남 시간",
+    my: "တွေ့ဆုံမည့် အချိန်",
+    zh: "见面时间",
+  },
+  chatMeetingDatePlaceholder: {
+    ko: "YYYY-MM-DD",
+    my: "YYYY-MM-DD",
+    zh: "YYYY-MM-DD",
+  },
+  chatMeetingTimePlaceholder: {
+    ko: "HH:mm (24시간)",
+    my: "HH:mm (၂၄ နာရီ)",
+    zh: "HH:mm（24小时）",
+  },
+  chatMeetingDateInvalid: {
+    ko: "날짜 형식이 올바르지 않습니다.",
+    my: "ရက်စွဲ ပုံစံ မမှန်ပါ။",
+    zh: "日期格式无效。",
+  },
+  chatMeetingTimeInvalid: {
+    ko: "시간 형식이 올바르지 않습니다. (HH:mm)",
+    my: "အချိန် ပုံစံ မမှန်ပါ။ (HH:mm)",
+    zh: "时间格式无效（HH:mm）。",
+  },
+  chatMeetingCoordsPairRequired: {
+    ko: "위도와 경도는 함께 입력해야 합니다.",
+    my: "လတ္တီကျုနှင့် လောင်ဂျီကျု နှစ်ခုလုံး ထည့်ပါ။",
+    zh: "纬度和经度需同时填写。",
+  },
+  chatMeetingCoordsInvalid: {
+    ko: "위도(-90~90) 또는 경도(-180~180) 값이 올바르지 않습니다.",
+    my: "လတ္တီကျု (-90~90) သို့မဟုတ် လောင်ဂျီကျု (-180~180) မမှန်ပါ။",
+    zh: "纬度（-90~90）或经度（-180~180）无效。",
+  },
+  chatMeetingLocationPlaceholder: {
+    ko: "만남 장소",
+    my: "တွေ့ဆုံမည့် နေရာ",
+    zh: "见面地点",
+  },
+  chatMeetingLatitudePlaceholder: {
+    ko: "위도 (선택)",
+    my: "လတ္တီကျု (မဖြစ်မနေ မဟုတ်)",
+    zh: "纬度（可选）",
+  },
+  chatMeetingLongitudePlaceholder: {
+    ko: "경도 (선택)",
+    my: "လောင်ဂျီကျု (မဖြစ်မနေ မဟုတ်)",
+    zh: "经度（可选）",
+  },
+  chatStartSharing: {
+    ko: "공유 시작",
+    my: "မျှဝေမှု စတင်",
+    zh: "开始共享",
+  },
+  chatUpdateLocation: {
+    ko: "위치 업데이트",
+    my: "တည်နေရာ အပ်ဒိတ်",
+    zh: "更新位置",
+  },
+  chatStopSharing: {
+    ko: "공유 중지",
+    my: "မျှဝေမှု ရပ်မည်",
+    zh: "停止共享",
+  },
+  chatLiveLocationMap: {
+    ko: "실시간 위치 지도",
+    my: "တိုက်ရိုက် တည်နေရာ မြေပုံ",
+    zh: "实时位置地图",
+  },
+  chatLocationStatusSharing: {
+    ko: "공유 중",
+    my: "မျှဝေနေသည်",
+    zh: "共享中",
+  },
+  chatLocationStatusStarting: {
+    ko: "시작 중",
+    my: "စတင်နေသည်",
+    zh: "启动中",
+  },
+  chatLocationStatusOff: {
+    ko: "꺼짐",
+    my: "ပိတ်ထား",
+    zh: "已关闭",
+  },
+  chatLocationUpdatedAt: {
+    ko: "위치 업데이트 시각: {time}",
+    my: "တည်နေရာ အပ်ဒိတ် အချိန်: {time}",
+    zh: "位置更新时间：{time}",
+  },
+  chatLocationPermissionDenied: {
+    ko: "위치 권한이 필요합니다.",
+    my: "တည်နေရာခွင့်ပြုချက် လိုအပ်ပါသည်။",
+    zh: "需要位置权限。",
+  },
+  chatLocationAlreadyActive: {
+    ko: "이미 위치 공유가 활성화되어 좌표만 갱신했습니다.",
+    my: "တည်နေရာမျှဝေမှု လုပ်ဆောင်နေပြီး ဖြစ်သောကြောင့် လက်ရှိ tọa标 ကိုသာ အပ်ဒိတ် လုပ်ခဲ့သည်။",
+    zh: "位置共享已在进行，仅更新了坐标。",
+  },
+  chatLocationStartFailed: {
+    ko: "위치 공유 시작에 실패했습니다.",
+    my: "တည်နေရာမျှဝေမှု စတင်ရာတွင် မအောင်မြင်ပါ။",
+    zh: "开始位置共享失败。",
+  },
+  chatLocationUpdateFailed: {
+    ko: "위치 업데이트에 실패했습니다.",
+    my: "တည်နေရာ အပ်ဒိတ် မအောင်မြင်ပါ။",
+    zh: "更新位置失败。",
+  },
+  chatLocationStopFailed: {
+    ko: "위치 공유 중지에 실패했습니다.",
+    my: "တည်နေရာမျှဝေမှု ရပ်ရန် မအောင်မြင်ပါ။",
+    zh: "停止位置共享失败。",
+  },
+  chatLocationStarted: {
+    ko: "위치 공유를 시작했습니다.",
+    my: "တည်နေရာမျှဝေမှု စတင်ပြီးပါပြီ။",
+    zh: "已开始共享位置。",
+  },
+  chatLocationStopped: {
+    ko: "위치 공유를 중지했습니다.",
+    my: "တည်နေရာမျှဝေမှု ရပ်ပြီးပါပြီ။",
+    zh: "已停止共享位置。",
+  },
+  chatLocationUpdated: {
+    ko: "위치를 업데이트했습니다.",
+    my: "တည်နေရာ အပ်ဒိတ် လုပ်ပြီးပါပြီ။",
+    zh: "位置已更新。",
+  },
   notificationsTitle: { ko: "알림함", my: "အသိပေးစာများ", zh: "通知收件箱" },
   notificationsEmpty: {
     ko: "아직 알림이 없습니다.",
