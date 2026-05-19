@@ -3,6 +3,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import type { IPreferencesRepository } from "@/core/domain/repositories/IPreferencesRepository";
 import type { IAuthService } from "@/core/domain/services/IAuthService";
 import type { ICategoryService } from "@/core/domain/services/ICategoryService";
+import type { IChatService } from "@/core/domain/services/IChatService";
 import type { INotificationService } from "@/core/domain/services/INotificationService";
 import type { IProductService } from "@/core/domain/services/IProductService";
 import type { IProfileService } from "@/core/domain/services/IProfileService";
@@ -15,6 +16,7 @@ export interface AppServices {
   notificationService: INotificationService;
   sliderAdService: ISliderAdService;
   categoryService: ICategoryService;
+  chatService: IChatService;
   preferencesRepository: IPreferencesRepository;
 }
 

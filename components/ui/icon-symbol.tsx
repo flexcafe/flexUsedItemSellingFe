@@ -18,6 +18,7 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'person.fill': 'person',
   'bell.fill': 'notifications',
+  'bubble.left.and.bubble.right.fill': 'forum',
   /** Listings / inventory (Products tab) */
   'cube.box.fill': 'inventory-2',
   'chevron.left.forwardslash.chevron.right': 'code',

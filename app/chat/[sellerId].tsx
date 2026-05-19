@@ -1,23 +1,23 @@
-import { PublicChatPlaceholderScreen } from "../../features/products/presentation/PublicChatPlaceholderScreen";
+import { ChatRoomScreen } from "@/features/chat/presentation/ChatRoomScreen";
 import { useLocalSearchParams } from "expo-router";
 
-export default function ChatPlaceholderPage() {
+export default function ChatFromListingPage() {
   const params = useLocalSearchParams<{
     sellerId?: string | string[];
     sellerName?: string | string[];
     productId?: string | string[];
     productName?: string | string[];
   }>();
-  const read = (v?: string | string[]) => (Array.isArray(v) ? v[0] : v) ?? "";
+  const read = (value?: string | string[]) => (Array.isArray(value) ? value[0] : value) ?? "";
   const sellerId = read(params.sellerId);
   if (!sellerId) return null;
 
   return (
-    <PublicChatPlaceholderScreen
+    <ChatRoomScreen
       sellerId={sellerId}
-      sellerName={read(params.sellerName)}
-      productId={read(params.productId)}
-      productName={read(params.productName)}
+      listingId={read(params.productId) || undefined}
+      listingTitle={read(params.productName) || undefined}
+      peerName={read(params.sellerName) || undefined}
     />
   );
 }

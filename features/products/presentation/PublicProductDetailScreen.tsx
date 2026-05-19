@@ -621,8 +621,8 @@ export function PublicProductDetailScreen({ productId }: Props) {
       <ThemedView style={[styles.centered, { paddingTop: topContentInset }]}>
         {screenBackButton}
         <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(300)} style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.tint} />
-          <ThemedText style={styles.loadingText}>{t("productsDetailLoading")}</ThemedText>
+        <ActivityIndicator size="large" color={colors.tint} />
+        <ThemedText style={styles.loadingText}>{t("productsDetailLoading")}</ThemedText>
         </Animated.View>
       </ThemedView>
     );
@@ -651,28 +651,28 @@ export function PublicProductDetailScreen({ productId }: Props) {
   const mapsActionLabel = t("publicDetailOpenInMaps");
 
   return (
-    <ThemedView style={styles.container}>
+      <ThemedView style={styles.container}>
       {screenBackButton}
-      <Animated.ScrollView
+        <Animated.ScrollView
         entering={reduceMotion ? undefined : FadeIn.duration(240)}
         contentContainerStyle={[
           styles.content,
           { paddingTop: topContentInset, paddingBottom: 96 + insets.bottom },
         ]}
-        showsVerticalScrollIndicator={false}
-      >
+          showsVerticalScrollIndicator={false}
+        >
         <Animated.View
           entering={staggerEnter(0, reduceMotion)}
           style={[styles.mapCard, cardShadow(scheme), { borderColor }]}
         >
-          {hasCoordinates ? (
+            {hasCoordinates ? (
               <>
-                <WebView
-                  source={{ html: mapHtml }}
-                  style={styles.mapView}
-                  scrollEnabled={false}
-                  pointerEvents="none"
-                  originWhitelist={["*"]}
+              <WebView
+                source={{ html: mapHtml }}
+                style={styles.mapView}
+                scrollEnabled={false}
+                pointerEvents="none"
+                originWhitelist={["*"]}
                   onLoadEnd={() => setMapLoading(false)}
                   onError={() => setMapLoading(false)}
                 />
@@ -757,13 +757,13 @@ export function PublicProductDetailScreen({ productId }: Props) {
               <MaterialIcons name="open-in-new" size={14} color="#FFF" style={styles.locationChipAction} />
             ) : null}
           </Pressable>
-        </Animated.View>
+          </Animated.View>
 
         <Animated.View
           entering={staggerEnter(SECTION_STAGGER_MS, reduceMotion)}
           style={[styles.heroCard, cardShadow(scheme), { backgroundColor: surface, borderColor }]}
         >
-          {images.length > 0 ? (
+              {images.length > 0 ? (
             <>
               <ScrollView
                 horizontal
@@ -827,16 +827,16 @@ export function PublicProductDetailScreen({ productId }: Props) {
             </View>
           )}
 
-          <View style={styles.titleRow}>
+            <View style={styles.titleRow}>
             <ThemedText type="defaultSemiBold" style={styles.name} numberOfLines={3}>
-              {product.name}
-            </ThemedText>
-            <View style={[styles.statusChip, { backgroundColor: statusBadge.backgroundColor }]}>
-              <ThemedText style={[styles.statusChipText, { color: statusBadge.color }]}>
-                {t(productStatusLabelKey(status))}
+                {product.name}
               </ThemedText>
+              <View style={[styles.statusChip, { backgroundColor: statusBadge.backgroundColor }]}> 
+                <ThemedText style={[styles.statusChipText, { color: statusBadge.color }]}>
+                  {t(productStatusLabelKey(status))}
+                </ThemedText>
+              </View>
             </View>
-          </View>
 
           <View style={[styles.pricePanel, { backgroundColor: colors.tint + "12" }]}>
             <ThemedText style={styles.priceLabel}>MMK</ThemedText>
@@ -849,7 +849,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
               </ThemedText>
             ) : null}
           </View>
-        </Animated.View>
+          </Animated.View>
 
         <Animated.View
           entering={staggerEnter(SECTION_STAGGER_MS * 2, reduceMotion)}
@@ -867,12 +867,12 @@ export function PublicProductDetailScreen({ productId }: Props) {
             }}
           >
             <View style={[styles.avatarRing, { borderColor: colors.tint + "55" }]}>
-              <Image
-                source={product.seller?.avatar ? { uri: product.seller.avatar } : undefined}
-                style={[styles.avatar, { backgroundColor: colors.icon + "1f" }]}
-              />
+                <Image
+                  source={product.seller?.avatar ? { uri: product.seller.avatar } : undefined}
+                  style={[styles.avatar, { backgroundColor: colors.icon + "1f" }]}
+                />
             </View>
-            <View style={styles.sellerCopy}>
+                <View style={styles.sellerCopy}>
               <ThemedText type="defaultSemiBold" style={styles.sellerName}>
                 {product.seller?.nickname ?? "—"}
               </ThemedText>

@@ -10,7 +10,10 @@ import {
 
 import type { UserRankTier } from "@/core/domain/entities/ProfileRewards";
 import type { AppLocale } from "@/core/domain/types/locale";
-import type { ProductCondition, ProductStatus } from "@/core/domain/types/product";
+import type {
+  ProductCondition,
+  ProductStatus,
+} from "@/core/domain/types/product";
 import { useServices } from "./ServicesProvider";
 
 type Dictionary = Record<string, Record<AppLocale, string>>;
@@ -51,8 +54,7 @@ const CATEGORY_SECONDARY: {
   },
   {
     match: (s) =>
-      /part[-\s]?time|job|work|일자리|briefcase/i.test(s) ||
-      s.includes("part"),
+      /part[-\s]?time|job|work|일자리|briefcase/i.test(s) || s.includes("part"),
     labels: {
       ko: "(일자리)",
       my: "(အလုပ်အကိုင်)",
@@ -61,8 +63,7 @@ const CATEGORY_SECONDARY: {
   },
   {
     match: (s) =>
-      /hous|rent|dorm|apartment|주택|기숙사/i.test(s) ||
-      s.includes("housing"),
+      /hous|rent|dorm|apartment|주택|기숙사/i.test(s) || s.includes("housing"),
     labels: {
       ko: "(주택·기숙사)",
       my: "(အိမ်ခြံမြေ·နေထိုင်ရာ)",
@@ -690,6 +691,72 @@ const DICT: Dictionary = {
   tabsExplore: { ko: "탐색", my: "စူးစမ်း", zh: "探索" },
   tabsProfile: { ko: "프로필", my: "ပရိုဖိုင်", zh: "个人资料" },
   tabsNotifications: { ko: "알림", my: "အသိပေးချက်", zh: "通知" },
+  tabsChats: { ko: "채팅", my: "ချတ်", zh: "聊天" },
+  chatInboxTitle: { ko: "채팅함", my: "ချတ်စာများ", zh: "聊天收件箱" },
+  chatInboxSubtitle: {
+    ko: "구매·판매 대화를 한곳에서 확인하세요.",
+    my: "ဝယ်ယူမှု/ရောင်းချမှု စကားပြောများကို တစ်နေရာတည်းတွင် ကြည့်ပါ။",
+    zh: "在此查看所有买卖对话。",
+  },
+  chatInboxEmpty: {
+    ko: "아직 대화가 없습니다.",
+    my: "စကားပြောခန်း မရှိသေးပါ။",
+    zh: "暂无聊天。",
+  },
+  chatInboxEmptyHint: {
+    ko: "상품 상세에서 판매자에게 메시지를 내면 여기에 표시됩니다.",
+    my: "ကုန်ပစ္စည်း အသေးစိတ်မှ ရောင်းသူထံ စာပို့ပါက ဤနေရာတွင် ပေါ်လာမည်။",
+    zh: "在商品详情页联系卖家后，对话会显示在这里。",
+  },
+  chatNoMessagesYet: {
+    ko: "메시지 없음",
+    my: "မက်ဆေ့ချ် မရှိသေး",
+    zh: "暂无消息",
+  },
+  chatListingFallback: { ko: "상품", my: "ကုန်ပစ္စည်း", zh: "商品" },
+  chatSellerFallback: { ko: "판매자", my: "ရောင်းသူ", zh: "卖家" },
+  chatBuyerFallback: { ko: "구매자", my: "ဝယ်သူ", zh: "买家" },
+  chatOpeningRoom: {
+    ko: "채팅방을 여는 중…",
+    my: "ချတ်ခန်း ဖွင့်နေသည်…",
+    zh: "正在打开聊天室…",
+  },
+  chatOpenRoomFailed: {
+    ko: "채팅방을 열지 못했습니다.",
+    my: "ချတ်ခန်း ဖွင့်၍ မရပါ။",
+    zh: "无法打开聊天室。",
+  },
+  chatMissingListing: {
+    ko: "상품 정보가 없어 채팅을 시작할 수 없습니다.",
+    my: "ကုန်ပစ္စည်း အချက်အလက် မရှိသောကြောင့် ချတ်မစတင်နိုင်ပါ။",
+    zh: "缺少商品信息，无法开始聊天。",
+  },
+  chatRetry: { ko: "다시 시도", my: "ပြန်ကြိုးစားမည်", zh: "重试" },
+  chatInboxLoadFailed: {
+    ko: "채팅 목록을 불러오지 못했습니다.",
+    my: "ချတ်စာရင်း ရယူ၍ မရပါ။",
+    zh: "无法加载聊天列表。",
+  },
+  chatLoadingOlder: {
+    ko: "이전 메시지 불러오는 중…",
+    my: "အရင်မက်ဆေ့ချ်များ ရယူနေသည်…",
+    zh: "正在加载更早的消息…",
+  },
+  chatThreadEmpty: {
+    ko: "첫 메시지를 내보세요.",
+    my: "ပထမဆုံး မက်ဆေ့ချ် ပို့ကြည့်ပါ။",
+    zh: "发送第一条消息吧。",
+  },
+  chatInputPlaceholder: {
+    ko: "메시지 입력…",
+    my: "မက်ဆေ့ချ် ရိုက်ထည့်ပါ…",
+    zh: "输入消息…",
+  },
+  chatSystemMessage: {
+    ko: "시스템 메시지",
+    my: "စနစ်မက်ဆေ့ချ်",
+    zh: "系统消息",
+  },
   notificationsTitle: { ko: "알림함", my: "အသိပေးစာများ", zh: "通知收件箱" },
   notificationsEmpty: {
     ko: "아직 알림이 없습니다.",
@@ -1116,8 +1183,8 @@ const DICT: Dictionary = {
     zh: "下架商品",
   },
   productsArchiveMessage: {
-    ko: "\"{name}\"을(를) 보관할까요?",
-    my: "\"{name}\" ကို သိမ်းမလား?",
+    ko: '"{name}"을(를) 보관할까요?',
+    my: '"{name}" ကို သိမ်းမလား?',
     zh: "确定下架「{name}」吗？",
   },
   productsAlertCategoryTitle: {
@@ -1177,8 +1244,7 @@ const DICT: Dictionary = {
   },
   productsAlertDeliveryFeePayerBody: {
     ko: "배송 가능일 때는 배송비를 BUYER 또는 SELLER 중 하나로 선택해야 합니다.",
-    my:
-      "ပို့ဆောင်ရနိုင်သည့်အခါ ပို့ဆောင်ခကို BUYER သို့မဟုတ် SELLER တစ်ခုခုဖြင့် ရွေးပါ။",
+    my: "ပို့ဆောင်ရနိုင်သည့်အခါ ပို့ဆောင်ခကို BUYER သို့မဟုတ် SELLER တစ်ခုခုဖြင့် ရွေးပါ။",
     zh: "开启配送时，必须选择由买家或卖家承担运费（BUYER 或 SELLER）。",
   },
   productsAlertImagesLimitTitle: {
@@ -1638,8 +1704,7 @@ const DICT: Dictionary = {
   },
   productsPreferredLocationsIntro: {
     ko: "직거래 외 추가로 만나기 좋은 곳입니다. 각 줄마다 이름과 주소가 필요하며, 지도에서 핀으로 위치를 선택할 수 있습니다(선택).",
-    my:
-      "တိုက်ရိုက်လဲလှယ်မှု အပြင် ထပ်မံတွေ့ရန် နေရာများ။ တစ်ကြောင်းလျှင် အမည်နှင့် လိပ်စာ လိုအပ်သည်။ မြေပုံပေါ်တွင် ပင်ထိုးခြင်းဖြင့် တည်နေရာ ရွေးချယ်နိုင်သည်။",
+    my: "တိုက်ရိုက်လဲလှယ်မှု အပြင် ထပ်မံတွေ့ရန် နေရာများ။ တစ်ကြောင်းလျှင် အမည်နှင့် လိပ်စာ လိုအပ်သည်။ မြေပုံပေါ်တွင် ပင်ထိုးခြင်းဖြင့် တည်နေရာ ရွေးချယ်နိုင်သည်။",
     zh: "除当面交易点外，可添加最多 3 个备选见面点；每行需填写名称和地址，并可通过地图选点（可选）。",
   },
   productsFieldPreferredLocationItem: {
@@ -1932,7 +1997,9 @@ export function productConditionLabelKey(
 }
 
 /** Locale key for seller listing status badge (API uses `ACTIVE`, `DRAFT`, …). */
-export function productStatusLabelKey(status: ProductStatus): keyof typeof DICT {
+export function productStatusLabelKey(
+  status: ProductStatus,
+): keyof typeof DICT {
   return PRODUCT_STATUS_LABEL_KEY[status];
 }
 
@@ -1945,7 +2012,9 @@ const USER_RANK_LABEL_KEY: Record<UserRankTier, keyof typeof DICT> = {
 };
 
 /** Locale key for public profile rank badge (`NEWBIE`, `BRONZE`, …). */
-export function userRankLabelKey(rank: string | null | undefined): keyof typeof DICT {
+export function userRankLabelKey(
+  rank: string | null | undefined,
+): keyof typeof DICT {
   const tier = rank?.trim().toUpperCase() as UserRankTier;
   return USER_RANK_LABEL_KEY[tier] ?? "userRankNewbie";
 }
@@ -1965,7 +2034,7 @@ export function formatProductConditionForDisplay(
   translate: (key: keyof typeof DICT) => string,
 ): string {
   const c = parseProductCondition(raw);
-  return c ? translate(productConditionLabelKey(c)) : (raw?.trim() || "—");
+  return c ? translate(productConditionLabelKey(c)) : raw?.trim() || "—";
 }
 
 function t(key: keyof typeof DICT, locale: AppLocale): string {

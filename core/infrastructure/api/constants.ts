@@ -57,6 +57,11 @@ export const API_ENDPOINTS = {
     PUBLIC_PROFILE: (userId: string) =>
       `/v1/client/users/${userId}/public-profile`,
   },
+  CLIENT_CHATS: {
+    ROOMS: "/v1/client/chats/rooms",
+    MESSAGES: (chatRoomId: string) => `/v1/client/chats/${chatRoomId}/messages`,
+    MARK_READ: (chatRoomId: string) => `/v1/client/chats/${chatRoomId}/read`,
+  },
   PRODUCTS: {
     LIST: "/v1/products",
     BY_ID: (id: string) => `/v1/products/${id}`,

@@ -5,6 +5,7 @@ import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useChatRoomsUnreadCount } from "@/presentation/hooks/useClientChat";
 import { useNotifications } from "@/presentation/hooks/useNotifications";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 
@@ -14,6 +15,7 @@ export default function TabLayout() {
   const notificationsQuery = useNotifications(20);
   const unreadCount =
     notificationsQuery.data?.filter((item) => !item.isRead).length ?? 0;
+  const chatUnreadCount = useChatRoomsUnreadCount(50);
 
   return (
     <Tabs
@@ -43,9 +45,16 @@ export default function TabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: t("tabsExplore"),
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="chats"
+        options={{
+          title: t("tabsChats"),
+          tabBarBadge: chatUnreadCount > 0 ? chatUnreadCount : undefined,
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="paperplane.fill" color={color} />
+            <IconSymbol size={28} name="bubble.left.and.bubble.right.fill" color={color} />
           ),
         }}
       />

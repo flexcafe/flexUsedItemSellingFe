@@ -1,11 +1,13 @@
 import { AuthService } from "@/core/application/services/AuthService";
 import { CategoryService } from "@/core/application/services/CategoryService";
+import { ChatService } from "@/core/application/services/ChatService";
 import { NotificationService } from "@/core/application/services/NotificationService";
 import { ProductService } from "@/core/application/services/ProductService";
 import { ProfileService } from "@/core/application/services/ProfileService";
 import { SliderAdService } from "@/core/application/services/SliderAdService";
 import type { IAuthRepository } from "@/core/domain/repositories/IAuthRepository";
 import type { ICategoryRepository } from "@/core/domain/repositories/ICategoryRepository";
+import type { IChatRepository } from "@/core/domain/repositories/IChatRepository";
 import type { INotificationRepository } from "@/core/domain/repositories/INotificationRepository";
 import type { IPreferencesRepository } from "@/core/domain/repositories/IPreferencesRepository";
 import type { IProductRepository } from "@/core/domain/repositories/IProductRepository";
@@ -13,6 +15,7 @@ import type { IProfileRepository } from "@/core/domain/repositories/IProfileRepo
 import type { ISliderAdRepository } from "@/core/domain/repositories/ISliderAdRepository";
 import type { IAuthService } from "@/core/domain/services/IAuthService";
 import type { ICategoryService } from "@/core/domain/services/ICategoryService";
+import type { IChatService } from "@/core/domain/services/IChatService";
 import type { INotificationService } from "@/core/domain/services/INotificationService";
 import type { IProductService } from "@/core/domain/services/IProductService";
 import type { IProfileService } from "@/core/domain/services/IProfileService";
@@ -20,6 +23,7 @@ import type { ISliderAdService } from "@/core/domain/services/ISliderAdService";
 import { HttpClient } from "../api/HttpClient";
 import { ApiAuthRepository } from "../repositories/ApiAuthRepository";
 import { ApiCategoryRepository } from "../repositories/ApiCategoryRepository";
+import { ApiChatRepository } from "../repositories/ApiChatRepository";
 import { ApiNotificationRepository } from "../repositories/ApiNotificationRepository";
 import { ApiProductRepository } from "../repositories/ApiProductRepository";
 import { ApiProfileRepository } from "../repositories/ApiProfileRepository";
@@ -50,6 +54,9 @@ class Container {
     const categoryRepository = new ApiCategoryRepository(httpClient);
     const categoryService = new CategoryService(categoryRepository);
 
+    const chatRepository = new ApiChatRepository(httpClient);
+    const chatService = new ChatService(chatRepository);
+
     const preferencesRepository = new PreferencesRepository();
 
     this.register<HttpClient>("httpClient", httpClient);
@@ -71,6 +78,8 @@ class Container {
     this.register<ISliderAdService>("sliderAdService", sliderAdService);
     this.register<ICategoryRepository>("categoryRepository", categoryRepository);
     this.register<ICategoryService>("categoryService", categoryService);
+    this.register<IChatRepository>("chatRepository", chatRepository);
+    this.register<IChatService>("chatService", chatService);
     this.register<IPreferencesRepository>(
       "preferencesRepository",
       preferencesRepository,
