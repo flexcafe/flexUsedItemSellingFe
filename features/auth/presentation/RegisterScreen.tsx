@@ -17,11 +17,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+import { useReducedMotion } from "react-native-reanimated";
 import { WebView } from "react-native-webview";
 import { z } from "zod";
 
@@ -40,6 +36,13 @@ import type {
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
+
+import {
+  AuthAnimatedSection,
+  AuthLanguageBar,
+  AuthPrimaryButton,
+  AuthStaggerItem,
+} from "./authAnimated";
 
 const DANGER = "#e74c3c";
 const SUCCESS = "#16a34a";
@@ -125,7 +128,9 @@ export function RegisterScreen() {
   const { register } = useAuth();
   const { locale, setLocale, t } = useLocale();
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const scheme = colorScheme ?? "light";
+  const colors = Colors[scheme];
+  const reduceMotion = useReducedMotion();
 
   // Registration method toggle removed for now (phone-only).
   const registrationType = "PHONE_ONLY" as const;
@@ -155,7 +160,6 @@ export function RegisterScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [languageWidth, setLanguageWidth] = useState(0);
   const emailOk = useMemo(
     () => z.string().trim().email().safeParse(email).success,
     [email],
@@ -322,24 +326,6 @@ export function RegisterScreen() {
 </html>`;
   }, [locationCoords]);
 
-  const langIndex = locale === "ko" ? 0 : locale === "my" ? 1 : 2;
-  const pillX = useSharedValue(0);
-  const pillStyle = useAnimatedStyle(() => {
-    const w = languageWidth > 0 ? languageWidth / 3 : 0;
-    return {
-      width: w,
-      transform: [{ translateX: pillX.value }],
-    };
-  }, [languageWidth]);
-
-  if (languageWidth > 0) {
-    const w = languageWidth / 3;
-    const target = w * langIndex;
-    if (pillX.value !== target) {
-      pillX.value = withTiming(target, { duration: 420 });
-    }
-  }
-
   const handleSubmit = async () => {
     setErrors({});
     const parsed = schema.safeParse({
@@ -479,11 +465,11 @@ export function RegisterScreen() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.brandArea}>
+          <AuthAnimatedSection delayMs={0} reduceMotion={reduceMotion} style={styles.brandArea}>
             <AuthLogo variant="compact" />
-          </View>
+          </AuthAnimatedSection>
 
-          <View style={styles.headerRow}>
+          <AuthStaggerItem index={0} reduceMotion={reduceMotion} style={styles.headerRow}>
             <Pressable
               onPress={() => router.back()}
               hitSlop={12}
@@ -495,10 +481,10 @@ export function RegisterScreen() {
               {t("signUp")}
             </ThemedText>
             <View style={styles.backButton} />
-          </View>
+          </AuthStaggerItem>
 
           {/* Nickname */}
-          <View style={styles.field}>
+          <AuthStaggerItem index={1} reduceMotion={reduceMotion} style={styles.field}>
             <ThemedText style={styles.label}>{t("nickname")}</ThemedText>
             <TextInput
               style={inputStyle(!!errors.nickname)}
@@ -513,10 +499,10 @@ export function RegisterScreen() {
             {errors.nickname ? (
               <ThemedText style={styles.error}>{errors.nickname}</ThemedText>
             ) : null}
-          </View>
+          </AuthStaggerItem>
 
           {/* Password */}
-          <View style={styles.field}>
+          <AuthStaggerItem index={2} reduceMotion={reduceMotion} style={styles.field}>
             <ThemedText style={styles.label}>{t("password")}</ThemedText>
             <PasswordInput
               value={password}
@@ -529,10 +515,10 @@ export function RegisterScreen() {
             {errors.password ? (
               <ThemedText style={styles.error}>{errors.password}</ThemedText>
             ) : null}
-          </View>
+          </AuthStaggerItem>
 
           {/* Confirm Password */}
-          <View style={styles.field}>
+          <AuthStaggerItem index={3} reduceMotion={reduceMotion} style={styles.field}>
             <ThemedText style={styles.label}>{t("confirmPassword")}</ThemedText>
             <PasswordInput
               value={confirmPassword}
@@ -546,10 +532,10 @@ export function RegisterScreen() {
                 {errors.confirmPassword}
               </ThemedText>
             ) : null}
-          </View>
+          </AuthStaggerItem>
 
           {/* Phone */}
-          <View style={styles.field}>
+          <AuthStaggerItem index={4} reduceMotion={reduceMotion} style={styles.field}>
             <ThemedText style={styles.label}>{t("phoneNumber")}</ThemedText>
             <PhoneNumberInput
               value={phone}
@@ -563,10 +549,10 @@ export function RegisterScreen() {
             {errors.phone ? (
               <ThemedText style={styles.error}>{errors.phone}</ThemedText>
             ) : null}
-          </View>
+          </AuthStaggerItem>
 
           {/* Email */}
-          <View style={styles.field}>
+          <AuthStaggerItem index={5} reduceMotion={reduceMotion} style={styles.field}>
             <ThemedText style={styles.label}>{t("emailAddress")}</ThemedText>
             <TextInput
               style={inputStyle(!!errors.email)}
@@ -585,9 +571,10 @@ export function RegisterScreen() {
             {errors.email ? (
               <ThemedText style={styles.error}>{errors.email}</ThemedText>
             ) : null}
-          </View>
+          </AuthStaggerItem>
 
           {/* K-pay section */}
+          <AuthStaggerItem index={6} reduceMotion={reduceMotion}>
           <View style={[styles.section, { borderColor: colors.icon }]}>
             <ThemedText style={styles.sectionTitle}>
               {t("kPayRegistration")}
@@ -640,9 +627,10 @@ export function RegisterScreen() {
               </ThemedText>
             </View>
           </View>
+          </AuthStaggerItem>
 
           {/* Gender */}
-          <View style={styles.field}>
+          <AuthStaggerItem index={7} reduceMotion={reduceMotion} style={styles.field}>
             <ThemedText style={styles.label}>{t("gender")}</ThemedText>
             <Segmented<Gender>
               options={[
@@ -655,10 +643,10 @@ export function RegisterScreen() {
               borderColor={colors.icon}
               disabled={isSubmitting}
             />
-          </View>
+          </AuthStaggerItem>
 
           {/* Age */}
-          <View style={styles.field}>
+          <AuthStaggerItem index={8} reduceMotion={reduceMotion} style={styles.field}>
             <ThemedText style={styles.label}>{t("age")}</ThemedText>
             <TextInput
               style={inputStyle(!!errors.age)}
@@ -673,10 +661,10 @@ export function RegisterScreen() {
             {errors.age ? (
               <ThemedText style={styles.error}>{errors.age}</ThemedText>
             ) : null}
-          </View>
+          </AuthStaggerItem>
 
           {/* Marital status */}
-          <View style={styles.field}>
+          <AuthStaggerItem index={9} reduceMotion={reduceMotion} style={styles.field}>
             <ThemedText style={styles.label}>{t("maritalStatus")}</ThemedText>
             <Segmented<MaritalStatus>
               options={[
@@ -689,10 +677,10 @@ export function RegisterScreen() {
               borderColor={colors.icon}
               disabled={isSubmitting}
             />
-          </View>
+          </AuthStaggerItem>
 
           {/* Region */}
-          <View style={styles.field}>
+          <AuthStaggerItem index={10} reduceMotion={reduceMotion} style={styles.field}>
             <ThemedText style={styles.label}>{t("region")}</ThemedText>
             <TextInput
               style={inputStyle(!!errors.region)}
@@ -775,10 +763,10 @@ export function RegisterScreen() {
             {errors.region ? (
               <ThemedText style={styles.error}>{errors.region}</ThemedText>
             ) : null}
-          </View>
+          </AuthStaggerItem>
 
           {/* Referral */}
-          <View style={styles.field}>
+          <AuthStaggerItem index={11} reduceMotion={reduceMotion} style={styles.field}>
             <ThemedText style={styles.label}>
               {t("referralId")}{" "}
               <ThemedText style={styles.optionalText}>
@@ -795,28 +783,27 @@ export function RegisterScreen() {
               autoCorrect={false}
               editable={!isSubmitting}
             />
-          </View>
+          </AuthStaggerItem>
 
           {/* Submit */}
-          <Pressable
-            onPress={handleSubmit}
-            disabled={isSubmitting}
-            style={[
-              styles.submitButton,
-              { backgroundColor: colors.tint },
-              isSubmitting && { opacity: 0.7 },
-            ]}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <ThemedText style={styles.submitText}>
-                {t("signUpCta")}
-              </ThemedText>
-            )}
-          </Pressable>
+          <AuthStaggerItem index={12} reduceMotion={reduceMotion}>
+            <AuthPrimaryButton
+              onPress={handleSubmit}
+              disabled={isSubmitting}
+              backgroundColor={colors.tint}
+              style={[styles.submitButton, isSubmitting && { opacity: 0.7 }]}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <ThemedText style={styles.submitText}>
+                  {t("signUpCta")}
+                </ThemedText>
+              )}
+            </AuthPrimaryButton>
+          </AuthStaggerItem>
 
-          <View style={styles.footer}>
+          <AuthStaggerItem index={13} reduceMotion={reduceMotion} style={styles.footer}>
             <ThemedText style={styles.footerText}>
               {t("haveAccount")}{" "}
             </ThemedText>
@@ -825,59 +812,16 @@ export function RegisterScreen() {
                 {t("signIn")}
               </ThemedText>
             </Pressable>
-          </View>
+          </AuthStaggerItem>
         </ScrollView>
-        <View pointerEvents="box-none" style={styles.languageDock}>
-          <View
-            style={[
-              styles.languageBar,
-              { backgroundColor: colors.background, borderColor: colors.tint },
-            ]}
-            onLayout={(e) => setLanguageWidth(e.nativeEvent.layout.width - 16)}
-          >
-            <Animated.View
-              style={[
-                styles.languagePill,
-                { backgroundColor: colors.tint },
-                pillStyle,
-              ]}
-            />
-
-            <Pressable
-              disabled={isSubmitting}
-              style={styles.flagButton}
-              onPress={() => setLocale("ko")}
-            >
-              <ThemedText
-                style={[styles.flag, locale === "ko" && styles.flagSelected]}
-              >
-                {"\uD83C\uDDF0\uD83C\uDDF7"}
-              </ThemedText>
-            </Pressable>
-            <Pressable
-              disabled={isSubmitting}
-              style={styles.flagButton}
-              onPress={() => setLocale("my")}
-            >
-              <ThemedText
-                style={[styles.flag, locale === "my" && styles.flagSelected]}
-              >
-                {"\uD83C\uDDF2\uD83C\uDDF2"}
-              </ThemedText>
-            </Pressable>
-            <Pressable
-              disabled={isSubmitting}
-              style={styles.flagButton}
-              onPress={() => setLocale("zh")}
-            >
-              <ThemedText
-                style={[styles.flag, locale === "zh" && styles.flagSelected]}
-              >
-                {"\uD83C\uDDE8\uD83C\uDDF3"}
-              </ThemedText>
-            </Pressable>
-          </View>
-        </View>
+        <AuthLanguageBar
+          locale={locale}
+          onSelect={setLocale}
+          scheme={scheme}
+          colors={colors}
+          disabled={isSubmitting}
+          reduceMotion={reduceMotion}
+        />
       </KeyboardAvoidingView>
     </ThemedView>
   );
@@ -1054,46 +998,4 @@ const styles = StyleSheet.create({
   },
   footerText: { fontSize: 14, opacity: 0.7 },
   footerLink: { fontSize: 14, fontWeight: "700" },
-  languageDock: {
-    position: "absolute",
-    left: 24,
-    right: 24,
-    bottom: 18,
-  },
-  languageBar: {
-    height: 56,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    position: "relative",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
-  },
-  languagePill: {
-    position: "absolute",
-    left: 8,
-    top: 8,
-    bottom: 8,
-    borderRadius: 12,
-  },
-  flagButton: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  flag: {
-    fontSize: 22,
-    opacity: 0.95,
-  },
-  flagSelected: {
-    color: "#fff",
-    opacity: 1,
-  },
 });

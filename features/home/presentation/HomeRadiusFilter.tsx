@@ -8,6 +8,7 @@ import {
   type ClientCatalogRadiusSelection,
 } from "@/core/domain/types/catalog";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { uiCardShadow } from "@/presentation/lib/uiAnimations";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
@@ -380,7 +381,16 @@ export const HomeRadiusFilter = memo(function HomeRadiusFilter({
                 backgroundColor: pillBg,
                 borderColor: colors.tint + "35",
               },
-              cardShadow(scheme),
+              uiCardShadow(scheme, {
+                iosOffsetLight: 2,
+                iosOffsetDark: 4,
+                iosOpacityLight: 0.08,
+                iosOpacityDark: 0.28,
+                iosRadiusLight: 6,
+                iosRadiusDark: 8,
+                androidElevationLight: 2,
+                androidElevationDark: 4,
+              }),
             ]}
           />
         ) : null}
@@ -401,17 +411,6 @@ export const HomeRadiusFilter = memo(function HomeRadiusFilter({
     </View>
   );
 });
-
-function cardShadow(scheme: "light" | "dark") {
-  const isDark = scheme === "dark";
-  return {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: isDark ? 4 : 2 },
-    shadowOpacity: isDark ? 0.28 : 0.08,
-    shadowRadius: isDark ? 8 : 6,
-    elevation: isDark ? 4 : 2,
-  };
-}
 
 const styles = StyleSheet.create({
   root: {

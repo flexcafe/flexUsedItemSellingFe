@@ -41,6 +41,17 @@ import {
 } from "@/presentation/hooks/useProfileRewards";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
+import { UI_SECTION_STAGGER_MS } from "@/presentation/lib/uiAnimations";
+import {
+  ProfileAnimatedCard,
+  ProfileAnimatedSection,
+  ProfileFadeIn,
+  ProfilePressableScale,
+  ProfileStaggerItem,
+  ProfileTabButton,
+  ProfileTabPanel,
+} from "./profileAnimated";
+import { useReducedMotion } from "react-native-reanimated";
 
 const SUCCESS = "#16a34a";
 const WARNING = "#d97706";
@@ -126,7 +137,9 @@ export function ProfileScreen() {
   const { t, tf } = useLocale();
   const adminCooldown = useAdminNotifyCooldown();
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const scheme = colorScheme ?? "light";
+  const colors = Colors[scheme];
+  const reduceMotion = useReducedMotion();
   const pointsQuery = useProfilePoints();
   const rankConfigsQuery = useRankConfigs();
   const statsQuery = useProfileTransactionStats();
@@ -625,71 +638,46 @@ export function ProfileScreen() {
           }
           keyboardShouldPersistTaps="handled"
         >
-          <ThemedText type="title" style={styles.title}>
-            {t("profileTitle")}
-          </ThemedText>
+          <ProfileAnimatedSection delayMs={0} reduceMotion={reduceMotion}>
+            <ThemedText type="title" style={styles.title}>
+              {t("profileTitle")}
+            </ThemedText>
+          </ProfileAnimatedSection>
 
-          <View style={[styles.tabs, { borderColor: colors.icon }]}>
-            <Pressable
-              onPress={() => setActiveTab("rewards")}
-              style={[
-                styles.tab,
-                activeTab === "rewards" && {
-                  backgroundColor: colors.tint,
-                  borderColor: colors.tint,
-                },
-              ]}
-            >
-              <ThemedText
-                style={[
-                  styles.tabText,
-                  activeTab === "rewards" && { color: "#fff" },
-                ]}
-              >
-                {t("profileTabRewards")}
-              </ThemedText>
-            </Pressable>
-            <Pressable
-              onPress={() => setActiveTab("verifications")}
-              style={[
-                styles.tab,
-                activeTab === "verifications" && {
-                  backgroundColor: colors.tint,
-                  borderColor: colors.tint,
-                },
-              ]}
-            >
-              <ThemedText
-                style={[
-                  styles.tabText,
-                  activeTab === "verifications" && { color: "#fff" },
-                ]}
-              >
-                {t("profileTabVerifications")}
-              </ThemedText>
-            </Pressable>
-            <Pressable
-              onPress={() => setActiveTab("password")}
-              style={[
-                styles.tab,
-                activeTab === "password" && {
-                  backgroundColor: colors.tint,
-                  borderColor: colors.tint,
-                },
-              ]}
-            >
-              <ThemedText
-                style={[
-                  styles.tabText,
-                  activeTab === "password" && { color: "#fff" },
-                ]}
-              >
-                {t("profileTabPassword")}
-              </ThemedText>
-            </Pressable>
-          </View>
+          <ProfileAnimatedSection
+            delayMs={UI_SECTION_STAGGER_MS}
+            reduceMotion={reduceMotion}
+          >
+            <View style={[styles.tabs, { borderColor: colors.icon }]}>
+              <ProfileTabButton
+                active={activeTab === "rewards"}
+                tint={colors.tint}
+                inactiveColor={colors.text}
+                label={t("profileTabRewards")}
+                onPress={() => setActiveTab("rewards")}
+              />
+              <ProfileTabButton
+                active={activeTab === "verifications"}
+                tint={colors.tint}
+                inactiveColor={colors.text}
+                label={t("profileTabVerifications")}
+                onPress={() => setActiveTab("verifications")}
+              />
+              <ProfileTabButton
+                active={activeTab === "password"}
+                tint={colors.tint}
+                inactiveColor={colors.text}
+                label={t("profileTabPassword")}
+                onPress={() => setActiveTab("password")}
+              />
+            </View>
+          </ProfileAnimatedSection>
 
-          <View style={[styles.card, { borderColor: colors.icon }]}>
+          <ProfileAnimatedSection
+            delayMs={UI_SECTION_STAGGER_MS * 2}
+            reduceMotion={reduceMotion}
+          >
+          <ProfileAnimatedCard scheme={scheme} borderColor={colors.icon}>
             <View style={styles.profileHeader}>
               <Pressable
                 onPress={() => {
@@ -736,15 +724,15 @@ export function ProfileScreen() {
                 </ThemedText>
               </View>
             </View>
-          </View>
+          </ProfileAnimatedCard>
+          </ProfileAnimatedSection>
 
+          <ProfileTabPanel tabKey={activeTab} reduceMotion={reduceMotion}>
           {activeTab === "rewards" ? (
-            <View
-              style={[
-                styles.card,
-                styles.rewardCard,
-                { borderColor: colors.icon },
-              ]}
+            <ProfileAnimatedCard
+              scheme={scheme}
+              borderColor={colors.icon}
+              style={styles.rewardCard}
             >
               <View style={styles.rewardHeader}>
                 <View
@@ -964,58 +952,54 @@ export function ProfileScreen() {
                       {t("rewardTransactionStats")}
                     </ThemedText>
                     <View style={styles.statGrid}>
-                      <View
-                        style={[
-                          styles.statTile,
-                          { backgroundColor: rewardMutedBg },
-                        ]}
-                      >
-                        <MaterialIcons
-                          name="bar-chart"
-                          color={colors.tint}
-                          size={20}
-                        />
-                        <ThemedText style={styles.statValue}>
-                          {formatPoints(
-                            statsSummary?.totalTransactionsMade ?? 0,
-                          )}
-                        </ThemedText>
-                        <ThemedText style={styles.statLabel}>
-                          {t("rewardTotalTransactions")}
-                        </ThemedText>
-                      </View>
-                      <View
-                        style={[
-                          styles.statTile,
-                          { backgroundColor: rewardMutedBg },
-                        ]}
-                      >
-                        <MaterialIcons name="store" color={SUCCESS} size={20} />
-                        <ThemedText style={styles.statValue}>
-                          {formatPoints(statsSummary?.completedSales ?? 0)}
-                        </ThemedText>
-                        <ThemedText style={styles.statLabel}>
-                          {t("rewardCompletedSales")}
-                        </ThemedText>
-                      </View>
-                      <View
-                        style={[
-                          styles.statTile,
-                          { backgroundColor: rewardMutedBg },
-                        ]}
-                      >
-                        <MaterialIcons
-                          name="shopping-cart"
-                          color={WARNING}
-                          size={20}
-                        />
-                        <ThemedText style={styles.statValue}>
-                          {formatPoints(statsSummary?.completedPurchases ?? 0)}
-                        </ThemedText>
-                        <ThemedText style={styles.statLabel}>
-                          {t("rewardCompletedPurchases")}
-                        </ThemedText>
-                      </View>
+                      {(
+                        [
+                          {
+                            icon: "bar-chart" as const,
+                            iconColor: colors.tint,
+                            value: formatPoints(
+                              statsSummary?.totalTransactionsMade ?? 0,
+                            ),
+                            label: t("rewardTotalTransactions"),
+                          },
+                          {
+                            icon: "store" as const,
+                            iconColor: SUCCESS,
+                            value: formatPoints(statsSummary?.completedSales ?? 0),
+                            label: t("rewardCompletedSales"),
+                          },
+                          {
+                            icon: "shopping-cart" as const,
+                            iconColor: WARNING,
+                            value: formatPoints(
+                              statsSummary?.completedPurchases ?? 0,
+                            ),
+                            label: t("rewardCompletedPurchases"),
+                          },
+                        ] as const
+                      ).map((stat, index) => (
+                        <ProfileStaggerItem
+                          key={stat.label}
+                          index={index}
+                          reduceMotion={reduceMotion}
+                          style={[
+                            styles.statTile,
+                            { backgroundColor: rewardMutedBg },
+                          ]}
+                        >
+                          <MaterialIcons
+                            name={stat.icon}
+                            color={stat.iconColor}
+                            size={20}
+                          />
+                          <ThemedText style={styles.statValue}>
+                            {stat.value}
+                          </ThemedText>
+                          <ThemedText style={styles.statLabel}>
+                            {stat.label}
+                          </ThemedText>
+                        </ProfileStaggerItem>
+                      ))}
                     </View>
                   </View>
 
@@ -1034,6 +1018,7 @@ export function ProfileScreen() {
                       />
                     </Pressable>
                     {showRankSystem ? (
+                      <ProfileFadeIn reduceMotion={reduceMotion}>
                       <View style={styles.rankList}>
                         {rankConfigsQuery.isLoading && rankLadder.length === 0 ? (
                           <View style={styles.rankLoading}>
@@ -1044,7 +1029,7 @@ export function ProfileScreen() {
                             {t("rewardRankLadderUnavailable")}
                           </ThemedText>
                         ) : (
-                          rankLadder.map((rank) => {
+                          rankLadder.map((rank, index) => {
                             const active = rank.tier === currentRank;
                             const accent = RANK_ACCENTS[rank.tier];
                             const badgeSource =
@@ -1061,8 +1046,10 @@ export function ProfileScreen() {
                                   ? { uri: rank.badgeUrl.trim() }
                                   : null;
                             return (
-                              <View
+                              <ProfileStaggerItem
                                 key={rank.tier}
+                                index={index}
+                                reduceMotion={reduceMotion}
                                 style={[
                                   styles.rankRow,
                                   {
@@ -1094,11 +1081,12 @@ export function ProfileScreen() {
                                 <ThemedText style={styles.rankThreshold}>
                                   {formatRankPointsRange(rank)}
                                 </ThemedText>
-                              </View>
+                              </ProfileStaggerItem>
                             );
                           })
                         )}
                       </View>
+                      </ProfileFadeIn>
                     ) : null}
                   </View>
 
@@ -1124,15 +1112,18 @@ export function ProfileScreen() {
                       />
                     </Pressable>
                     {showWithdrawalHistory ? (
-                      withdrawalRequests.length === 0 ? (
+                      <ProfileFadeIn reduceMotion={reduceMotion}>
+                      {withdrawalRequests.length === 0 ? (
                         <ThemedText style={styles.profileSub}>
                           {t("rewardNoWithdrawals")}
                         </ThemedText>
                       ) : (
                         <View style={styles.withdrawalList}>
-                          {withdrawalRequests.map((item) => (
-                            <View
+                          {withdrawalRequests.map((item, index) => (
+                            <ProfileStaggerItem
                               key={item.id}
+                              index={index}
+                              reduceMotion={reduceMotion}
                               style={[
                                 styles.withdrawalRow,
                                 {
@@ -1170,18 +1161,19 @@ export function ProfileScreen() {
                                   {item.adminNote}
                                 </ThemedText>
                               ) : null}
-                            </View>
+                            </ProfileStaggerItem>
                           ))}
                         </View>
-                      )
+                      )}
+                      </ProfileFadeIn>
                     ) : null}
                   </View>
                 </>
               )}
-            </View>
+            </ProfileAnimatedCard>
           ) : activeTab === "verifications" ? (
             <>
-              <View style={[styles.card, { borderColor: colors.icon }]}>
+              <ProfileAnimatedCard scheme={scheme} borderColor={colors.icon}>
                 <View style={styles.cardHeader}>
                   <Pressable
                     onPress={() => setShowPhoneVerification((prev) => !prev)}
@@ -1210,6 +1202,7 @@ export function ProfileScreen() {
                   </Pressable>
                 </View>
                 {showPhoneVerification ? (
+                  <ProfileFadeIn reduceMotion={reduceMotion}>
                   <>
                     <TextInput
                       style={[styles.input, inputStyle]}
@@ -1281,10 +1274,11 @@ export function ProfileScreen() {
                       </ThemedText>
                     )}
                   </>
+                  </ProfileFadeIn>
                 ) : null}
-              </View>
+              </ProfileAnimatedCard>
 
-              <View style={[styles.card, { borderColor: colors.icon }]}>
+              <ProfileAnimatedCard scheme={scheme} borderColor={colors.icon}>
                 <View style={styles.cardHeader}>
                   <Pressable
                     onPress={() => setShowEmailVerification((prev) => !prev)}
@@ -1313,6 +1307,7 @@ export function ProfileScreen() {
                   </Pressable>
                 </View>
                 {showEmailVerification ? (
+                  <ProfileFadeIn reduceMotion={reduceMotion}>
                   <>
                     <TextInput
                       style={[styles.input, inputStyle]}
@@ -1397,10 +1392,11 @@ export function ProfileScreen() {
                       </ThemedText>
                     )}
                   </>
+                  </ProfileFadeIn>
                 ) : null}
-              </View>
+              </ProfileAnimatedCard>
 
-              <View style={[styles.card, { borderColor: colors.icon }]}>
+              <ProfileAnimatedCard scheme={scheme} borderColor={colors.icon}>
                 <View style={styles.cardHeader}>
                   <Pressable
                     onPress={() => setShowKbzPayVerification((prev) => !prev)}
@@ -1426,6 +1422,7 @@ export function ProfileScreen() {
                   </Pressable>
                 </View>
                 {showKbzPayVerification ? (
+                  <ProfileFadeIn reduceMotion={reduceMotion}>
                   <>
                     {kbzCanRequest ? (
                       <>
@@ -1623,11 +1620,12 @@ export function ProfileScreen() {
                       </ThemedText>
                     ) : null}
                   </>
+                  </ProfileFadeIn>
                 ) : null}
-              </View>
+              </ProfileAnimatedCard>
             </>
           ) : (
-            <View style={[styles.card, { borderColor: colors.icon }]}>
+            <ProfileAnimatedCard scheme={scheme} borderColor={colors.icon}>
               <View style={styles.cardHeader}>
                 <ThemedText style={styles.cardTitle}>
                   Change password
@@ -1673,20 +1671,29 @@ export function ProfileScreen() {
                   </ThemedText>
                 )}
               </Pressable>
-            </View>
+            </ProfileAnimatedCard>
           )}
+          </ProfileTabPanel>
 
-          <Pressable
-            onPress={logout}
-            style={[
-              styles.signOutButton,
-              { borderColor: colors.tint, backgroundColor: colors.background },
-            ]}
+          <ProfileAnimatedSection
+            delayMs={UI_SECTION_STAGGER_MS * 3}
+            reduceMotion={reduceMotion}
           >
-            <ThemedText style={[styles.signOutText, { color: colors.tint }]}>
-              {t("signOutButton")}
-            </ThemedText>
-          </Pressable>
+            <ProfilePressableScale
+              onPress={logout}
+              style={[
+                styles.signOutButton,
+                {
+                  borderColor: colors.tint,
+                  backgroundColor: colors.background,
+                },
+              ]}
+            >
+              <ThemedText style={[styles.signOutText, { color: colors.tint }]}>
+                {t("signOutButton")}
+              </ThemedText>
+            </ProfilePressableScale>
+          </ProfileAnimatedSection>
         </ScrollView>
       </KeyboardAvoidingView>
     </ThemedView>

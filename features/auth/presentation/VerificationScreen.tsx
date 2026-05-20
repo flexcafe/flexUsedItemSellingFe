@@ -12,6 +12,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -19,6 +20,13 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
+
+import {
+  AuthAnimatedCard,
+  AuthAnimatedSection,
+  AuthPrimaryButton,
+  AuthStaggerItem,
+} from "./authAnimated";
 
 const SUCCESS = "#16a34a";
 
@@ -33,7 +41,9 @@ export function VerificationScreen() {
   } = useAuth();
   const { t } = useLocale();
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const scheme = colorScheme ?? "light";
+  const colors = Colors[scheme];
+  const reduceMotion = useReducedMotion();
 
   const initialPhone = typeof params.phone === "string" ? params.phone : "";
   const initialEmail = typeof params.email === "string" ? params.email : "";
@@ -134,36 +144,45 @@ export function VerificationScreen() {
     <ThemedView style={styles.screen}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}>
+        style={{ flex: 1 }}
+      >
         <ScrollView
           contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="always">
-          <View style={styles.headerRow}>
-            <Pressable
-              accessibilityLabel="Go back"
-              accessibilityRole="button"
-              hitSlop={12}
-              onPress={handleBack}
-              style={styles.backButton}>
-              <MaterialIcons name="arrow-back" size={24} color={colors.text} />
-            </Pressable>
-            <ThemedText type="title" style={styles.title}>
-              {t("verification")}
-            </ThemedText>
-            <View style={styles.backButton} />
-          </View>
+          keyboardShouldPersistTaps="always"
+        >
+          <AuthAnimatedSection delayMs={0} reduceMotion={reduceMotion}>
+            <View style={styles.headerRow}>
+              <Pressable
+                accessibilityLabel="Go back"
+                accessibilityRole="button"
+                hitSlop={12}
+                onPress={handleBack}
+                style={styles.backButton}
+              >
+                <MaterialIcons name="arrow-back" size={24} color={colors.text} />
+              </Pressable>
+              <ThemedText type="title" style={styles.title}>
+                {t("verification")}
+              </ThemedText>
+              <View style={styles.backButton} />
+            </View>
+          </AuthAnimatedSection>
 
-          {/* Phone OTP */}
-          <View style={[styles.card, { borderColor: colors.icon }]}>
+          <AuthAnimatedCard
+            scheme={scheme}
+            borderColor={colors.icon + "55"}
+            index={0}
+            reduceMotion={reduceMotion}
+          >
             <View style={styles.cardHeader}>
               <ThemedText style={styles.cardTitle}>
                 {t("phoneVerification")}
               </ThemedText>
-              {phoneVerified && (
+              {phoneVerified ? (
                 <ThemedText style={[styles.badge, { color: SUCCESS }]}>
                   ✓ {t("otpVerified")}
                 </ThemedText>
-              )}
+              ) : null}
             </View>
 
             <TextInput
@@ -188,14 +207,15 @@ export function VerificationScreen() {
                 maxLength={6}
                 editable={!phoneVerified}
               />
-              <Pressable
+              <AuthPrimaryButton
                 onPress={handleVerifyOtp}
                 disabled={loading.verifyOtp || phoneVerified}
+                backgroundColor={colors.tint}
                 style={[
-                  styles.primaryButton,
-                  { backgroundColor: colors.tint },
+                  styles.inlineButton,
                   (loading.verifyOtp || phoneVerified) && { opacity: 0.6 },
-                ]}>
+                ]}
+              >
                 {loading.verifyOtp ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
@@ -203,12 +223,13 @@ export function VerificationScreen() {
                     {t("verify")}
                   </ThemedText>
                 )}
-              </Pressable>
+              </AuthPrimaryButton>
             </View>
             <Pressable
               onPress={handleResendOtp}
               disabled={loading.sendOtp || phoneVerified}
-              style={styles.linkButton}>
+              style={styles.linkButton}
+            >
               {loading.sendOtp ? (
                 <ActivityIndicator color={colors.tint} size="small" />
               ) : (
@@ -217,19 +238,23 @@ export function VerificationScreen() {
                 </ThemedText>
               )}
             </Pressable>
-          </View>
+          </AuthAnimatedCard>
 
-          {/* Email token */}
-          <View style={[styles.card, { borderColor: colors.icon }]}>
+          <AuthAnimatedCard
+            scheme={scheme}
+            borderColor={colors.icon + "55"}
+            index={1}
+            reduceMotion={reduceMotion}
+          >
             <View style={styles.cardHeader}>
               <ThemedText style={styles.cardTitle}>
                 {t("emailVerification")}
               </ThemedText>
-              {emailVerified && (
+              {emailVerified ? (
                 <ThemedText style={[styles.badge, { color: SUCCESS }]}>
                   ✓ {t("emailVerified")}
                 </ThemedText>
-              )}
+              ) : null}
             </View>
             <TextInput
               style={[styles.input, inputStyle]}
@@ -251,35 +276,38 @@ export function VerificationScreen() {
               autoCorrect={false}
               editable={!emailVerified}
             />
-            <Pressable
-              onPress={handleVerifyEmail}
-              disabled={
-                loading.verifyEmail ||
-                emailVerified ||
-                !email.trim() ||
-                !emailToken.trim()
-              }
-              style={[
-                styles.primaryButton,
-                styles.fullWidthButton,
-                { backgroundColor: colors.tint },
-                (loading.verifyEmail ||
+            <AuthStaggerItem index={0} reduceMotion={reduceMotion}>
+              <AuthPrimaryButton
+                onPress={handleVerifyEmail}
+                disabled={
+                  loading.verifyEmail ||
                   emailVerified ||
                   !email.trim() ||
-                  !emailToken.trim()) && { opacity: 0.6 },
-              ]}>
-              {loading.verifyEmail ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <ThemedText style={styles.primaryButtonText}>
-                  {t("verifyEmailButton")}
-                </ThemedText>
-              )}
-            </Pressable>
+                  !emailToken.trim()
+                }
+                backgroundColor={colors.tint}
+                style={[
+                  styles.fullWidthButton,
+                  (loading.verifyEmail ||
+                    emailVerified ||
+                    !email.trim() ||
+                    !emailToken.trim()) && { opacity: 0.6 },
+                ]}
+              >
+                {loading.verifyEmail ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <ThemedText style={styles.primaryButtonText}>
+                    {t("verifyEmailButton")}
+                  </ThemedText>
+                )}
+              </AuthPrimaryButton>
+            </AuthStaggerItem>
             <Pressable
               onPress={handleResendEmail}
               disabled={loading.sendEmail || emailVerified || !email.trim()}
-              style={styles.linkButton}>
+              style={styles.linkButton}
+            >
               {loading.sendEmail ? (
                 <ActivityIndicator color={colors.tint} size="small" />
               ) : (
@@ -288,10 +316,7 @@ export function VerificationScreen() {
                 </ThemedText>
               )}
             </Pressable>
-          </View>
-
-
-
+          </AuthAnimatedCard>
         </ScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
@@ -319,12 +344,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: { fontSize: 22 },
-  card: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-  },
   cardHeader: {
     alignItems: "flex-start",
     gap: 4,
@@ -344,15 +363,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   inlineRow: { flexDirection: "row", gap: 8, alignItems: "center" },
-  primaryButton: {
+  inlineButton: {
     height: 44,
     paddingHorizontal: 18,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
     minWidth: 84,
+    borderRadius: 10,
   },
   primaryButtonText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-  fullWidthButton: { width: "100%", height: 48 },
+  fullWidthButton: { width: "100%", minHeight: 48, borderRadius: 10 },
   linkButton: { alignItems: "center", paddingVertical: 6 },
 });

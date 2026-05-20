@@ -1,95 +1,103 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useMemo } from "react";
-import {
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type ViewStyle,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 import Toast, { type ToastConfigParams } from "react-native-toast-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { uiCardShadow, usePressScale } from "@/presentation/lib/uiAnimations";
 
-function cardShadow(elevation: number): ViewStyle {
-  if (Platform.OS === "android") {
-    return { elevation };
-  }
-  return {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-  };
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function NotificationToastCard(
+  params: ToastConfigParams<undefined> & {
+    colors: (typeof Colors)["light"];
+    scheme: "light" | "dark";
+  },
+) {
+  const press = usePressScale();
+  const surface = params.scheme === "dark" ? "#25282C" : "#FFFFFF";
+  const border =
+    params.scheme === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)";
+
+  return (
+    <AnimatedPressable
+      accessibilityRole="alert"
+      accessibilityLabel={params.text1 ?? "Notification"}
+      onPress={() => {
+        params.onPress?.();
+        Toast.hide();
+      }}
+      onPressIn={press.handlers.onPressIn}
+      onPressOut={press.handlers.onPressOut}
+      style={[
+        styles.card,
+        press.style,
+        {
+          backgroundColor: surface,
+          borderColor: border,
+          borderLeftColor: params.colors.tint,
+        },
+        uiCardShadow(params.scheme, {
+          iosOffsetLight: 6,
+          iosOffsetDark: 6,
+          iosOpacityLight: 0.22,
+          iosOpacityDark: 0.22,
+          iosRadiusLight: 10,
+          iosRadiusDark: 10,
+          androidElevationLight: 16,
+          androidElevationDark: 12,
+        }),
+      ]}
+    >
+      <View
+        style={[styles.iconWrap, { backgroundColor: `${params.colors.tint}22` }]}
+      >
+        <MaterialIcons
+          name="notifications-active"
+          size={26}
+          color={params.colors.tint}
+        />
+      </View>
+      <View style={styles.textCol}>
+        <Text
+          style={[styles.title, { color: params.colors.text }]}
+          numberOfLines={2}
+        >
+          {params.text1}
+        </Text>
+        {params.text2 ? (
+          <Text
+            style={[styles.body, { color: params.colors.text }]}
+            numberOfLines={5}
+          >
+            {params.text2}
+          </Text>
+        ) : null}
+      </View>
+    </AnimatedPressable>
+  );
 }
 
 export function NotificationToastRoot() {
   const colorScheme = useColorScheme();
+  const scheme = colorScheme ?? "light";
   const insets = useSafeAreaInsets();
-  const colors = Colors[colorScheme ?? "light"];
-  const isDark = colorScheme === "dark";
+  const colors = Colors[scheme];
 
   const toastConfig = useMemo(
     () => ({
-      notification: (params: ToastConfigParams<undefined>) => {
-        const surface = isDark ? "#25282C" : "#FFFFFF";
-        const border = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)";
-        return (
-          <Pressable
-            accessibilityRole="alert"
-            accessibilityLabel={params.text1 ?? "Notification"}
-            onPress={() => {
-              params.onPress?.();
-              Toast.hide();
-            }}
-            style={({ pressed }) => [
-              styles.card,
-              {
-                backgroundColor: surface,
-                borderColor: border,
-                borderLeftColor: colors.tint,
-                opacity: pressed ? 0.94 : 1,
-                transform: [{ scale: pressed ? 0.985 : 1 }],
-              },
-              cardShadow(isDark ? 12 : 16),
-            ]}
-          >
-            <View
-              style={[
-                styles.iconWrap,
-                { backgroundColor: `${colors.tint}22` },
-              ]}
-            >
-              <MaterialIcons
-                name="notifications-active"
-                size={26}
-                color={colors.tint}
-              />
-            </View>
-            <View style={styles.textCol}>
-              <Text
-                style={[styles.title, { color: colors.text }]}
-                numberOfLines={2}
-              >
-                {params.text1}
-              </Text>
-              {params.text2 ? (
-                <Text
-                  style={[styles.body, { color: colors.text }]}
-                  numberOfLines={5}
-                >
-                  {params.text2}
-                </Text>
-              ) : null}
-            </View>
-          </Pressable>
-        );
-      },
+      notification: (params: ToastConfigParams<undefined>) => (
+        <NotificationToastCard
+          {...params}
+          colors={colors}
+          scheme={scheme}
+        />
+      ),
     }),
-    [colors.text, colors.tint, isDark],
+    [colors, scheme],
   );
 
   return (

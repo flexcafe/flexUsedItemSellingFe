@@ -4,6 +4,11 @@ import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import type { Product } from "@/core/domain/entities/Product";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import {
+  uiFadeEnter,
+  uiListItemEnter,
+  uiSectionEnter,
+} from "@/presentation/lib/uiAnimations";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { memo, useCallback, useMemo } from "react";
@@ -15,7 +20,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
+import Animated, { useReducedMotion } from "react-native-reanimated";
 
 import { MyProductCard } from "./MyProductCard";
 
@@ -37,13 +42,22 @@ export type MyProductsListingProps = {
   onArchive: (product: Product) => void;
 };
 
-function ListingSkeleton({ tint }: { tint: string }) {
+function ListingSkeleton({
+  tint,
+  reduceMotion,
+}: {
+  tint: string;
+  reduceMotion: boolean | null;
+}) {
   return (
     <View style={styles.skeletonWrap}>
       {[0, 1, 2].map((i) => (
         <Animated.View
           key={`sk-${i}`}
-          entering={FadeInUp.duration(360).delay(i * 70)}
+          entering={uiListItemEnter(i, reduceMotion, {
+            duration: 360,
+            staggerMs: 70,
+          })}
           style={styles.skeletonCard}
         >
           <View style={styles.skeletonThumb} />
@@ -80,6 +94,7 @@ export const MyProductsListing = memo(function MyProductsListing({
   const colorScheme = useColorScheme();
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
+  const reduceMotion = useReducedMotion();
 
   const countLabel = useMemo(
     () => tf("productsListingCount", { count: totalCount }),
@@ -88,7 +103,10 @@ export const MyProductsListing = memo(function MyProductsListing({
 
   const listHeader = useMemo(
     () => (
-      <View style={styles.headerBlock}>
+      <Animated.View
+        entering={uiSectionEnter(0, reduceMotion)}
+        style={styles.headerBlock}
+      >
         <View style={styles.titleBlock}>
           <ThemedText type="title" style={styles.screenTitle}>
             {t("productsMyTitle")}
@@ -114,7 +132,7 @@ export const MyProductsListing = memo(function MyProductsListing({
 
         {isError ? (
           <Animated.View
-            entering={FadeIn.duration(280)}
+            entering={uiFadeEnter(reduceMotion, 280)}
             style={[styles.errorBanner, { borderColor: "#DC262644", backgroundColor: "#DC262612" }]}
           >
             <MaterialIcons name="error-outline" size={20} color="#DC2626" />
@@ -129,9 +147,9 @@ export const MyProductsListing = memo(function MyProductsListing({
             </Pressable>
           </Animated.View>
         ) : null}
-      </View>
+      </Animated.View>
     ),
-    [colors.tint, countLabel, isError, isLoading, onCreatePress, onRetry, t],
+    [colors.tint, countLabel, isError, isLoading, onCreatePress, onRetry, reduceMotion, t],
   );
 
   const renderItem = useCallback(
@@ -151,11 +169,14 @@ export const MyProductsListing = memo(function MyProductsListing({
 
   const listEmpty = useMemo(() => {
     if (isLoading) {
-      return <ListingSkeleton tint={colors.tint} />;
+      return <ListingSkeleton tint={colors.tint} reduceMotion={reduceMotion} />;
     }
     if (isError) return null;
     return (
-      <Animated.View entering={FadeIn.duration(400)} style={styles.empty}>
+      <Animated.View
+        entering={uiFadeEnter(reduceMotion, 400)}
+        style={styles.empty}
+      >
         <View style={[styles.emptyIcon, { backgroundColor: colors.tint + "14" }]}>
           <MaterialIcons name="add-shopping-cart" size={32} color={colors.tint} />
         </View>
@@ -174,19 +195,22 @@ export const MyProductsListing = memo(function MyProductsListing({
         </Pressable>
       </Animated.View>
     );
-  }, [colors.tint, isError, isLoading, onCreatePress, t]);
+  }, [colors.tint, isError, isLoading, onCreatePress, reduceMotion, t]);
 
   const listFooter = useMemo(() => {
     if (isFetchingNextPage) {
       return (
-        <View style={styles.footerLoading}>
+        <Animated.View
+          entering={uiFadeEnter(reduceMotion, 220)}
+          style={styles.footerLoading}
+        >
           <ActivityIndicator color={colors.tint} />
           <ThemedText style={styles.footerText}>{t("productsLoadingMore")}</ThemedText>
-        </View>
+        </Animated.View>
       );
     }
     return <View style={styles.footerSpacer} />;
-  }, [colors.tint, isFetchingNextPage, t]);
+  }, [colors.tint, isFetchingNextPage, reduceMotion, t]);
 
   return (
     <ThemedView style={styles.container}>

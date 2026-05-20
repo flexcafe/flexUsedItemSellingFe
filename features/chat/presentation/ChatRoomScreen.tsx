@@ -3,8 +3,6 @@ import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { FlatList as FlatListType } from "react-native";
-import { Image } from "expo-image";
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +14,14 @@ import {
   StyleSheet,
   TextInput,
   View,
+  type FlatList as FlatListType,
 } from "react-native";
+import { Image } from "expo-image";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  useReducedMotion,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
@@ -57,6 +62,17 @@ import {
   formatMeetingDateInput,
   formatMeetingTimeInput,
 } from "./directTradeForm";
+import {
+  uiCardShadow,
+  uiContentEnter,
+  uiFadeEnter,
+  uiLayoutTransition,
+  uiSectionEnter,
+  UI_SECTION_STAGGER_MS,
+  usePressScale,
+} from "@/presentation/lib/uiAnimations";
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type Props = {
   chatRoomId: string;
@@ -80,9 +96,13 @@ export function ChatRoomScreen({
   const { t, tf } = useLocale();
   const { user } = useAuth();
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const scheme = colorScheme ?? "light";
+  const colors = Colors[scheme];
+  const reduceMotion = useReducedMotion();
   const backTop = topOffsetForFloatingBackButton(insets.top);
   const queryClient = useQueryClient();
+  const backPress = usePressScale();
+  const sendPress = usePressScale();
 
   const inboxRoomsQuery = useChatRooms({ take: 50 });
   const roomMeta = useMemo(() => {
@@ -143,7 +163,8 @@ export function ChatRoomScreen({
     longitude: number;
     updatedAt: string;
   } | null>(null);
-  const [liveMapExpanded, setLiveMapExpanded] = useState(true);
+  const [toolsExpanded, setToolsExpanded] = useState(false);
+  const [liveMapExpanded, setLiveMapExpanded] = useState(false);
   const listRef = useRef<FlatListType<ChatMessage>>(null);
   const messages = useMemo(() => {
     const pages = messagesQuery.data?.pages ?? [];
@@ -208,6 +229,8 @@ export function ChatRoomScreen({
     Boolean(counterpartPoint),
     counterpartSharingActive,
   );
+  const hasAnyLivePoint = Boolean(myPoint || counterpartPoint);
+  const compactStatus = `${myMarkerLabel}: ${myLocationStatus} · ${peerMarkerLabel}: ${peerLocationStatus}`;
   const liveMapHtml = useMemo(() => {
     const markers = [];
     if (myPoint) {
@@ -455,7 +478,9 @@ export function ChatRoomScreen({
       const isMine = item.senderId != null && item.senderId === user?.id;
       const isSystem = item.type !== "TEXT" || item.senderId == null;
       return (
-        <View
+        <Animated.View
+          entering={uiContentEnter(reduceMotion)}
+          layout={uiLayoutTransition}
           style={[
             styles.messageRow,
             isMine ? styles.messageRowMine : styles.messageRowOther,
@@ -489,24 +514,29 @@ export function ChatRoomScreen({
               {formatChatTimestamp(item.createdAt)}
             </ThemedText>
           </View>
-        </View>
+        </Animated.View>
       );
     },
-    [colors.icon, colors.tint, t, user?.id],
+    [colors.icon, colors.tint, reduceMotion, t, user?.id],
   );
 
   return (
     <ThemedView style={styles.screen}>
-      <Pressable
+      <AnimatedPressable
         onPress={() => router.back()}
-        style={[styles.backBtn, { top: backTop }]}
+        onPressIn={backPress.handlers.onPressIn}
+        onPressOut={backPress.handlers.onPressOut}
+        style={[styles.backBtn, { top: backTop }, backPress.style]}
         accessibilityRole="button"
         accessibilityLabel={t("productsComposerBack")}
       >
         <MaterialIcons name="arrow-back" size={22} color="#FFF" />
-      </Pressable>
+      </AnimatedPressable>
 
-      <View style={[styles.header, { paddingTop: backTop + 44 }]}>
+      <Animated.View
+        entering={uiSectionEnter(0, reduceMotion)}
+        style={[styles.header, { paddingTop: backTop + 44 }]}
+      >
         {resolvedListingImageUrl ? (
           <Image
             source={{ uri: resolvedListingImageUrl }}
@@ -536,197 +566,236 @@ export function ChatRoomScreen({
             {resolvedPeerName}
           </ThemedText>
         </View>
-      </View>
+      </Animated.View>
 
-      {chatRoomId ? (
-        <View style={styles.actionPanel}>
-          <Pressable
-            onPress={openDirectTradeModal}
-            style={({ pressed }) => [
-              styles.actionBtnPrimary,
-              { backgroundColor: colors.tint, opacity: pressed ? 0.88 : 1 },
-            ]}
-          >
-            <MaterialIcons name="event" size={18} color="#FFF" />
-            <ThemedText style={styles.actionBtnPrimaryText}>
-              {t("chatDirectTradeButton")}
-            </ThemedText>
-          </Pressable>
-
-          {!mySharingActive ? (
-            <Pressable
-              onPress={onStartLocationShare}
-              disabled={isFetchingCoords || startLocationMutation.isPending}
-              style={({ pressed }) => [
-                styles.actionBtnOutline,
-                {
-                  borderColor: colors.tint,
-                  opacity:
-                    isFetchingCoords || startLocationMutation.isPending
-                      ? 0.55
-                      : pressed
-                        ? 0.88
-                        : 1,
-                },
-              ]}
-            >
-              {isFetchingCoords || startLocationMutation.isPending ? (
-                <ActivityIndicator size="small" color={colors.tint} />
-              ) : (
-                <MaterialIcons
-                  name="my-location"
-                  size={18}
-                  color={colors.tint}
-                />
-              )}
-              <ThemedText
-                style={[styles.actionBtnOutlineText, { color: colors.tint }]}
-              >
-                {t("chatStartSharing")}
-              </ThemedText>
-            </Pressable>
-          ) : (
-            <View style={styles.locationRow}>
-              <Pressable
-                onPress={onUpdateLocationShare}
-                disabled={isFetchingCoords || updateLocationMutation.isPending}
-                style={({ pressed }) => [
-                  styles.actionBtnOutline,
-                  styles.locationRowBtn,
-                  {
-                    borderColor: colors.tint,
-                    opacity:
-                      isFetchingCoords || updateLocationMutation.isPending
-                        ? 0.55
-                        : pressed
-                          ? 0.88
-                          : 1,
-                  },
-                ]}
-              >
-                {isFetchingCoords || updateLocationMutation.isPending ? (
-                  <ActivityIndicator size="small" color={colors.tint} />
-                ) : (
-                  <MaterialIcons name="sync" size={18} color={colors.tint} />
-                )}
-                <ThemedText
-                  style={[styles.actionBtnOutlineText, { color: colors.tint }]}
-                >
-                  {t("chatUpdateLocation")}
-                </ThemedText>
-              </Pressable>
-              <Pressable
-                onPress={onStopLocationShare}
-                disabled={stopLocationMutation.isPending}
-                style={({ pressed }) => [
-                  styles.actionBtnOutline,
-                  styles.locationRowBtn,
-                  {
-                    borderColor: colors.icon + "66",
-                    opacity: stopLocationMutation.isPending
-                      ? 0.55
-                      : pressed
-                        ? 0.88
-                        : 1,
-                  },
-                ]}
-              >
-                {stopLocationMutation.isPending ? (
-                  <ActivityIndicator size="small" color={colors.icon} />
-                ) : (
-                  <MaterialIcons
-                    name="location-off"
-                    size={18}
-                    color={colors.icon}
-                  />
-                )}
-                <ThemedText
-                  style={[styles.actionBtnOutlineText, { color: colors.icon }]}
-                >
-                  {t("chatStopSharing")}
-                </ThemedText>
-              </Pressable>
-            </View>
-          )}
-        </View>
-      ) : null}
-      {chatRoomId ? (
-        <View
-          style={[
-            styles.liveLocationPanel,
-            { borderColor: colors.icon + "33" },
-          ]}
+      <Animated.View
+        entering={uiSectionEnter(UI_SECTION_STAGGER_MS, reduceMotion)}
+        layout={uiLayoutTransition}
+        style={[
+          styles.toolsCard,
+          uiCardShadow(scheme),
+          {
+            borderColor: colors.icon + "33",
+            backgroundColor: scheme === "dark" ? "#1C1F24" : "#FFFFFF",
+          },
+        ]}
+      >
+        <Pressable
+          onPress={() => setToolsExpanded((open) => !open)}
+          style={styles.toolsHeader}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: toolsExpanded }}
         >
-          <Pressable
-            onPress={() => setLiveMapExpanded((open) => !open)}
-            style={styles.liveLocationHeader}
-            accessibilityRole="button"
-            accessibilityState={{ expanded: liveMapExpanded }}
+          <View style={styles.toolsHeaderText}>
+            <ThemedText style={styles.toolsTitle}>
+              {t("chatDirectTradeButton")} · {t("chatLiveLocationMap")}
+            </ThemedText>
+            <ThemedText style={styles.toolsSubtitle} numberOfLines={1}>
+              {compactStatus}
+            </ThemedText>
+          </View>
+          <MaterialIcons
+            name={toolsExpanded ? "expand-less" : "expand-more"}
+            size={22}
+            color={colors.icon}
+          />
+        </Pressable>
+
+        {toolsExpanded ? (
+          <Animated.View
+            entering={uiFadeEnter(reduceMotion, 220)}
+            layout={uiLayoutTransition}
+            style={styles.toolsExpandedBody}
           >
-            <ThemedText style={styles.liveLocationTitle}>
-              {t("chatLiveLocationMap")}
-            </ThemedText>
-            <MaterialIcons
-              name={liveMapExpanded ? "expand-less" : "expand-more"}
-              size={22}
-              color={colors.icon}
-            />
-          </Pressable>
-          {!liveMapExpanded ? (
-            <ThemedText style={styles.liveLocationLine} numberOfLines={2}>
-              {myMarkerLabel}: {myLocationStatus} · {peerMarkerLabel}:{" "}
-              {peerLocationStatus}
-            </ThemedText>
-          ) : (
-            <>
-              <View style={styles.liveMapWrap}>
-                <WebView
-                  source={{ html: liveMapHtml }}
-                  style={styles.liveMapView}
-                  scrollEnabled={false}
-                  originWhitelist={["*"]}
-                />
-              </View>
-              <ThemedText style={styles.liveLocationLine}>
-                {myMarkerLabel}: {myLocationStatus}
-              </ThemedText>
-              <ThemedText style={styles.liveLocationLine}>
-                {peerMarkerLabel}: {peerLocationStatus}
-              </ThemedText>
-              <View style={styles.liveLegendRow}>
-                <View style={styles.liveLegendItem}>
-                  <View
-                    style={[
-                      styles.liveLegendDot,
-                      { backgroundColor: "#1E88E5" },
-                    ]}
-                  />
-                  <ThemedText style={styles.liveLegendText}>
-                    {myMarkerLabel}
+            <View style={styles.toolsActionRow}>
+              <Pressable
+                onPress={openDirectTradeModal}
+                style={({ pressed }) => [
+                  styles.actionBtnPrimary,
+                  styles.toolsPrimaryAction,
+                  { backgroundColor: colors.tint, opacity: pressed ? 0.88 : 1 },
+                ]}
+              >
+                <MaterialIcons name="event" size={18} color="#FFF" />
+                <ThemedText style={styles.actionBtnPrimaryText}>
+                  {t("chatDirectTradeButton")}
+                </ThemedText>
+              </Pressable>
+
+              {!mySharingActive ? (
+                <Pressable
+                  onPress={onStartLocationShare}
+                  disabled={isFetchingCoords || startLocationMutation.isPending}
+                  style={({ pressed }) => [
+                    styles.actionBtnOutline,
+                    styles.toolsSecondaryAction,
+                    {
+                      borderColor: colors.tint,
+                      opacity:
+                        isFetchingCoords || startLocationMutation.isPending
+                          ? 0.55
+                          : pressed
+                            ? 0.88
+                            : 1,
+                    },
+                  ]}
+                >
+                  {isFetchingCoords || startLocationMutation.isPending ? (
+                    <ActivityIndicator size="small" color={colors.tint} />
+                  ) : (
+                    <MaterialIcons
+                      name="my-location"
+                      size={18}
+                      color={colors.tint}
+                    />
+                  )}
+                  <ThemedText
+                    style={[styles.actionBtnOutlineText, { color: colors.tint }]}
+                  >
+                    {t("chatStartSharing")}
                   </ThemedText>
-                </View>
-                <View style={styles.liveLegendItem}>
-                  <View
-                    style={[
-                      styles.liveLegendDot,
-                      { backgroundColor: "#E53935" },
+                </Pressable>
+              ) : (
+                <View style={styles.locationRow}>
+                  <Pressable
+                    onPress={onUpdateLocationShare}
+                    disabled={isFetchingCoords || updateLocationMutation.isPending}
+                    style={({ pressed }) => [
+                      styles.actionBtnOutline,
+                      styles.locationRowBtn,
+                      {
+                        borderColor: colors.tint,
+                        opacity:
+                          isFetchingCoords || updateLocationMutation.isPending
+                            ? 0.55
+                            : pressed
+                              ? 0.88
+                              : 1,
+                      },
                     ]}
-                  />
-                  <ThemedText style={styles.liveLegendText}>
-                    {peerMarkerLabel}
-                  </ThemedText>
+                  >
+                    {isFetchingCoords || updateLocationMutation.isPending ? (
+                      <ActivityIndicator size="small" color={colors.tint} />
+                    ) : (
+                      <MaterialIcons name="sync" size={18} color={colors.tint} />
+                    )}
+                    <ThemedText
+                      style={[styles.actionBtnOutlineText, { color: colors.tint }]}
+                    >
+                      {t("chatUpdateLocation")}
+                    </ThemedText>
+                  </Pressable>
+                  <Pressable
+                    onPress={onStopLocationShare}
+                    disabled={stopLocationMutation.isPending}
+                    style={({ pressed }) => [
+                      styles.actionBtnOutline,
+                      styles.locationRowBtn,
+                      {
+                        borderColor: colors.icon + "66",
+                        opacity: stopLocationMutation.isPending
+                          ? 0.55
+                          : pressed
+                            ? 0.88
+                            : 1,
+                      },
+                    ]}
+                  >
+                    {stopLocationMutation.isPending ? (
+                      <ActivityIndicator size="small" color={colors.icon} />
+                    ) : (
+                      <MaterialIcons
+                        name="location-off"
+                        size={18}
+                        color={colors.icon}
+                      />
+                    )}
+                    <ThemedText
+                      style={[styles.actionBtnOutlineText, { color: colors.icon }]}
+                    >
+                      {t("chatStopSharing")}
+                    </ThemedText>
+                  </Pressable>
                 </View>
-              </View>
-            </>
-          )}
-        </View>
-      ) : null}
+              )}
+            </View>
+
+            <Pressable
+              onPress={() => setLiveMapExpanded((open) => !open)}
+              style={styles.liveLocationHeader}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: liveMapExpanded }}
+            >
+              <ThemedText style={styles.liveLocationTitle}>
+                {t("chatLiveLocationMap")}
+              </ThemedText>
+              <MaterialIcons
+                name={liveMapExpanded ? "expand-less" : "expand-more"}
+                size={22}
+                color={colors.icon}
+              />
+            </Pressable>
+            {!liveMapExpanded ? (
+              <ThemedText style={styles.liveLocationLine} numberOfLines={2}>
+                {compactStatus}
+              </ThemedText>
+            ) : hasAnyLivePoint ? (
+              <>
+                <View style={styles.liveMapWrap}>
+                  <WebView
+                    source={{ html: liveMapHtml }}
+                    style={styles.liveMapView}
+                    scrollEnabled={false}
+                    originWhitelist={["*"]}
+                  />
+                </View>
+                <ThemedText style={styles.liveLocationLine}>
+                  {myMarkerLabel}: {myLocationStatus}
+                </ThemedText>
+                <ThemedText style={styles.liveLocationLine}>
+                  {peerMarkerLabel}: {peerLocationStatus}
+                </ThemedText>
+                <View style={styles.liveLegendRow}>
+                  <View style={styles.liveLegendItem}>
+                    <View
+                      style={[
+                        styles.liveLegendDot,
+                        { backgroundColor: "#1E88E5" },
+                      ]}
+                    />
+                    <ThemedText style={styles.liveLegendText}>
+                      {myMarkerLabel}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.liveLegendItem}>
+                    <View
+                      style={[
+                        styles.liveLegendDot,
+                        { backgroundColor: "#E53935" },
+                      ]}
+                    />
+                    <ThemedText style={styles.liveLegendText}>
+                      {peerMarkerLabel}
+                    </ThemedText>
+                  </View>
+                </View>
+              </>
+            ) : (
+              <ThemedText style={styles.liveLocationLine}>
+                {t("chatNoMessagesYet")}
+              </ThemedText>
+            )}
+          </Animated.View>
+        ) : null}
+      </Animated.View>
       {locationUpdatedAt ? (
-        <ThemedText style={styles.locationStamp}>
-          {tf("chatLocationUpdatedAt", {
-            time: formatChatTimestamp(locationUpdatedAt),
-          })}
-        </ThemedText>
+        <Animated.View entering={uiFadeEnter(reduceMotion, 180)}>
+          <ThemedText style={styles.locationStamp}>
+            {tf("chatLocationUpdatedAt", {
+              time: formatChatTimestamp(locationUpdatedAt),
+            })}
+          </ThemedText>
+        </Animated.View>
       ) : null}
 
       <KeyboardAvoidingView
@@ -751,26 +820,33 @@ export function ChatRoomScreen({
               scrollEventThrottle={120}
               ListHeaderComponent={
                 messagesQuery.isFetchingNextPage ? (
-                  <View style={styles.historyLoader}>
+                  <Animated.View
+                    entering={uiFadeEnter(reduceMotion)}
+                    style={styles.historyLoader}
+                  >
                     <ActivityIndicator color={colors.tint} />
                     <ThemedText style={styles.historyLoaderText}>
                       {t("chatLoadingOlder")}
                     </ThemedText>
-                  </View>
+                  </Animated.View>
                 ) : null
               }
               ListEmptyComponent={
-                <View style={styles.emptyThread}>
+                <Animated.View
+                  entering={uiFadeEnter(reduceMotion, 360)}
+                  style={styles.emptyThread}
+                >
                   <MaterialIcons name="chat" size={42} color={colors.icon} />
                   <ThemedText style={styles.emptyThreadText}>
                     {t("chatThreadEmpty")}
                   </ThemedText>
-                </View>
+                </Animated.View>
               }
             />
           )}
 
-          <View
+          <Animated.View
+            entering={uiSectionEnter(UI_SECTION_STAGGER_MS * 2, reduceMotion)}
             style={[
               styles.composer,
               {
@@ -793,8 +869,10 @@ export function ChatRoomScreen({
               maxLength={5000}
               editable={Boolean(chatRoomId) && !sendMessage.isPending}
             />
-            <Pressable
+            <AnimatedPressable
               onPress={onSend}
+              onPressIn={sendPress.handlers.onPressIn}
+              onPressOut={sendPress.handlers.onPressOut}
               disabled={
                 !chatRoomId ||
                 sendMessage.isPending ||
@@ -802,6 +880,7 @@ export function ChatRoomScreen({
               }
               style={[
                 styles.sendBtn,
+                sendPress.style,
                 {
                   backgroundColor:
                     !chatRoomId ||
@@ -817,8 +896,8 @@ export function ChatRoomScreen({
               ) : (
                 <MaterialIcons name="send" size={20} color="#FFF" />
               )}
-            </Pressable>
-          </View>
+            </AnimatedPressable>
+          </Animated.View>
         </KeyboardAvoidingView>
 
       <Modal
@@ -827,10 +906,19 @@ export function ChatRoomScreen({
         animationType="fade"
         onRequestClose={() => setDirectTradeOpen(false)}
       >
-        <View style={styles.modalBackdrop}>
-          <View
+        <Animated.View
+          entering={reduceMotion ? undefined : FadeIn.duration(220)}
+          style={styles.modalBackdrop}
+        >
+          <Animated.View
+            entering={
+              reduceMotion
+                ? undefined
+                : FadeInDown.duration(360).springify().damping(18)
+            }
             style={[
               styles.modalCard,
+              uiCardShadow(scheme),
               {
                 backgroundColor: colors.background,
                 borderColor: colors.icon + "33",
@@ -938,8 +1026,8 @@ export function ChatRoomScreen({
                 </ThemedText>
               )}
             </Pressable>
-          </View>
-        </View>
+          </Animated.View>
+        </Animated.View>
       </Modal>
     </ThemedView>
   );
@@ -979,13 +1067,29 @@ const styles = StyleSheet.create({
   headerText: { flex: 1, minWidth: 0, gap: 2 },
   headerTitle: { fontSize: 16 },
   headerSubtitle: { fontSize: 12, opacity: 0.65 },
-  actionPanel: {
-    zIndex: 12,
-    elevation: 4,
-    gap: 8,
+  toolsCard: {
+    marginHorizontal: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderRadius: 14,
     paddingHorizontal: 12,
-    paddingBottom: 8,
+    paddingVertical: 10,
+    gap: 8,
   },
+  toolsHeader: {
+    minHeight: 36,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  toolsHeaderText: { flex: 1, minWidth: 0, gap: 2 },
+  toolsTitle: { fontSize: 13, fontWeight: "700" },
+  toolsSubtitle: { fontSize: 12, opacity: 0.75 },
+  toolsExpandedBody: { gap: 8 },
+  toolsActionRow: { gap: 8 },
+  toolsPrimaryAction: { width: "100%" },
+  toolsSecondaryAction: { width: "100%" },
   actionBtnPrimary: {
     minHeight: 44,
     flexDirection: "row",
@@ -1011,15 +1115,6 @@ const styles = StyleSheet.create({
   actionBtnOutlineText: { fontSize: 14, fontWeight: "700" },
   locationRow: { flexDirection: "row", gap: 8 },
   locationRowBtn: { flex: 1 },
-  liveLocationPanel: {
-    marginHorizontal: 12,
-    marginBottom: 6,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    gap: 4,
-  },
   liveLocationHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -1049,7 +1144,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     opacity: 0.65,
     paddingHorizontal: 14,
-    paddingBottom: 6,
+    paddingBottom: 4,
   },
   center: {
     flex: 1,
@@ -1069,7 +1164,8 @@ const styles = StyleSheet.create({
   retryBtnText: { color: "#FFF", fontWeight: "700" },
   messagesContent: {
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingTop: 8,
+    paddingBottom: 12,
     gap: 8,
     flexGrow: 1,
   },

@@ -2,6 +2,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { uiCardShadow, uiSectionEnter } from "@/presentation/lib/uiAnimations";
 import {
   usePublicUserProfile,
   useSellerReviews,
@@ -17,7 +18,6 @@ import { useRouter } from "expo-router";
 import { memo, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -42,27 +42,17 @@ type Props = { userId: string };
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const SECTION_STAGGER_MS = 48;
 
-function cardShadow(scheme: "light" | "dark") {
-  const isDark = scheme === "dark";
-  return Platform.select({
-    ios: {
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: isDark ? 8 : 6 },
-      shadowOpacity: isDark ? 0.35 : 0.1,
-      shadowRadius: isDark ? 14 : 12,
-    },
-    android: { elevation: isDark ? 6 : 4 },
-    default: {},
-  });
-}
-
 function cardSurface(scheme: "light" | "dark") {
   return scheme === "dark" ? "#23272E" : "#FFFFFF";
 }
 
 function staggerEnter(delay: number, reduceMotion: boolean | null) {
-  if (reduceMotion) return undefined;
-  return FadeInUp.duration(420).delay(delay).springify().damping(18).stiffness(220);
+  return uiSectionEnter(delay, reduceMotion, {
+    direction: "up",
+    duration: 420,
+    damping: 18,
+    stiffness: 220,
+  });
 }
 
 const ReviewBar = memo(function ReviewBar({
@@ -177,7 +167,20 @@ export function PublicSellerProfileScreen({ userId }: Props) {
           >
             <Animated.View
               entering={staggerEnter(0, reduceMotion)}
-              style={[styles.sellerCard, cardShadow(scheme), { backgroundColor: surface, borderColor }]}
+              style={[
+                styles.sellerCard,
+                uiCardShadow(scheme, {
+                  iosOffsetLight: 6,
+                  iosOffsetDark: 8,
+                  iosOpacityLight: 0.1,
+                  iosOpacityDark: 0.35,
+                  iosRadiusLight: 12,
+                  iosRadiusDark: 14,
+                  androidElevationLight: 4,
+                  androidElevationDark: 6,
+                }),
+                { backgroundColor: surface, borderColor },
+              ]}
             >
               <View style={[styles.avatarRing, { borderColor: colors.tint + "50" }]}>
                 <Image
@@ -208,7 +211,20 @@ export function PublicSellerProfileScreen({ userId }: Props) {
 
             <Animated.View
               entering={staggerEnter(SECTION_STAGGER_MS, reduceMotion)}
-              style={[styles.statsCard, cardShadow(scheme), { backgroundColor: surface, borderColor }]}
+              style={[
+                styles.statsCard,
+                uiCardShadow(scheme, {
+                  iosOffsetLight: 6,
+                  iosOffsetDark: 8,
+                  iosOpacityLight: 0.1,
+                  iosOpacityDark: 0.35,
+                  iosRadiusLight: 12,
+                  iosRadiusDark: 14,
+                  androidElevationLight: 4,
+                  androidElevationDark: 6,
+                }),
+                { backgroundColor: surface, borderColor },
+              ]}
             >
               <View style={[styles.statItem, { backgroundColor: colors.tint + "0C" }]}>
                 <MaterialIcons name="store" size={18} color={colors.tint} />
@@ -237,7 +253,20 @@ export function PublicSellerProfileScreen({ userId }: Props) {
 
             <Animated.View
               entering={staggerEnter(SECTION_STAGGER_MS * 2, reduceMotion)}
-              style={[styles.breakdownCard, cardShadow(scheme), { backgroundColor: surface, borderColor }]}
+              style={[
+                styles.breakdownCard,
+                uiCardShadow(scheme, {
+                  iosOffsetLight: 6,
+                  iosOffsetDark: 8,
+                  iosOpacityLight: 0.1,
+                  iosOpacityDark: 0.35,
+                  iosRadiusLight: 12,
+                  iosRadiusDark: 14,
+                  androidElevationLight: 4,
+                  androidElevationDark: 6,
+                }),
+                { backgroundColor: surface, borderColor },
+              ]}
             >
               <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
                 {t("publicProfileReviewsSection")}
@@ -270,7 +299,20 @@ export function PublicSellerProfileScreen({ userId }: Props) {
                             .springify()
                             .damping(18)
                     }
-                    style={[styles.reviewItem, cardShadow(scheme), { backgroundColor: surface, borderColor }]}
+                    style={[
+                      styles.reviewItem,
+                      uiCardShadow(scheme, {
+                        iosOffsetLight: 6,
+                        iosOffsetDark: 8,
+                        iosOpacityLight: 0.1,
+                        iosOpacityDark: 0.35,
+                        iosRadiusLight: 12,
+                        iosRadiusDark: 14,
+                        androidElevationLight: 4,
+                        androidElevationDark: 6,
+                      }),
+                      { backgroundColor: surface, borderColor },
+                    ]}
                   >
                     <ThemedText style={styles.reviewStars}>
                       {"★".repeat(Math.max(1, item.stars))}
@@ -301,7 +343,16 @@ export function PublicSellerProfileScreen({ userId }: Props) {
                 disabled={page <= 1}
                 style={[
                   styles.pageBtn,
-                  cardShadow(scheme),
+                  uiCardShadow(scheme, {
+                    iosOffsetLight: 6,
+                    iosOffsetDark: 8,
+                    iosOpacityLight: 0.1,
+                    iosOpacityDark: 0.35,
+                    iosRadiusLight: 12,
+                    iosRadiusDark: 14,
+                    androidElevationLight: 4,
+                    androidElevationDark: 6,
+                  }),
                   { backgroundColor: surface, borderColor },
                   page <= 1 && { opacity: 0.5 },
                 ]}
@@ -319,7 +370,16 @@ export function PublicSellerProfileScreen({ userId }: Props) {
                 disabled={!reviewsQuery.data?.hasNextPage}
                 style={[
                   styles.pageBtn,
-                  cardShadow(scheme),
+                  uiCardShadow(scheme, {
+                    iosOffsetLight: 6,
+                    iosOffsetDark: 8,
+                    iosOpacityLight: 0.1,
+                    iosOpacityDark: 0.35,
+                    iosRadiusLight: 12,
+                    iosRadiusDark: 14,
+                    androidElevationLight: 4,
+                    androidElevationDark: 6,
+                  }),
                   { backgroundColor: surface, borderColor },
                   !reviewsQuery.data?.hasNextPage && { opacity: 0.5 },
                 ]}

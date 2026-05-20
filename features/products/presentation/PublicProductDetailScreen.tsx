@@ -8,11 +8,11 @@ import {
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useOpenChatRoom } from "@/presentation/hooks/useClientChat";
+import { useClientProductDetail, useSellerReviews } from "@/presentation/hooks/useClientProducts";
+import { uiCardShadow, uiSectionEnter } from "@/presentation/lib/uiAnimations";
 import {
-  useClientProductDetail,
-  useSellerReviews,
-} from "@/presentation/hooks/useClientProducts";
-import { buildLeafletStaticViewHtml } from "@/presentation/lib/leafletPickerHtml";
+  buildLeafletStaticViewHtml,
+} from "@/presentation/lib/leafletPickerHtml";
 import {
   canOpenMapsForTarget,
   openInMapsApp,
@@ -42,7 +42,6 @@ import {
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -86,31 +85,17 @@ const MAP_HEIGHT = 260;
 const HERO_CARD_H_MARGIN = 12;
 const HERO_CARD_PADDING = 14;
 
-function cardShadow(scheme: "light" | "dark") {
-  const isDark = scheme === "dark";
-  return Platform.select({
-    ios: {
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: isDark ? 10 : 8 },
-      shadowOpacity: isDark ? 0.38 : 0.12,
-      shadowRadius: isDark ? 18 : 16,
-    },
-    android: { elevation: isDark ? 8 : 5 },
-    default: {},
-  });
-}
-
 function cardSurface(scheme: "light" | "dark") {
   return scheme === "dark" ? "#23272E" : "#FFFFFF";
 }
 
 function staggerEnter(delay: number, reduceMotion: boolean | null) {
-  if (reduceMotion) return undefined;
-  return FadeInUp.duration(440)
-    .delay(delay)
-    .springify()
-    .damping(18)
-    .stiffness(220);
+  return uiSectionEnter(delay, reduceMotion, {
+    direction: "up",
+    duration: 440,
+    damping: 18,
+    stiffness: 220,
+  });
 }
 
 function paymentMethodLabel(method: string, t: ReturnType<typeof useLocale>["t"]) {
@@ -221,7 +206,22 @@ const SectionCard = memo(function SectionCard({
   const reduceMotion = useReducedMotion();
   return (
     <Animated.View entering={staggerEnter(enterDelay, reduceMotion)} style={styles.sectionWrap}>
-      <View style={[styles.sectionCard, cardShadow(scheme), { backgroundColor: surface, borderColor }]}>
+      <View
+        style={[
+          styles.sectionCard,
+          uiCardShadow(scheme, {
+            iosOffsetLight: 8,
+            iosOffsetDark: 10,
+            iosOpacityLight: 0.12,
+            iosOpacityDark: 0.38,
+            iosRadiusLight: 16,
+            iosRadiusDark: 18,
+            androidElevationLight: 5,
+            androidElevationDark: 8,
+          }),
+          { backgroundColor: surface, borderColor },
+        ]}
+      >
         <View style={styles.sectionHeader}>
           <View style={[styles.sectionIconWrap, { backgroundColor: tint + "18" }]}>
             <MaterialIcons name={icon} size={18} color={tint} />
@@ -665,7 +665,20 @@ export function PublicProductDetailScreen({ productId }: Props) {
         >
         <Animated.View
           entering={staggerEnter(0, reduceMotion)}
-          style={[styles.mapCard, cardShadow(scheme), { borderColor }]}
+          style={[
+            styles.mapCard,
+            uiCardShadow(scheme, {
+              iosOffsetLight: 8,
+              iosOffsetDark: 10,
+              iosOpacityLight: 0.12,
+              iosOpacityDark: 0.38,
+              iosRadiusLight: 16,
+              iosRadiusDark: 18,
+              androidElevationLight: 5,
+              androidElevationDark: 8,
+            }),
+            { borderColor },
+          ]}
         >
             {hasCoordinates ? (
               <>
@@ -763,7 +776,20 @@ export function PublicProductDetailScreen({ productId }: Props) {
 
         <Animated.View
           entering={staggerEnter(SECTION_STAGGER_MS, reduceMotion)}
-          style={[styles.heroCard, cardShadow(scheme), { backgroundColor: surface, borderColor }]}
+          style={[
+            styles.heroCard,
+            uiCardShadow(scheme, {
+              iosOffsetLight: 8,
+              iosOffsetDark: 10,
+              iosOpacityLight: 0.12,
+              iosOpacityDark: 0.38,
+              iosRadiusLight: 16,
+              iosRadiusDark: 18,
+              androidElevationLight: 5,
+              androidElevationDark: 8,
+            }),
+            { backgroundColor: surface, borderColor },
+          ]}
         >
               {images.length > 0 ? (
             <>
@@ -855,7 +881,20 @@ export function PublicProductDetailScreen({ productId }: Props) {
 
         <Animated.View
           entering={staggerEnter(SECTION_STAGGER_MS * 2, reduceMotion)}
-          style={[styles.sellerCard, cardShadow(scheme), { backgroundColor: surface, borderColor }]}
+          style={[
+            styles.sellerCard,
+            uiCardShadow(scheme, {
+              iosOffsetLight: 8,
+              iosOffsetDark: 10,
+              iosOpacityLight: 0.12,
+              iosOpacityDark: 0.38,
+              iosRadiusLight: 16,
+              iosRadiusDark: 18,
+              androidElevationLight: 5,
+              androidElevationDark: 8,
+            }),
+            { backgroundColor: surface, borderColor },
+          ]}
         >
           <Pressable
             style={styles.sellerRow}
@@ -1071,7 +1110,16 @@ export function PublicProductDetailScreen({ productId }: Props) {
         entering={reduceMotion ? undefined : FadeInDown.duration(380).springify().damping(20)}
         style={[
           styles.chatBar,
-          cardShadow(scheme),
+          uiCardShadow(scheme, {
+            iosOffsetLight: 8,
+            iosOffsetDark: 10,
+            iosOpacityLight: 0.12,
+            iosOpacityDark: 0.38,
+            iosRadiusLight: 16,
+            iosRadiusDark: 18,
+            androidElevationLight: 5,
+            androidElevationDark: 8,
+          }),
           {
             borderTopColor: borderColor,
             backgroundColor: surface,

@@ -2,6 +2,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import type { Product } from "@/core/domain/entities/Product";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { uiCardShadow, uiListItemEnter } from "@/presentation/lib/uiAnimations";
 import { productStatusLabelKey, useLocale } from "@/presentation/providers/LocaleProvider";
 
 import { parseProductStatus, statusBadgeColors } from "./myProductStatus";
@@ -9,7 +10,7 @@ import { ProductListingThumbnail } from "@/components/product-listing-thumbnail"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 import { memo } from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   Extrapolation,
   FadeInUp,
@@ -25,8 +26,6 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 const IMAGE_SIZE = 56;
 const ICON_BTN = 26;
-const MAX_STAGGER = 8;
-const STAGGER_MS = 48;
 
 export type MyProductCardProps = {
   product: Product;
@@ -37,20 +36,6 @@ export type MyProductCardProps = {
   onArchive: (product: Product) => void;
   archivePending: boolean;
 };
-
-function cardShadow(scheme: "light" | "dark") {
-  const isDark = scheme === "dark";
-  return Platform.select({
-    ios: {
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: isDark ? 6 : 4 },
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: isDark ? 12 : 10,
-    },
-    android: { elevation: isDark ? 4 : 3 },
-    default: {},
-  });
-}
 
 export const MyProductCard = memo(function MyProductCard({
   product,
@@ -70,19 +55,28 @@ export const MyProductCard = memo(function MyProductCard({
   const status = parseProductStatus(product.status, product.isAvailable);
   const badge = statusBadgeColors(status, scheme);
 
-  const entering = reduceMotion
-    ? undefined
-    : FadeInUp.duration(380)
-        .delay(Math.min(index, MAX_STAGGER) * STAGGER_MS)
-        .springify()
-        .damping(18);
+  const entering = uiListItemEnter(index, reduceMotion, {
+    duration: 380,
+    staggerMs: 48,
+    maxItems: 8,
+    damping: 18,
+  });
 
   return (
     <Animated.View entering={entering}>
       <View
         style={[
           styles.card,
-          cardShadow(scheme),
+          uiCardShadow(scheme, {
+            iosOffsetLight: 4,
+            iosOffsetDark: 6,
+            iosOpacityLight: 0.08,
+            iosOpacityDark: 0.3,
+            iosRadiusLight: 10,
+            iosRadiusDark: 12,
+            androidElevationLight: 3,
+            androidElevationDark: 4,
+          }),
           {
             borderColor: colors.icon + "22",
             backgroundColor: scheme === "dark" ? "#1C1F24" : "#FFFFFF",

@@ -10,6 +10,11 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useBuyerCatalogLocation } from "@/presentation/hooks/useBuyerCatalogLocation";
 import { useCategories } from "@/presentation/hooks/useCategories";
 import { useClientProductsCatalog } from "@/presentation/hooks/useClientProducts";
+import {
+  uiCardShadow,
+  uiLayoutTransition,
+  uiListItemEnter,
+} from "@/presentation/lib/uiAnimations";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
@@ -17,7 +22,6 @@ import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Platform,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -30,7 +34,6 @@ import Animated, {
   FadeIn,
   FadeInDown,
   FadeInUp,
-  LinearTransition,
   interpolate,
   interpolateColor,
   useAnimatedStyle,
@@ -47,8 +50,6 @@ import { HomeSlider } from "./HomeSlider";
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 const PRODUCT_IMAGE_SIZE = 80;
-const LIST_ITEM_STAGGER_MS = 52;
-const MAX_STAGGER_ITEMS = 10;
 
 function flattenCategories(tree: Category[] | undefined): Category[] {
   if (!tree || tree.length === 0) return [];
@@ -58,20 +59,6 @@ function flattenCategories(tree: Category[] | undefined): Category[] {
     for (const child of root.children) out.push(child);
   }
   return out;
-}
-
-function cardShadow(scheme: "light" | "dark") {
-  const isDark = scheme === "dark";
-  return Platform.select({
-    ios: {
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: isDark ? 8 : 6 },
-      shadowOpacity: isDark ? 0.35 : 0.1,
-      shadowRadius: isDark ? 16 : 14,
-    },
-    android: { elevation: isDark ? 6 : 4 },
-    default: {},
-  });
 }
 
 const ProductCard = memo(function ProductCard({
@@ -114,17 +101,17 @@ const ProductCard = memo(function ProductCard({
     pressed.value = withSpring(0, { damping: 14, stiffness: 320 });
   };
 
-  const entering = reduceMotion
-    ? undefined
-    : FadeInUp.duration(420)
-        .delay(Math.min(index, MAX_STAGGER_ITEMS) * LIST_ITEM_STAGGER_MS)
-        .springify()
-        .damping(18);
+  const entering = uiListItemEnter(index, reduceMotion, {
+    duration: 420,
+    staggerMs: 52,
+    maxItems: 10,
+    damping: 18,
+  });
 
   return (
     <Animated.View
       entering={entering}
-      layout={LinearTransition.springify().damping(20).stiffness(200)}
+      layout={uiLayoutTransition}
       style={cardAnimStyle}
     >
       <AnimatedPressable
@@ -133,7 +120,16 @@ const ProductCard = memo(function ProductCard({
         onPressOut={onPressOut}
         style={[
           styles.productCard,
-          cardShadow(scheme),
+          uiCardShadow(scheme, {
+            iosOffsetLight: 6,
+            iosOffsetDark: 8,
+            iosOpacityLight: 0.1,
+            iosOpacityDark: 0.35,
+            iosRadiusLight: 14,
+            iosRadiusDark: 16,
+            androidElevationLight: 4,
+            androidElevationDark: 6,
+          }),
           {
             borderColor: `${colors.icon}22`,
             backgroundColor: scheme === "dark" ? "#1C1F24" : "#FFFFFF",
@@ -364,7 +360,16 @@ export function HomeScreen() {
           entering={filterPanelEntering}
           style={[
             styles.filtersPanel,
-            cardShadow(scheme),
+            uiCardShadow(scheme, {
+              iosOffsetLight: 6,
+              iosOffsetDark: 8,
+              iosOpacityLight: 0.1,
+              iosOpacityDark: 0.35,
+              iosRadiusLight: 14,
+              iosRadiusDark: 16,
+              androidElevationLight: 4,
+              androidElevationDark: 6,
+            }),
             {
               backgroundColor: scheme === "dark" ? "#1A1D22" : "#FFFFFF",
               borderColor: colors.icon + "20",
@@ -529,7 +534,7 @@ export function HomeScreen() {
         itemLayoutAnimation={
           reduceMotion
             ? undefined
-            : LinearTransition.springify().damping(22).stiffness(180)
+            : uiLayoutTransition.damping(22).stiffness(180)
         }
         refreshControl={
           <RefreshControl

@@ -11,11 +11,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+import { useReducedMotion } from "react-native-reanimated";
 import { z } from "zod";
 
 import { AuthLogo } from "@/components/auth-logo";
@@ -31,6 +27,13 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
+
+import {
+  AuthAnimatedSection,
+  AuthLanguageBar,
+  AuthPrimaryButton,
+  AuthStaggerItem,
+} from "./authAnimated";
 
 function normalizePhone(raw: string, countryCode: PhoneCountry["code"]): string {
   const trimmed = (raw ?? "").trim();
@@ -51,7 +54,9 @@ export function LoginScreen() {
   const { login } = useAuth();
   const { locale, setLocale, t } = useLocale();
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const scheme = colorScheme ?? "light";
+  const colors = Colors[scheme];
+  const reduceMotion = useReducedMotion();
 
   const phoneSchema = z.object({
     mode: z.literal("phone"),
@@ -135,27 +140,6 @@ export function LoginScreen() {
     }
   };
 
-  const [languageWidth, setLanguageWidth] = useState(0);
-  const langIndex = locale === "ko" ? 0 : locale === "my" ? 1 : 2;
-  const pillX = useSharedValue(0);
-
-  const pillStyle = useAnimatedStyle(() => {
-    const w = languageWidth > 0 ? languageWidth / 3 : 0;
-    return {
-      width: w,
-      transform: [{ translateX: pillX.value }],
-    };
-  }, [languageWidth]);
-
-  // keep animation in sync with state + layout width
-  if (languageWidth > 0) {
-    const w = languageWidth / 3;
-    const target = w * langIndex;
-    if (pillX.value !== target) {
-      pillX.value = withTiming(target, { duration: 420 });
-    }
-  }
-
   return (
     <ThemedView style={styles.container}>
       <KeyboardAvoidingView
@@ -167,7 +151,7 @@ export function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
+          <AuthAnimatedSection delayMs={0} reduceMotion={reduceMotion} style={styles.header}>
             <AuthLogo variant="compact" />
             <ThemedText numberOfLines={1} type="title" style={styles.appTitle}>
               {t("appName")}
@@ -175,10 +159,10 @@ export function LoginScreen() {
             <ThemedText style={styles.subtitle}>
               {t("signInSubtitle")}
             </ThemedText>
-          </View>
+          </AuthAnimatedSection>
 
           <View style={styles.form}>
-            <View style={styles.field}>
+            <AuthStaggerItem index={0} reduceMotion={reduceMotion} style={styles.field}>
               <ThemedText style={styles.label}>{t("phone")}</ThemedText>
               <PhoneNumberInput
                 value={phone}
@@ -192,9 +176,9 @@ export function LoginScreen() {
               {errors.phone && (
                 <ThemedText style={styles.error}>{errors.phone}</ThemedText>
               )}
-            </View>
+            </AuthStaggerItem>
 
-            <View style={styles.field}>
+            <AuthStaggerItem index={1} reduceMotion={reduceMotion} style={styles.field}>
               <ThemedText style={styles.label}>{t("loginPasswordLabel")}</ThemedText>
               <PasswordInput
                 value={password}
@@ -209,25 +193,24 @@ export function LoginScreen() {
               {errors.password && (
                 <ThemedText style={styles.error}>{errors.password}</ThemedText>
               )}
-            </View>
+            </AuthStaggerItem>
 
-            <Pressable
-              style={[
-                styles.button,
-                { backgroundColor: colors.tint },
-                isSubmitting && styles.buttonDisabled,
-              ]}
-              onPress={handleLogin}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <ThemedText style={styles.buttonText}>{t("signIn")}</ThemedText>
-              )}
-            </Pressable>
+            <AuthStaggerItem index={2} reduceMotion={reduceMotion}>
+              <AuthPrimaryButton
+                onPress={handleLogin}
+                disabled={isSubmitting}
+                backgroundColor={colors.tint}
+                style={[styles.button, isSubmitting && styles.buttonDisabled]}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <ThemedText style={styles.buttonText}>{t("signIn")}</ThemedText>
+                )}
+              </AuthPrimaryButton>
+            </AuthStaggerItem>
 
-            <View style={styles.signUpRow}>
+            <AuthStaggerItem index={3} reduceMotion={reduceMotion} style={styles.signUpRow}>
               <ThemedText style={styles.signUpText}>
                 {t("noAccount")}{" "}
               </ThemedText>
@@ -239,62 +222,18 @@ export function LoginScreen() {
                   {t("signUp")}
                 </ThemedText>
               </Pressable>
-            </View>
+            </AuthStaggerItem>
           </View>
         </ScrollView>
 
-        {/* Bottom language bar (matches Figma: wide pill with flag buttons) */}
-        <View pointerEvents="box-none" style={styles.languageDock}>
-          <View
-            style={[
-              styles.languageBar,
-              { backgroundColor: colors.background, borderColor: colors.tint },
-            ]}
-            onLayout={(e) => setLanguageWidth(e.nativeEvent.layout.width - 16)}
-          >
-            <Animated.View
-              style={[
-                styles.languagePill,
-                { backgroundColor: colors.tint },
-                pillStyle,
-              ]}
-            />
-
-            <Pressable
-              disabled={isSubmitting}
-              style={styles.flagButton}
-              onPress={() => setLocale("ko")}
-            >
-              <ThemedText
-                style={[styles.flag, locale === "ko" && styles.flagSelected]}
-              >
-                🇰🇷
-              </ThemedText>
-            </Pressable>
-            <Pressable
-              disabled={isSubmitting}
-              style={styles.flagButton}
-              onPress={() => setLocale("my")}
-            >
-              <ThemedText
-                style={[styles.flag, locale === "my" && styles.flagSelected]}
-              >
-                🇲🇲
-              </ThemedText>
-            </Pressable>
-            <Pressable
-              disabled={isSubmitting}
-              style={styles.flagButton}
-              onPress={() => setLocale("zh")}
-            >
-              <ThemedText
-                style={[styles.flag, locale === "zh" && styles.flagSelected]}
-              >
-                🇨🇳
-              </ThemedText>
-            </Pressable>
-          </View>
-        </View>
+        <AuthLanguageBar
+          locale={locale}
+          onSelect={setLocale}
+          scheme={scheme}
+          colors={colors}
+          disabled={isSubmitting}
+          reduceMotion={reduceMotion}
+        />
       </KeyboardAvoidingView>
     </ThemedView>
   );
@@ -377,48 +316,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "600",
     fontSize: 16,
-  },
-  languageDock: {
-    position: "absolute",
-    left: 24,
-    right: 24,
-    bottom: 18,
-  },
-  languageBar: {
-    height: 56,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    position: "relative",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
-  },
-  languagePill: {
-    position: "absolute",
-    left: 8,
-    top: 8,
-    bottom: 8,
-    borderRadius: 12,
-  },
-  flagButton: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  flag: {
-    fontSize: 22,
-    opacity: 0.95,
-  },
-  flagSelected: {
-    color: "#fff",
-    opacity: 1,
   },
   signUpRow: {
     flexDirection: "row",

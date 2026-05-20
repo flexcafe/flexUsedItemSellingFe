@@ -4,6 +4,7 @@ import { Colors } from "@/constants/theme";
 import type { Product } from "@/core/domain/entities/Product";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useProduct } from "@/presentation/hooks/useProducts";
+import { uiSectionEnter } from "@/presentation/lib/uiAnimations";
 import { buildLeafletStaticViewHtml } from "@/presentation/lib/leafletPickerHtml";
 import {
   formatProductConditionForDisplay,
@@ -29,7 +30,6 @@ import {
 import Animated, {
   Extrapolation,
   FadeIn,
-  FadeInUp,
   interpolate,
   interpolateColor,
   useAnimatedStyle,
@@ -58,8 +58,12 @@ const DOT_MIN_W = 6;
 const DOT_MAX_W = 18;
 
 function staggerEnter(delay: number, reduceMotion: boolean | null) {
-  if (reduceMotion) return undefined;
-  return FadeInUp.duration(420).delay(delay).springify().damping(18).stiffness(220);
+  return uiSectionEnter(delay, reduceMotion, {
+    direction: "up",
+    duration: 420,
+    damping: 18,
+    stiffness: 220,
+  });
 }
 
 const GalleryDot = memo(function GalleryDot({

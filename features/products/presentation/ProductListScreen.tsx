@@ -45,7 +45,9 @@ import {
 import { File, Paths } from "expo-file-system";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Animated, { useReducedMotion } from "react-native-reanimated";
 
+import { uiContentEnter } from "@/presentation/lib/uiAnimations";
 import { MyProductDetailSheet } from "./MyProductDetailSheet";
 import { MyProductsListing } from "./MyProductsListing";
 
@@ -285,6 +287,7 @@ export function ProductListScreen() {
   const { t, tf } = useLocale();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+  const reduceMotion = useReducedMotion();
   const params = useLocalSearchParams<{ openCreate?: string }>();
   const chipSelected = (on: boolean) =>
     on
@@ -1135,6 +1138,10 @@ export function ProductListScreen() {
 
   return (
     <>
+      <Animated.View
+        entering={uiContentEnter(reduceMotion)}
+        style={styles.screenRoot}
+      >
       <MyProductsListing
         products={products}
         totalCount={totalCount}
@@ -1156,6 +1163,7 @@ export function ProductListScreen() {
         onEdit={openEdit}
         onArchive={onArchive}
       />
+      </Animated.View>
 
       <MyProductDetailSheet
         productId={detailId}
@@ -2150,6 +2158,9 @@ export function ProductListScreen() {
 }
 
 const styles = StyleSheet.create({
+  screenRoot: {
+    flex: 1,
+  },
   centered: {
     flex: 1,
     justifyContent: "center",

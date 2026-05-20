@@ -1,7 +1,7 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -10,6 +10,15 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import Animated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
@@ -19,6 +28,13 @@ import { Colors } from "@/constants/theme";
 import type { ChatRoom } from "@/core/domain/entities/Chat";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useChatRooms } from "@/presentation/hooks/useClientChat";
+import {
+  uiCardShadow,
+  uiFadeEnter,
+  uiLayoutTransition,
+  uiListItemEnter,
+  uiSectionEnter,
+} from "@/presentation/lib/uiAnimations";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 import {
@@ -32,61 +48,82 @@ import {
   sortInboxRooms,
 } from "./chatFormat";
 
-export function ChatInboxScreen() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { t } = useLocale();
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
-  const topInset = paddingTopBelowLanguageSwitcher(insets.top);
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-  const roomsQuery = useChatRooms({ take: 20 });
-  const rooms = useMemo(() => {
-    const items = roomsQuery.data?.pages.flatMap((page) => page.items) ?? [];
-    return sortInboxRooms(filterInboxRooms(items, user?.id));
-  }, [roomsQuery.data, user?.id]);
+type InboxRowProps = {
+  item: ChatRoom;
+  index: number;
+  colors: (typeof Colors)["light"];
+  scheme: "light" | "dark";
+  currentUserId: string | undefined;
+  onOpen: (room: ChatRoom) => void;
+  t: ReturnType<typeof useLocale>["t"];
+};
 
-  const onOpenRoom = (room: ChatRoom) => {
-    router.push({
-      pathname: "/chat/room/[chatRoomId]",
-      params: {
-        chatRoomId: room.id,
-        listingTitle: room.listingTitle ?? "",
-        listingImageUrl: room.listingImageUrl ?? "",
-        peerName: room.counterpartNickname ?? "",
-        peerUserId: room.counterpartUserId ?? "",
+const ChatInboxRow = memo(function ChatInboxRow({
+  item,
+  index,
+  colors,
+  scheme,
+  currentUserId,
+  onOpen,
+  t,
+}: InboxRowProps) {
+  const reduceMotion = useReducedMotion();
+  const pressed = useSharedValue(0);
+
+  const title = roomListingTitle(item, t("chatListingFallback"));
+  const peer = roomPeerLabel(
+    item,
+    currentUserId,
+    t("chatSellerFallback"),
+    t("chatBuyerFallback"),
+  );
+  const priceLabel = formatRoomListingPrice(item.listingPrice);
+  const preview = inboxPreviewText(
+    item,
+    t("chatNoMessagesYet"),
+    t("chatTapToStart"),
+  );
+  const unread = displayUnreadCount(item, currentUserId);
+  const time = formatChatTimestamp(
+    item.lastMessage?.createdAt ?? item.updatedAt,
+  );
+
+  const cardAnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scale: interpolate(pressed.value, [0, 1], [1, 0.985], Extrapolation.CLAMP),
       },
-    });
+    ],
+  }));
+
+  const onPressIn = () => {
+    if (reduceMotion) return;
+    pressed.value = withTiming(1, { duration: 90 });
   };
 
-  const renderItem = ({ item }: { item: ChatRoom }) => {
-    const title = roomListingTitle(item, t("chatListingFallback"));
-    const peer = roomPeerLabel(
-      item,
-      user?.id,
-      t("chatSellerFallback"),
-      t("chatBuyerFallback"),
-    );
-    const priceLabel = formatRoomListingPrice(item.listingPrice);
-    const preview = inboxPreviewText(
-      item,
-      t("chatNoMessagesYet"),
-      t("chatTapToStart"),
-    );
-    const unread = displayUnreadCount(item, user?.id);
-    const time = formatChatTimestamp(
-      item.lastMessage?.createdAt ?? item.updatedAt,
-    );
+  const onPressOut = () => {
+    if (reduceMotion) return;
+    pressed.value = withSpring(0, { damping: 14, stiffness: 320 });
+  };
 
-    return (
-      <Pressable
-        onPress={() => onOpenRoom(item)}
-        style={({ pressed }) => [
+  return (
+    <Animated.View
+      entering={uiListItemEnter(index, reduceMotion)}
+      layout={uiLayoutTransition}
+      style={cardAnimStyle}
+    >
+      <AnimatedPressable
+        onPress={() => onOpen(item)}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        style={[
           styles.row,
+          uiCardShadow(scheme),
           {
             borderColor: colors.icon + "33",
-            backgroundColor: pressed ? colors.tint + "10" : colors.background,
+            backgroundColor: scheme === "dark" ? "#1C1F24" : "#FFFFFF",
           },
           unread > 0 && { borderColor: colors.tint + "55" },
         ]}
@@ -120,7 +157,10 @@ export function ChatInboxScreen() {
               style={[
                 styles.peerAvatar,
                 styles.peerAvatarFallback,
-                { backgroundColor: colors.tint + "22", borderColor: colors.background },
+                {
+                  backgroundColor: colors.tint + "22",
+                  borderColor: colors.background,
+                },
               ]}
             >
               <MaterialIcons name="person" size={14} color={colors.tint} />
@@ -155,25 +195,77 @@ export function ChatInboxScreen() {
             </ThemedText>
           </View>
         ) : null}
-      </Pressable>
-    );
+      </AnimatedPressable>
+    </Animated.View>
+  );
+});
+
+export function ChatInboxScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { t } = useLocale();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const colorScheme = useColorScheme();
+  const scheme = colorScheme ?? "light";
+  const colors = Colors[scheme];
+  const reduceMotion = useReducedMotion();
+  const topInset = paddingTopBelowLanguageSwitcher(insets.top);
+
+  const roomsQuery = useChatRooms({ take: 20 });
+  const rooms = useMemo(() => {
+    const items = roomsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+    return sortInboxRooms(filterInboxRooms(items, user?.id));
+  }, [roomsQuery.data, user?.id]);
+
+  const onOpenRoom = (room: ChatRoom) => {
+    router.push({
+      pathname: "/chat/room/[chatRoomId]",
+      params: {
+        chatRoomId: room.id,
+        listingTitle: room.listingTitle ?? "",
+        listingImageUrl: room.listingImageUrl ?? "",
+        peerName: room.counterpartNickname ?? "",
+        peerUserId: room.counterpartUserId ?? "",
+      },
+    });
   };
+
+  const renderItem = ({ item, index }: { item: ChatRoom; index: number }) => (
+    <ChatInboxRow
+      item={item}
+      index={index}
+      colors={colors}
+      scheme={scheme}
+      currentUserId={user?.id}
+      onOpen={onOpenRoom}
+      t={t}
+    />
+  );
 
   return (
     <ThemedView style={styles.screen}>
-      <View style={[styles.header, { paddingTop: topInset }]}>
+      <Animated.View
+        entering={uiSectionEnter(0, reduceMotion)}
+        style={[styles.header, { paddingTop: topInset }]}
+      >
         <ThemedText type="title">{t("chatInboxTitle")}</ThemedText>
         <ThemedText style={styles.subtitle}>
           {t("chatInboxSubtitle")}
         </ThemedText>
-      </View>
+      </Animated.View>
 
       {authLoading || (isAuthenticated && roomsQuery.isPending) ? (
-        <View style={styles.center}>
+        <Animated.View
+          entering={uiFadeEnter(reduceMotion)}
+          style={styles.center}
+        >
           <ActivityIndicator size="large" color={colors.tint} />
-        </View>
+        </Animated.View>
       ) : roomsQuery.isError ? (
-        <View style={styles.center}>
+        <Animated.View
+          entering={uiFadeEnter(reduceMotion, 320)}
+          style={styles.center}
+        >
           <ThemedText style={styles.errorText}>
             {t("chatInboxLoadFailed")}
           </ThemedText>
@@ -185,7 +277,7 @@ export function ChatInboxScreen() {
               {t("chatRetry")}
             </ThemedText>
           </Pressable>
-        </View>
+        </Animated.View>
       ) : (
         <FlatList
           data={rooms}
@@ -209,7 +301,10 @@ export function ChatInboxScreen() {
           }}
           onEndReachedThreshold={0.4}
           ListEmptyComponent={
-            <View style={[styles.emptyBox, { borderColor: colors.icon }]}>
+            <Animated.View
+              entering={uiFadeEnter(reduceMotion, 400)}
+              style={[styles.emptyBox, { borderColor: colors.icon }]}
+            >
               <MaterialIcons name="forum" size={40} color={colors.icon} />
               <ThemedText style={styles.emptyTitle}>
                 {t("chatInboxEmpty")}
@@ -217,7 +312,7 @@ export function ChatInboxScreen() {
               <ThemedText style={styles.emptyHint}>
                 {t("chatInboxEmptyHint")}
               </ThemedText>
-            </View>
+            </Animated.View>
           }
           ListFooterComponent={
             roomsQuery.isFetchingNextPage ? (
