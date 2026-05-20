@@ -26,6 +26,61 @@ export function messagePreview(
   return message.content?.trim() || message.type.replaceAll("_", " ");
 }
 
+/** True when the room has at least one real message on the server. */
+export function roomHasRealMessage(room: ChatRoom): boolean {
+  const message = room.lastMessage;
+  if (!message?.id || message.id.startsWith("preview-")) return false;
+  if (message.type !== "TEXT") return true;
+  return Boolean(message.content?.trim());
+}
+
+/** Seller: no badge until the buyer sends the first message. */
+export function displayUnreadCount(
+  room: ChatRoom,
+  currentUserId: string | null | undefined,
+): number {
+  if (currentUserId === room.sellerId && !roomHasRealMessage(room)) {
+    return 0;
+  }
+  return Math.max(0, room.unreadCount);
+}
+
+export function filterInboxRooms(
+  rooms: ChatRoom[],
+  currentUserId: string | null | undefined,
+): ChatRoom[] {
+  if (!currentUserId) return rooms;
+  return rooms.filter((room) => {
+    if (room.sellerId !== currentUserId) return true;
+    return roomHasRealMessage(room);
+  });
+}
+
+export function sortInboxRooms(rooms: ChatRoom[]): ChatRoom[] {
+  const withMessage: ChatRoom[] = [];
+  const withoutMessage: ChatRoom[] = [];
+  for (const room of rooms) {
+    if (roomHasRealMessage(room)) withMessage.push(room);
+    else withoutMessage.push(room);
+  }
+  const byUpdatedDesc = (a: ChatRoom, b: ChatRoom) =>
+    new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  return [
+    ...withMessage.sort(byUpdatedDesc),
+    ...withoutMessage.sort(byUpdatedDesc),
+  ];
+}
+
+export function inboxPreviewText(
+  room: ChatRoom,
+  noMessagesLabel: string,
+  tapToStartLabel: string,
+): string {
+  if (!roomHasRealMessage(room)) return tapToStartLabel;
+  const preview = messagePreview(room.lastMessage);
+  return preview || noMessagesLabel;
+}
+
 /** Latest location system message wins (messages oldest → newest). */
 export function isLocationSharingActive(messages: ChatMessage[]): boolean {
   for (let i = messages.length - 1; i >= 0; i -= 1) {

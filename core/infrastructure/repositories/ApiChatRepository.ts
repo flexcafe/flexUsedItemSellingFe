@@ -166,10 +166,10 @@ function mapLastMessageFromSummary(
     toNonEmptyString(row.latestMessageCreatedAt) ??
     toNonEmptyString(row.updatedAt);
 
-  if (!messageId && !content && !type) return null;
+  if (!messageId) return null;
 
   return {
-    id: messageId ?? `preview-${chatRoomId}`,
+    id: messageId,
     chatRoomId,
     senderId: null,
     type: type ?? "TEXT",

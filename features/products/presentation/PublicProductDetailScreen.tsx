@@ -7,6 +7,7 @@ import {
 } from "@/constants/language-switcher-layout";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useOpenChatRoom } from "@/presentation/hooks/useClientChat";
 import {
   useClientProductDetail,
   useSellerReviews,
@@ -456,6 +457,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
   const detailQuery = useClientProductDetail(productId);
   const product = detailQuery.data;
   const sellerUserId = product?.seller?.userId ?? null;
+  const openChatRoom = useOpenChatRoom();
 
   const [reviewsOpen, setReviewsOpen] = useState(false);
   const [reviewsPage, setReviewsPage] = useState(1);
@@ -1080,17 +1082,40 @@ export function PublicProductDetailScreen({ productId }: Props) {
         <AnimatedPressable
           onPress={() => {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            if (!product.seller?.userId) return;
-            router.push({
-              pathname: "/chat/[sellerId]",
-              params: {
-                sellerId: product.seller.userId,
-                productId: product.id,
-                productName: product.name,
-                sellerName: product.seller.nickname ?? "",
+            const sellerId = product.seller?.userId;
+            if (!sellerId || openChatRoom.isPending) return;
+            openChatRoom.mutate(
+              { listingId: product.id, sellerId },
+              {
+                onSuccess: (room) => {
+                  router.push({
+                    pathname: "/chat/room/[chatRoomId]",
+                    params: {
+                      chatRoomId: room.id,
+                      listingTitle:
+                        room.listingTitle?.trim() || product.name,
+                      listingImageUrl:
+                        room.listingImageUrl?.trim() ||
+                        images[0] ||
+                        "",
+                      peerName:
+                        room.counterpartNickname?.trim() ||
+                        product.seller?.nickname ||
+                        "",
+                      peerUserId: room.counterpartUserId ?? "",
+                    },
+                  });
+                },
+                onError: () => {
+                  Alert.alert(
+                    t("chatOpenRoomFailed"),
+                    t("publicDetailChatOpenFailedHint"),
+                  );
+                },
               },
-            });
+            );
           }}
+          disabled={openChatRoom.isPending}
           onPressIn={() => {
             if (reduceMotion) return;
             chatPressed.value = withTiming(1, { duration: 90 });
@@ -1099,11 +1124,26 @@ export function PublicProductDetailScreen({ productId }: Props) {
             if (reduceMotion) return;
             chatPressed.value = withSpring(0, { damping: 14, stiffness: 320 });
           }}
-          style={[styles.chatButton, { backgroundColor: colors.tint }, chatAnimStyle]}
+          style={[
+            styles.chatButton,
+            { backgroundColor: colors.tint, opacity: openChatRoom.isPending ? 0.7 : 1 },
+            chatAnimStyle,
+          ]}
         >
-          <MaterialIcons name="chat-bubble-outline" size={20} color="#FFF" />
-          <ThemedText style={styles.chatButtonText}>{t("publicDetailChatSeller")}</ThemedText>
+          {openChatRoom.isPending ? (
+            <ActivityIndicator size="small" color="#FFF" />
+          ) : (
+            <MaterialIcons name="chat-bubble-outline" size={20} color="#FFF" />
+          )}
+          <ThemedText style={styles.chatButtonText}>
+            {openChatRoom.isPending
+              ? t("chatOpeningRoom")
+              : t("publicDetailChatSeller")}
+          </ThemedText>
         </AnimatedPressable>
+        <ThemedText style={styles.chatHint}>
+          {t("publicDetailChatNoAutoSendHint")}
+        </ThemedText>
       </Animated.View>
 
       <ReviewsSheet
@@ -1449,6 +1489,13 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   chatButtonText: { color: "#FFF", fontSize: 16, fontWeight: "800" },
+  chatHint: {
+    marginTop: 8,
+    fontSize: 11,
+    lineHeight: 15,
+    opacity: 0.65,
+    textAlign: "center",
+  },
   sheetBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.48)",

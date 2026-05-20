@@ -1,4 +1,4 @@
-import type { ChatMessage } from "@/core/domain/entities/Chat";
+import type { ChatMessage, ChatRoom } from "@/core/domain/entities/Chat";
 import type {
   CursorPage,
   CursorPaginationParams,
@@ -10,16 +10,28 @@ import type {
 import {
   useInfiniteQuery,
   useMutation,
-  useQuery,
   useQueryClient,
   type InfiniteData,
 } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { displayUnreadCount } from "@/features/chat/presentation/chatFormat";
 import { useAuth } from "../providers/AuthProvider";
 import { useServices } from "../providers/ServicesProvider";
 
 export const CLIENT_CHAT_QUERY_KEY = ["client", "chat"] as const;
 export const DEFAULT_CHAT_TAKE = 20;
+
+export function chatRoomByListingKey(listingId: string, sellerId: string) {
+  return [...CLIENT_CHAT_QUERY_KEY, "roomByListing", listingId, sellerId] as const;
+}
+
+export function cacheChatRoom(
+  qc: ReturnType<typeof useQueryClient>,
+  room: ChatRoom,
+) {
+  qc.setQueryData([...CLIENT_CHAT_QUERY_KEY, "room", room.id], room);
+  qc.setQueryData(chatRoomByListingKey(room.listingId, room.sellerId), room);
+}
 
 function withDefaultTake(
   params?: CursorPaginationParams,
@@ -34,12 +46,19 @@ export function useOpenChatRoom() {
   const { chatService } = useServices();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: OpenChatRoomInput) => chatService.openRoom(input),
-    onSuccess: (room) => {
+    mutationFn: async (input: OpenChatRoomInput) => {
+      const cached = qc.getQueryData<ChatRoom>(
+        chatRoomByListingKey(input.listingId, input.sellerId),
+      );
+      if (cached) return cached;
+      const room = await chatService.openRoom(input);
+      cacheChatRoom(qc, room);
+      return room;
+    },
+    onSuccess: () => {
       void qc.invalidateQueries({
         queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"],
       });
-      qc.setQueryData([...CLIENT_CHAT_QUERY_KEY, "room", room.id], room);
     },
   });
 }
@@ -61,10 +80,14 @@ export function useChatRooms(params?: Omit<CursorPaginationParams, "cursor">) {
 
 export function useChatRoomsUnreadCount(take = 50) {
   const query = useChatRooms({ take });
+  const { user } = useAuth();
   return useMemo(() => {
     const rooms = query.data?.pages.flatMap((page) => page.items) ?? [];
-    return rooms.reduce((sum, room) => sum + room.unreadCount, 0);
-  }, [query.data]);
+    return rooms.reduce(
+      (sum, room) => sum + displayUnreadCount(room, user?.id),
+      0,
+    );
+  }, [query.data, user?.id]);
 }
 
 export function useChatMessages(
@@ -189,39 +212,4 @@ export function useStopLocationShare(chatRoomId: string | null) {
       });
     },
   });
-}
-
-/** Opens room by listing + seller (A.1), then returns stable room id for the thread screen. */
-export function useEnsureChatRoom(
-  listingId: string | null,
-  sellerId: string | null,
-) {
-  const { chatService } = useServices();
-  const qc = useQueryClient();
-  const enabled = Boolean(listingId && sellerId);
-  const query = useQuery({
-    queryKey: [...CLIENT_CHAT_QUERY_KEY, "ensure", listingId, sellerId],
-    queryFn: async () => {
-      const room = await chatService.openRoom({
-        listingId: listingId!,
-        sellerId: sellerId!,
-      });
-      qc.setQueryData([...CLIENT_CHAT_QUERY_KEY, "room", room.id], room);
-      void qc.invalidateQueries({
-        queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"],
-      });
-      return room;
-    },
-    enabled,
-    staleTime: 60_000,
-    retry: 1,
-  });
-  return {
-    chatRoomId: query.data?.id ?? null,
-    room: query.data ?? null,
-    isLoading: enabled && (query.isLoading || query.isFetching),
-    isError: query.isError,
-    error: query.error,
-    refetch: query.refetch,
-  };
 }

@@ -2,7 +2,9 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { FlatList as FlatListType } from "react-native";
+import { Image } from "expo-image";
 import {
   ActivityIndicator,
   Alert,
@@ -22,13 +24,13 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { topOffsetForFloatingBackButton } from "@/constants/language-switcher-layout";
 import { Colors } from "@/constants/theme";
-import type { ChatMessage } from "@/core/domain/entities/Chat";
+import type { ChatMessage, ChatRoom } from "@/core/domain/entities/Chat";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
+  CLIENT_CHAT_QUERY_KEY,
   DEFAULT_CHAT_TAKE,
   useChatMessages,
   useChatRooms,
-  useEnsureChatRoom,
   useMarkChatRoomRead,
   useRequestDirectTrade,
   useSendChatMessage,
@@ -57,10 +59,9 @@ import {
 } from "./directTradeForm";
 
 type Props = {
-  chatRoomId?: string;
-  listingId?: string;
-  sellerId?: string;
+  chatRoomId: string;
   listingTitle?: string;
+  listingImageUrl?: string;
   peerName?: string;
   peerUserId?: string;
 };
@@ -68,10 +69,9 @@ type Props = {
 const LIVE_MAP_HEIGHT = 220;
 
 export function ChatRoomScreen({
-  chatRoomId: chatRoomIdParam,
-  listingId,
-  sellerId,
+  chatRoomId,
   listingTitle,
+  listingImageUrl: listingImageUrlParam,
   peerName,
   peerUserId: peerUserIdParam,
 }: Props) {
@@ -82,27 +82,29 @@ export function ChatRoomScreen({
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const backTop = topOffsetForFloatingBackButton(insets.top);
+  const queryClient = useQueryClient();
 
-  const ensureRoom = useEnsureChatRoom(
-    chatRoomIdParam ? null : (listingId ?? null),
-    chatRoomIdParam ? null : (sellerId ?? null),
-  );
-  const inboxRoomsQuery = useChatRooms({
-    take: 50,
-  });
-  const roomFromInbox = useMemo(() => {
-    if (!chatRoomIdParam) return null;
+  const inboxRoomsQuery = useChatRooms({ take: 50 });
+  const roomMeta = useMemo(() => {
+    const cached = queryClient.getQueryData<ChatRoom>([
+      ...CLIENT_CHAT_QUERY_KEY,
+      "room",
+      chatRoomId,
+    ]);
+    if (cached) return cached;
     const items =
       inboxRoomsQuery.data?.pages.flatMap((page) => page.items) ?? [];
-    return items.find((room) => room.id === chatRoomIdParam) ?? null;
-  }, [chatRoomIdParam, inboxRoomsQuery.data]);
-  const roomMeta = ensureRoom.room ?? roomFromInbox;
-  const chatRoomId = chatRoomIdParam ?? ensureRoom.chatRoomId;
+    return items.find((room) => room.id === chatRoomId) ?? null;
+  }, [chatRoomId, inboxRoomsQuery.data, queryClient]);
   const currentUserId = user?.id ?? null;
   const resolvedListingTitle =
     listingTitle?.trim() ||
     roomMeta?.listingTitle?.trim() ||
     t("chatListingFallback");
+  const resolvedListingImageUrl =
+    listingImageUrlParam?.trim() ||
+    roomMeta?.listingImageUrl?.trim() ||
+    null;
   const resolvedPeerName =
     peerName?.trim() ||
     roomMeta?.counterpartNickname?.trim() ||
@@ -113,11 +115,7 @@ export function ChatRoomScreen({
           t("chatSellerFallback"),
           t("chatBuyerFallback"),
         )
-      : currentUserId && sellerId?.trim()
-        ? currentUserId === sellerId.trim()
-          ? t("chatBuyerFallback")
-          : t("chatSellerFallback")
-        : t("chatSellerFallback"));
+      : t("chatSellerFallback"));
 
   const messagesQuery = useChatMessages(chatRoomId, {
     take: DEFAULT_CHAT_TAKE,
@@ -497,10 +495,6 @@ export function ChatRoomScreen({
     [colors.icon, colors.tint, t, user?.id],
   );
 
-  const isBootstrapping = !chatRoomIdParam && ensureRoom.isLoading;
-  const bootstrapFailed = !chatRoomIdParam && ensureRoom.isError;
-  const missingListing = !chatRoomIdParam && (!listingId || !sellerId);
-
   return (
     <ThemedView style={styles.screen}>
       <Pressable
@@ -513,16 +507,35 @@ export function ChatRoomScreen({
       </Pressable>
 
       <View style={[styles.header, { paddingTop: backTop + 44 }]}>
-        <ThemedText
-          type="defaultSemiBold"
-          style={styles.headerTitle}
-          numberOfLines={1}
-        >
-          {resolvedListingTitle}
-        </ThemedText>
-        <ThemedText style={styles.headerSubtitle} numberOfLines={1}>
-          {resolvedPeerName}
-        </ThemedText>
+        {resolvedListingImageUrl ? (
+          <Image
+            source={{ uri: resolvedListingImageUrl }}
+            style={styles.headerThumb}
+            contentFit="cover"
+          />
+        ) : (
+          <View
+            style={[
+              styles.headerThumb,
+              styles.headerThumbFallback,
+              { backgroundColor: colors.tint + "18" },
+            ]}
+          >
+            <MaterialIcons name="inventory-2" size={20} color={colors.tint} />
+          </View>
+        )}
+        <View style={styles.headerText}>
+          <ThemedText
+            type="defaultSemiBold"
+            style={styles.headerTitle}
+            numberOfLines={1}
+          >
+            {resolvedListingTitle}
+          </ThemedText>
+          <ThemedText style={styles.headerSubtitle} numberOfLines={1}>
+            {resolvedPeerName}
+          </ThemedText>
+        </View>
       </View>
 
       {chatRoomId ? (
@@ -716,35 +729,7 @@ export function ChatRoomScreen({
         </ThemedText>
       ) : null}
 
-      {missingListing ? (
-        <View style={styles.center}>
-          <ThemedText style={styles.errorText}>
-            {t("chatMissingListing")}
-          </ThemedText>
-        </View>
-      ) : isBootstrapping ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.tint} />
-          <ThemedText style={styles.loadingText}>
-            {t("chatOpeningRoom")}
-          </ThemedText>
-        </View>
-      ) : bootstrapFailed ? (
-        <View style={styles.center}>
-          <ThemedText style={styles.errorText}>
-            {t("chatOpenRoomFailed")}
-          </ThemedText>
-          <Pressable
-            onPress={() => void ensureRoom.refetch()}
-            style={[styles.retryBtn, { backgroundColor: colors.tint }]}
-          >
-            <ThemedText style={styles.retryBtnText}>
-              {t("chatRetry")}
-            </ThemedText>
-          </Pressable>
-        </View>
-      ) : (
-        <KeyboardAvoidingView
+      <KeyboardAvoidingView
           style={styles.flex}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
@@ -835,7 +820,6 @@ export function ChatRoomScreen({
             </Pressable>
           </View>
         </KeyboardAvoidingView>
-      )}
 
       <Modal
         transparent
@@ -976,13 +960,25 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.35)",
   },
   header: {
-    paddingHorizontal: 72,
-    paddingBottom: 10,
+    flexDirection: "row",
     alignItems: "center",
-    gap: 2,
+    gap: 10,
+    paddingHorizontal: 56,
+    paddingBottom: 10,
   },
-  headerTitle: { fontSize: 16, textAlign: "center" },
-  headerSubtitle: { fontSize: 12, opacity: 0.65, textAlign: "center" },
+  headerThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  headerThumbFallback: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerText: { flex: 1, minWidth: 0, gap: 2 },
+  headerTitle: { fontSize: 16 },
+  headerSubtitle: { fontSize: 12, opacity: 0.65 },
   actionPanel: {
     zIndex: 12,
     elevation: 4,

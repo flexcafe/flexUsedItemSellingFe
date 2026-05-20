@@ -4,9 +4,8 @@ import { useLocalSearchParams } from "expo-router";
 export default function ChatRoomPage() {
   const params = useLocalSearchParams<{
     chatRoomId?: string | string[];
-    listingId?: string | string[];
-    sellerId?: string | string[];
     listingTitle?: string | string[];
+    listingImageUrl?: string | string[];
     peerName?: string | string[];
     peerUserId?: string | string[];
   }>();
@@ -17,9 +16,8 @@ export default function ChatRoomPage() {
   return (
     <ChatRoomScreen
       chatRoomId={chatRoomId}
-      listingId={read(params.listingId) || undefined}
-      sellerId={read(params.sellerId) || undefined}
       listingTitle={read(params.listingTitle) || undefined}
+      listingImageUrl={read(params.listingImageUrl) || undefined}
       peerName={read(params.peerName) || undefined}
       peerUserId={read(params.peerUserId) || undefined}
     />

@@ -22,11 +22,14 @@ import { useChatRooms } from "@/presentation/hooks/useClientChat";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 import {
+  displayUnreadCount,
+  filterInboxRooms,
   formatChatTimestamp,
   formatRoomListingPrice,
-  messagePreview,
+  inboxPreviewText,
   roomListingTitle,
   roomPeerLabel,
+  sortInboxRooms,
 } from "./chatFormat";
 
 export function ChatInboxScreen() {
@@ -39,19 +42,18 @@ export function ChatInboxScreen() {
   const topInset = paddingTopBelowLanguageSwitcher(insets.top);
 
   const roomsQuery = useChatRooms({ take: 20 });
-  const rooms = useMemo(
-    () => roomsQuery.data?.pages.flatMap((page) => page.items) ?? [],
-    [roomsQuery.data],
-  );
+  const rooms = useMemo(() => {
+    const items = roomsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+    return sortInboxRooms(filterInboxRooms(items, user?.id));
+  }, [roomsQuery.data, user?.id]);
 
   const onOpenRoom = (room: ChatRoom) => {
     router.push({
       pathname: "/chat/room/[chatRoomId]",
       params: {
         chatRoomId: room.id,
-        listingId: room.listingId,
-        sellerId: room.sellerId,
         listingTitle: room.listingTitle ?? "",
+        listingImageUrl: room.listingImageUrl ?? "",
         peerName: room.counterpartNickname ?? "",
         peerUserId: room.counterpartUserId ?? "",
       },
@@ -67,7 +69,12 @@ export function ChatInboxScreen() {
       t("chatBuyerFallback"),
     );
     const priceLabel = formatRoomListingPrice(item.listingPrice);
-    const preview = messagePreview(item.lastMessage);
+    const preview = inboxPreviewText(
+      item,
+      t("chatNoMessagesYet"),
+      t("chatTapToStart"),
+    );
+    const unread = displayUnreadCount(item, user?.id);
     const time = formatChatTimestamp(
       item.lastMessage?.createdAt ?? item.updatedAt,
     );
@@ -81,24 +88,43 @@ export function ChatInboxScreen() {
             borderColor: colors.icon + "33",
             backgroundColor: pressed ? colors.tint + "10" : colors.background,
           },
-          item.unreadCount > 0 && { borderColor: colors.tint + "55" },
+          unread > 0 && { borderColor: colors.tint + "55" },
         ]}
       >
-        <View
-          style={[styles.avatarWrap, { backgroundColor: colors.tint + "18" }]}
-        >
-          {item.listingImageUrl ? (
+        <View style={styles.avatarColumn}>
+          <View
+            style={[styles.avatarWrap, { backgroundColor: colors.tint + "18" }]}
+          >
+            {item.listingImageUrl ? (
+              <Image
+                source={{ uri: item.listingImageUrl }}
+                style={styles.avatarImage}
+                contentFit="cover"
+              />
+            ) : (
+              <MaterialIcons
+                name="inventory-2"
+                size={22}
+                color={colors.tint}
+              />
+            )}
+          </View>
+          {item.counterpartAvatarUrl ? (
             <Image
-              source={{ uri: item.listingImageUrl }}
-              style={styles.avatarImage}
+              source={{ uri: item.counterpartAvatarUrl }}
+              style={[styles.peerAvatar, { borderColor: colors.background }]}
               contentFit="cover"
             />
           ) : (
-            <MaterialIcons
-              name="chat-bubble-outline"
-              size={22}
-              color={colors.tint}
-            />
+            <View
+              style={[
+                styles.peerAvatar,
+                styles.peerAvatarFallback,
+                { backgroundColor: colors.tint + "22", borderColor: colors.background },
+              ]}
+            >
+              <MaterialIcons name="person" size={14} color={colors.tint} />
+            </View>
           )}
         </View>
         <View style={styles.rowBody}>
@@ -119,13 +145,13 @@ export function ChatInboxScreen() {
             {priceLabel ? ` · ${priceLabel}` : ""}
           </ThemedText>
           <ThemedText style={styles.rowPreview} numberOfLines={2}>
-            {preview || t("chatNoMessagesYet")}
+            {preview}
           </ThemedText>
         </View>
-        {item.unreadCount > 0 ? (
+        {unread > 0 ? (
           <View style={[styles.unreadBadge, { backgroundColor: colors.tint }]}>
             <ThemedText style={styles.unreadBadgeText}>
-              {item.unreadCount > 99 ? "99+" : item.unreadCount}
+              {unread > 99 ? "99+" : unread}
             </ThemedText>
           </View>
         ) : null}
@@ -221,6 +247,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
   },
+  avatarColumn: { width: 48, alignItems: "center" },
   avatarWrap: {
     width: 48,
     height: 48,
@@ -230,6 +257,17 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   avatarImage: { width: "100%", height: "100%" },
+  peerAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginTop: -10,
+    borderWidth: 2,
+  },
+  peerAvatarFallback: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
   rowBody: { flex: 1, gap: 2, minWidth: 0 },
   rowTop: { flexDirection: "row", alignItems: "center", gap: 8 },
   rowTitle: { flex: 1, fontSize: 15 },
