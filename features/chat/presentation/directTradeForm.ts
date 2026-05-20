@@ -58,15 +58,15 @@ function isValidCalendarDate(isoDate: string): boolean {
   const [y, m, d] = isoDate.split("-").map(Number);
   const dt = new Date(y, m - 1, d);
   return (
-    dt.getFullYear() === y &&
-    dt.getMonth() === m - 1 &&
-    dt.getDate() === d
+    dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d
   );
 }
 
 export function buildDirectTradeRequest(
   values: DirectTradeFormValues,
-): { payload: DirectTradeRequestInput } | { errorKey: DirectTradeFormErrorKey } {
+):
+  | { payload: DirectTradeRequestInput }
+  | { errorKey: DirectTradeFormErrorKey } {
   const meetingDate = values.meetingDate.trim();
   const meetingTime = values.meetingTime.trim();
 

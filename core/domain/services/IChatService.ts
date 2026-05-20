@@ -30,6 +30,9 @@ export interface IChatService {
     chatRoomId: string,
     input: LocationShareInput,
   ): Promise<LocationShareStartResult>;
-  updateLocationShare(chatRoomId: string, input: LocationShareInput): Promise<boolean>;
+  updateLocationShare(
+    chatRoomId: string,
+    input: LocationShareInput,
+  ): Promise<boolean>;
   stopLocationShare(chatRoomId: string): Promise<boolean>;
 }

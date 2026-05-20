@@ -55,7 +55,10 @@ export class ChatService implements IChatService {
     return this.repo.startLocationShare(chatRoomId, input);
   }
 
-  updateLocationShare(chatRoomId: string, input: LocationShareInput): Promise<boolean> {
+  updateLocationShare(
+    chatRoomId: string,
+    input: LocationShareInput,
+  ): Promise<boolean> {
     return this.repo.updateLocationShare(chatRoomId, input);
   }
 

@@ -1,3 +1,6 @@
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import * as Location from "expo-location";
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FlatList as FlatListType } from "react-native";
 import {
@@ -12,9 +15,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import * as Location from "expo-location";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
@@ -27,6 +27,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   DEFAULT_CHAT_TAKE,
   useChatMessages,
+  useChatRooms,
   useEnsureChatRoom,
   useMarkChatRoomRead,
   useRequestDirectTrade,
@@ -35,9 +36,9 @@ import {
   useStopLocationShare,
   useUpdateLocationShare,
 } from "@/presentation/hooks/useClientChat";
+import { buildLeafletLiveViewHtml } from "@/presentation/lib/leafletPickerHtml";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
-import { buildLeafletLiveViewHtml } from "@/presentation/lib/leafletPickerHtml";
 import {
   chatActionErrorMessage,
   formatChatTimestamp,
@@ -45,6 +46,7 @@ import {
   locationPointsFromMessages,
   locationSharingByUser,
   messagePreview,
+  roomPeerLabel,
 } from "./chatFormat";
 import {
   buildDirectTradeRequest,
@@ -60,6 +62,7 @@ type Props = {
   sellerId?: string;
   listingTitle?: string;
   peerName?: string;
+  peerUserId?: string;
 };
 
 const LIVE_MAP_HEIGHT = 220;
@@ -70,6 +73,7 @@ export function ChatRoomScreen({
   sellerId,
   listingTitle,
   peerName,
+  peerUserId: peerUserIdParam,
 }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -83,32 +87,41 @@ export function ChatRoomScreen({
     chatRoomIdParam ? null : (listingId ?? null),
     chatRoomIdParam ? null : (sellerId ?? null),
   );
+  const inboxRoomsQuery = useChatRooms({
+    take: 50,
+  });
+  const roomFromInbox = useMemo(() => {
+    if (!chatRoomIdParam) return null;
+    const items =
+      inboxRoomsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+    return items.find((room) => room.id === chatRoomIdParam) ?? null;
+  }, [chatRoomIdParam, inboxRoomsQuery.data]);
+  const roomMeta = ensureRoom.room ?? roomFromInbox;
   const chatRoomId = chatRoomIdParam ?? ensureRoom.chatRoomId;
   const currentUserId = user?.id ?? null;
-  const peerRoleFallback = useMemo(() => {
-    const room = ensureRoom.room;
-    if (room && currentUserId) {
-      if (room.buyerId === currentUserId) return t("chatSellerFallback");
-      if (room.sellerId === currentUserId) return t("chatBuyerFallback");
-    }
-    const sellerIdHint = sellerId?.trim() || room?.sellerId || null;
-    if (currentUserId && sellerIdHint) {
-      return currentUserId === sellerIdHint
-        ? t("chatBuyerFallback")
-        : t("chatSellerFallback");
-    }
-    return t("chatSellerFallback");
-  }, [currentUserId, ensureRoom.room, sellerId, t]);
   const resolvedListingTitle =
     listingTitle?.trim() ||
-    ensureRoom.room?.listingTitle?.trim() ||
+    roomMeta?.listingTitle?.trim() ||
     t("chatListingFallback");
   const resolvedPeerName =
     peerName?.trim() ||
-    ensureRoom.room?.counterpartNickname?.trim() ||
-    peerRoleFallback;
+    roomMeta?.counterpartNickname?.trim() ||
+    (roomMeta
+      ? roomPeerLabel(
+          roomMeta,
+          currentUserId,
+          t("chatSellerFallback"),
+          t("chatBuyerFallback"),
+        )
+      : currentUserId && sellerId?.trim()
+        ? currentUserId === sellerId.trim()
+          ? t("chatBuyerFallback")
+          : t("chatSellerFallback")
+        : t("chatSellerFallback"));
 
-  const messagesQuery = useChatMessages(chatRoomId, { take: DEFAULT_CHAT_TAKE });
+  const messagesQuery = useChatMessages(chatRoomId, {
+    take: DEFAULT_CHAT_TAKE,
+  });
   const sendMessage = useSendChatMessage(chatRoomId);
   const markRead = useMarkChatRoomRead(chatRoomId);
   const directTradeMutation = useRequestDirectTrade(chatRoomId);
@@ -122,7 +135,9 @@ export function ChatRoomScreen({
   const [meetingLocation, setMeetingLocation] = useState("");
   const [meetingLatitude, setMeetingLatitude] = useState("");
   const [meetingLongitude, setMeetingLongitude] = useState("");
-  const [locationUpdatedAt, setLocationUpdatedAt] = useState<string | null>(null);
+  const [locationUpdatedAt, setLocationUpdatedAt] = useState<string | null>(
+    null,
+  );
   const [isFetchingCoords, setIsFetchingCoords] = useState(false);
   const [myShareOverride, setMyShareOverride] = useState<boolean | null>(null);
   const [localLiveLocation, setLocalLiveLocation] = useState<{
@@ -138,7 +153,10 @@ export function ChatRoomScreen({
   }, [messagesQuery.data]);
 
   const chronological = useMemo(() => [...messages].reverse(), [messages]);
-  const sharingByUser = useMemo(() => locationSharingByUser(chronological), [chronological]);
+  const sharingByUser = useMemo(
+    () => locationSharingByUser(chronological),
+    [chronological],
+  );
   const messageLocationByUser = useMemo(
     () => locationPointsFromMessages(chronological),
     [chronological],
@@ -147,14 +165,17 @@ export function ChatRoomScreen({
     ? Boolean(sharingByUser[user.id])
     : isLocationSharingActive(chronological);
   const mySharingActive = myShareOverride ?? mySharingFromMessages;
-  const otherSharedUserId = Object.keys(sharingByUser).find((id) => id !== user?.id) ?? null;
+  const otherSharedUserId =
+    Object.keys(sharingByUser).find((id) => id !== user?.id) ?? null;
   const otherLocationUserId =
     Object.keys(messageLocationByUser).find((id) => id !== user?.id) ?? null;
   const counterpartUserId =
-    ensureRoom.room?.counterpartUserId ??
-    otherSharedUserId ??
-    otherLocationUserId ??
-    chronological.find((m) => m.senderId && m.senderId !== user?.id)?.senderId ??
+    roomMeta?.counterpartUserId?.trim() ||
+    peerUserIdParam?.trim() ||
+    otherSharedUserId ||
+    otherLocationUserId ||
+    chronological.find((m) => m.senderId && m.senderId !== user?.id)
+      ?.senderId ||
     null;
   const counterpartSharingActive = counterpartUserId
     ? Boolean(sharingByUser[counterpartUserId])
@@ -165,8 +186,12 @@ export function ChatRoomScreen({
   const counterpartLiveLocation = counterpartUserId
     ? (messageLocationByUser[counterpartUserId] ?? null)
     : null;
-  const myPoint = mySharingActive ? (myLiveLocation ?? localLiveLocation) : null;
-  const counterpartPoint = counterpartSharingActive ? counterpartLiveLocation : null;
+  const myPoint = mySharingActive
+    ? (myLiveLocation ?? localLiveLocation)
+    : null;
+  const counterpartPoint = counterpartSharingActive
+    ? counterpartLiveLocation
+    : null;
   const myMarkerLabel = "Me";
   const peerMarkerLabel = resolvedPeerName || "Other party";
   const locationShareStatus = useCallback(
@@ -177,7 +202,10 @@ export function ChatRoomScreen({
     },
     [t],
   );
-  const myLocationStatus = locationShareStatus(Boolean(myPoint), mySharingActive);
+  const myLocationStatus = locationShareStatus(
+    Boolean(myPoint),
+    mySharingActive,
+  );
   const peerLocationStatus = locationShareStatus(
     Boolean(counterpartPoint),
     counterpartSharingActive,
@@ -235,19 +263,23 @@ export function ChatRoomScreen({
     setDirectTradeOpen(true);
   }, []);
 
-  const getCurrentCoords = useCallback(async (shouldPrompt: boolean) => {
-    const permission = shouldPrompt
-      ? await Location.requestForegroundPermissionsAsync()
-      : await Location.getForegroundPermissionsAsync();
-    if (permission.status !== "granted") throw new Error(t("chatLocationPermissionDenied"));
-    const pos = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced,
-    });
-    return {
-      latitude: pos.coords.latitude,
-      longitude: pos.coords.longitude,
-    };
-  }, [t]);
+  const getCurrentCoords = useCallback(
+    async (shouldPrompt: boolean) => {
+      const permission = shouldPrompt
+        ? await Location.requestForegroundPermissionsAsync()
+        : await Location.getForegroundPermissionsAsync();
+      if (permission.status !== "granted")
+        throw new Error(t("chatLocationPermissionDenied"));
+      const pos = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      return {
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+      };
+    },
+    [t],
+  );
 
   const onSubmitDirectTrade = useCallback(() => {
     if (!chatRoomId) return;
@@ -305,9 +337,12 @@ export function ChatRoomScreen({
           longitude: coords.longitude,
           updatedAt: new Date().toISOString(),
         });
-        const mutation = mode === "start" ? startLocationMutation : updateLocationMutation;
+        const mutation =
+          mode === "start" ? startLocationMutation : updateLocationMutation;
         const failKey =
-          mode === "start" ? "chatLocationStartFailed" : "chatLocationUpdateFailed";
+          mode === "start"
+            ? "chatLocationStartFailed"
+            : "chatLocationUpdateFailed";
         mutation.mutate(payload, {
           onSuccess: (result) => {
             if (mode === "start") setMyShareOverride(true);
@@ -319,7 +354,10 @@ export function ChatRoomScreen({
               "alreadyActive" in result &&
               result.alreadyActive
             ) {
-              Alert.alert(t("chatDirectTradeTitle"), t("chatLocationAlreadyActive"));
+              Alert.alert(
+                t("chatDirectTradeTitle"),
+                t("chatLocationAlreadyActive"),
+              );
             }
           },
           onError: (error) => {
@@ -336,7 +374,11 @@ export function ChatRoomScreen({
           t("chatDirectTradeTitle"),
           chatActionErrorMessage(
             error,
-            t(mode === "start" ? "chatLocationStartFailed" : "chatLocationUpdateFailed"),
+            t(
+              mode === "start"
+                ? "chatLocationStartFailed"
+                : "chatLocationUpdateFailed",
+            ),
           ),
         );
       } finally {
@@ -385,7 +427,12 @@ export function ChatRoomScreen({
       void shareCoords("update", true);
     }, 3000);
     return () => clearInterval(id);
-  }, [chatRoomId, mySharingActive, shareCoords, updateLocationMutation.isPending]);
+  }, [
+    chatRoomId,
+    mySharingActive,
+    shareCoords,
+    updateLocationMutation.isPending,
+  ]);
 
   useEffect(() => {
     if (!chatRoomId || (!mySharingActive && !counterpartSharingActive)) return;
@@ -398,7 +445,8 @@ export function ChatRoomScreen({
   const onMessagesScroll = useCallback(
     (offsetY: number) => {
       if (offsetY > 72) return;
-      if (!messagesQuery.hasNextPage || messagesQuery.isFetchingNextPage) return;
+      if (!messagesQuery.hasNextPage || messagesQuery.isFetchingNextPage)
+        return;
       void messagesQuery.fetchNextPage();
     },
     [messagesQuery],
@@ -421,16 +469,25 @@ export function ChatRoomScreen({
               isSystem && styles.bubbleSystem,
               isMine
                 ? { backgroundColor: colors.tint }
-                : { backgroundColor: colors.icon + "22", borderColor: colors.icon + "33" },
+                : {
+                    backgroundColor: colors.icon + "22",
+                    borderColor: colors.icon + "33",
+                  },
             ]}
           >
             {isSystem ? (
-              <ThemedText style={styles.systemType}>{item.type.replaceAll("_", " ")}</ThemedText>
+              <ThemedText style={styles.systemType}>
+                {item.type.replaceAll("_", " ")}
+              </ThemedText>
             ) : null}
-            <ThemedText style={[styles.bubbleText, isMine && styles.bubbleTextMine]}>
+            <ThemedText
+              style={[styles.bubbleText, isMine && styles.bubbleTextMine]}
+            >
               {messagePreview(item) || t("chatSystemMessage")}
             </ThemedText>
-            <ThemedText style={[styles.bubbleTime, isMine && styles.bubbleTimeMine]}>
+            <ThemedText
+              style={[styles.bubbleTime, isMine && styles.bubbleTimeMine]}
+            >
               {formatChatTimestamp(item.createdAt)}
             </ThemedText>
           </View>
@@ -456,7 +513,11 @@ export function ChatRoomScreen({
       </Pressable>
 
       <View style={[styles.header, { paddingTop: backTop + 44 }]}>
-        <ThemedText type="defaultSemiBold" style={styles.headerTitle} numberOfLines={1}>
+        <ThemedText
+          type="defaultSemiBold"
+          style={styles.headerTitle}
+          numberOfLines={1}
+        >
           {resolvedListingTitle}
         </ThemedText>
         <ThemedText style={styles.headerSubtitle} numberOfLines={1}>
@@ -465,52 +526,30 @@ export function ChatRoomScreen({
       </View>
 
       {chatRoomId ? (
-      <View style={styles.actionPanel}>
-        <Pressable
-          onPress={openDirectTradeModal}
-          style={({ pressed }) => [
-            styles.actionBtnPrimary,
-            { backgroundColor: colors.tint, opacity: pressed ? 0.88 : 1 },
-          ]}
-        >
-          <MaterialIcons name="event" size={18} color="#FFF" />
-          <ThemedText style={styles.actionBtnPrimaryText}>{t("chatDirectTradeButton")}</ThemedText>
-        </Pressable>
-
-        {!mySharingActive ? (
+        <View style={styles.actionPanel}>
           <Pressable
-            onPress={onStartLocationShare}
-            disabled={isFetchingCoords || startLocationMutation.isPending}
+            onPress={openDirectTradeModal}
             style={({ pressed }) => [
-              styles.actionBtnOutline,
-              {
-                borderColor: colors.tint,
-                opacity:
-                  isFetchingCoords || startLocationMutation.isPending ? 0.55 : pressed ? 0.88 : 1,
-              },
+              styles.actionBtnPrimary,
+              { backgroundColor: colors.tint, opacity: pressed ? 0.88 : 1 },
             ]}
           >
-            {isFetchingCoords || startLocationMutation.isPending ? (
-              <ActivityIndicator size="small" color={colors.tint} />
-            ) : (
-              <MaterialIcons name="my-location" size={18} color={colors.tint} />
-            )}
-            <ThemedText style={[styles.actionBtnOutlineText, { color: colors.tint }]}>
-              {t("chatStartSharing")}
+            <MaterialIcons name="event" size={18} color="#FFF" />
+            <ThemedText style={styles.actionBtnPrimaryText}>
+              {t("chatDirectTradeButton")}
             </ThemedText>
           </Pressable>
-        ) : (
-          <View style={styles.locationRow}>
+
+          {!mySharingActive ? (
             <Pressable
-              onPress={onUpdateLocationShare}
-              disabled={isFetchingCoords || updateLocationMutation.isPending}
+              onPress={onStartLocationShare}
+              disabled={isFetchingCoords || startLocationMutation.isPending}
               style={({ pressed }) => [
                 styles.actionBtnOutline,
-                styles.locationRowBtn,
                 {
                   borderColor: colors.tint,
                   opacity:
-                    isFetchingCoords || updateLocationMutation.isPending
+                    isFetchingCoords || startLocationMutation.isPending
                       ? 0.55
                       : pressed
                         ? 0.88
@@ -518,49 +557,102 @@ export function ChatRoomScreen({
                 },
               ]}
             >
-              {isFetchingCoords || updateLocationMutation.isPending ? (
+              {isFetchingCoords || startLocationMutation.isPending ? (
                 <ActivityIndicator size="small" color={colors.tint} />
               ) : (
-                <MaterialIcons name="sync" size={18} color={colors.tint} />
+                <MaterialIcons
+                  name="my-location"
+                  size={18}
+                  color={colors.tint}
+                />
               )}
-              <ThemedText style={[styles.actionBtnOutlineText, { color: colors.tint }]}>
-                {t("chatUpdateLocation")}
+              <ThemedText
+                style={[styles.actionBtnOutlineText, { color: colors.tint }]}
+              >
+                {t("chatStartSharing")}
               </ThemedText>
             </Pressable>
-            <Pressable
-              onPress={onStopLocationShare}
-              disabled={stopLocationMutation.isPending}
-              style={({ pressed }) => [
-                styles.actionBtnOutline,
-                styles.locationRowBtn,
-                {
-                  borderColor: colors.icon + "66",
-                  opacity: stopLocationMutation.isPending ? 0.55 : pressed ? 0.88 : 1,
-                },
-              ]}
-            >
-              {stopLocationMutation.isPending ? (
-                <ActivityIndicator size="small" color={colors.icon} />
-              ) : (
-                <MaterialIcons name="location-off" size={18} color={colors.icon} />
-              )}
-              <ThemedText style={[styles.actionBtnOutlineText, { color: colors.icon }]}>
-                {t("chatStopSharing")}
-              </ThemedText>
-            </Pressable>
-          </View>
-        )}
-      </View>
+          ) : (
+            <View style={styles.locationRow}>
+              <Pressable
+                onPress={onUpdateLocationShare}
+                disabled={isFetchingCoords || updateLocationMutation.isPending}
+                style={({ pressed }) => [
+                  styles.actionBtnOutline,
+                  styles.locationRowBtn,
+                  {
+                    borderColor: colors.tint,
+                    opacity:
+                      isFetchingCoords || updateLocationMutation.isPending
+                        ? 0.55
+                        : pressed
+                          ? 0.88
+                          : 1,
+                  },
+                ]}
+              >
+                {isFetchingCoords || updateLocationMutation.isPending ? (
+                  <ActivityIndicator size="small" color={colors.tint} />
+                ) : (
+                  <MaterialIcons name="sync" size={18} color={colors.tint} />
+                )}
+                <ThemedText
+                  style={[styles.actionBtnOutlineText, { color: colors.tint }]}
+                >
+                  {t("chatUpdateLocation")}
+                </ThemedText>
+              </Pressable>
+              <Pressable
+                onPress={onStopLocationShare}
+                disabled={stopLocationMutation.isPending}
+                style={({ pressed }) => [
+                  styles.actionBtnOutline,
+                  styles.locationRowBtn,
+                  {
+                    borderColor: colors.icon + "66",
+                    opacity: stopLocationMutation.isPending
+                      ? 0.55
+                      : pressed
+                        ? 0.88
+                        : 1,
+                  },
+                ]}
+              >
+                {stopLocationMutation.isPending ? (
+                  <ActivityIndicator size="small" color={colors.icon} />
+                ) : (
+                  <MaterialIcons
+                    name="location-off"
+                    size={18}
+                    color={colors.icon}
+                  />
+                )}
+                <ThemedText
+                  style={[styles.actionBtnOutlineText, { color: colors.icon }]}
+                >
+                  {t("chatStopSharing")}
+                </ThemedText>
+              </Pressable>
+            </View>
+          )}
+        </View>
       ) : null}
       {chatRoomId ? (
-        <View style={[styles.liveLocationPanel, { borderColor: colors.icon + "33" }]}>
+        <View
+          style={[
+            styles.liveLocationPanel,
+            { borderColor: colors.icon + "33" },
+          ]}
+        >
           <Pressable
             onPress={() => setLiveMapExpanded((open) => !open)}
             style={styles.liveLocationHeader}
             accessibilityRole="button"
             accessibilityState={{ expanded: liveMapExpanded }}
           >
-            <ThemedText style={styles.liveLocationTitle}>{t("chatLiveLocationMap")}</ThemedText>
+            <ThemedText style={styles.liveLocationTitle}>
+              {t("chatLiveLocationMap")}
+            </ThemedText>
             <MaterialIcons
               name={liveMapExpanded ? "expand-less" : "expand-more"}
               size={22}
@@ -569,7 +661,8 @@ export function ChatRoomScreen({
           </Pressable>
           {!liveMapExpanded ? (
             <ThemedText style={styles.liveLocationLine} numberOfLines={2}>
-              {myMarkerLabel}: {myLocationStatus} · {peerMarkerLabel}: {peerLocationStatus}
+              {myMarkerLabel}: {myLocationStatus} · {peerMarkerLabel}:{" "}
+              {peerLocationStatus}
             </ThemedText>
           ) : (
             <>
@@ -589,12 +682,26 @@ export function ChatRoomScreen({
               </ThemedText>
               <View style={styles.liveLegendRow}>
                 <View style={styles.liveLegendItem}>
-                  <View style={[styles.liveLegendDot, { backgroundColor: "#1E88E5" }]} />
-                  <ThemedText style={styles.liveLegendText}>{myMarkerLabel}</ThemedText>
+                  <View
+                    style={[
+                      styles.liveLegendDot,
+                      { backgroundColor: "#1E88E5" },
+                    ]}
+                  />
+                  <ThemedText style={styles.liveLegendText}>
+                    {myMarkerLabel}
+                  </ThemedText>
                 </View>
                 <View style={styles.liveLegendItem}>
-                  <View style={[styles.liveLegendDot, { backgroundColor: "#E53935" }]} />
-                  <ThemedText style={styles.liveLegendText}>{peerMarkerLabel}</ThemedText>
+                  <View
+                    style={[
+                      styles.liveLegendDot,
+                      { backgroundColor: "#E53935" },
+                    ]}
+                  />
+                  <ThemedText style={styles.liveLegendText}>
+                    {peerMarkerLabel}
+                  </ThemedText>
                 </View>
               </View>
             </>
@@ -603,27 +710,37 @@ export function ChatRoomScreen({
       ) : null}
       {locationUpdatedAt ? (
         <ThemedText style={styles.locationStamp}>
-          {tf("chatLocationUpdatedAt", { time: formatChatTimestamp(locationUpdatedAt) })}
+          {tf("chatLocationUpdatedAt", {
+            time: formatChatTimestamp(locationUpdatedAt),
+          })}
         </ThemedText>
       ) : null}
 
       {missingListing ? (
         <View style={styles.center}>
-          <ThemedText style={styles.errorText}>{t("chatMissingListing")}</ThemedText>
+          <ThemedText style={styles.errorText}>
+            {t("chatMissingListing")}
+          </ThemedText>
         </View>
       ) : isBootstrapping ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.tint} />
-          <ThemedText style={styles.loadingText}>{t("chatOpeningRoom")}</ThemedText>
+          <ThemedText style={styles.loadingText}>
+            {t("chatOpeningRoom")}
+          </ThemedText>
         </View>
       ) : bootstrapFailed ? (
         <View style={styles.center}>
-          <ThemedText style={styles.errorText}>{t("chatOpenRoomFailed")}</ThemedText>
+          <ThemedText style={styles.errorText}>
+            {t("chatOpenRoomFailed")}
+          </ThemedText>
           <Pressable
             onPress={() => void ensureRoom.refetch()}
             style={[styles.retryBtn, { backgroundColor: colors.tint }]}
           >
-            <ThemedText style={styles.retryBtnText}>{t("chatRetry")}</ThemedText>
+            <ThemedText style={styles.retryBtnText}>
+              {t("chatRetry")}
+            </ThemedText>
           </Pressable>
         </View>
       ) : (
@@ -643,7 +760,9 @@ export function ChatRoomScreen({
               keyExtractor={(item) => item.id}
               renderItem={renderMessage}
               contentContainerStyle={styles.messagesContent}
-              onScroll={(event) => onMessagesScroll(event.nativeEvent.contentOffset.y)}
+              onScroll={(event) =>
+                onMessagesScroll(event.nativeEvent.contentOffset.y)
+              }
               scrollEventThrottle={120}
               ListHeaderComponent={
                 messagesQuery.isFetchingNextPage ? (
@@ -658,7 +777,9 @@ export function ChatRoomScreen({
               ListEmptyComponent={
                 <View style={styles.emptyThread}>
                   <MaterialIcons name="chat" size={42} color={colors.icon} />
-                  <ThemedText style={styles.emptyThreadText}>{t("chatThreadEmpty")}</ThemedText>
+                  <ThemedText style={styles.emptyThreadText}>
+                    {t("chatThreadEmpty")}
+                  </ThemedText>
                 </View>
               }
             />
@@ -679,19 +800,28 @@ export function ChatRoomScreen({
               onChangeText={setDraft}
               placeholder={t("chatInputPlaceholder")}
               placeholderTextColor={colors.icon}
-              style={[styles.input, { color: colors.text, borderColor: colors.icon + "44" }]}
+              style={[
+                styles.input,
+                { color: colors.text, borderColor: colors.icon + "44" },
+              ]}
               multiline
               maxLength={5000}
               editable={Boolean(chatRoomId) && !sendMessage.isPending}
             />
             <Pressable
               onPress={onSend}
-              disabled={!chatRoomId || sendMessage.isPending || draft.trim().length === 0}
+              disabled={
+                !chatRoomId ||
+                sendMessage.isPending ||
+                draft.trim().length === 0
+              }
               style={[
                 styles.sendBtn,
                 {
                   backgroundColor:
-                    !chatRoomId || sendMessage.isPending || draft.trim().length === 0
+                    !chatRoomId ||
+                    sendMessage.isPending ||
+                    draft.trim().length === 0
                       ? colors.icon + "55"
                       : colors.tint,
                 },
@@ -717,41 +847,66 @@ export function ChatRoomScreen({
           <View
             style={[
               styles.modalCard,
-              { backgroundColor: colors.background, borderColor: colors.icon + "33" },
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.icon + "33",
+              },
             ]}
           >
             <View style={styles.modalHeader}>
-              <ThemedText type="defaultSemiBold">{t("chatDirectTradeTitle")}</ThemedText>
-              <Pressable onPress={() => setDirectTradeOpen(false)} style={styles.modalCloseBtn}>
+              <ThemedText type="defaultSemiBold">
+                {t("chatDirectTradeTitle")}
+              </ThemedText>
+              <Pressable
+                onPress={() => setDirectTradeOpen(false)}
+                style={styles.modalCloseBtn}
+              >
                 <MaterialIcons name="close" size={20} color={colors.icon} />
               </Pressable>
             </View>
-            <ThemedText style={styles.pickerLabel}>{t("chatMeetingDateLabel")}</ThemedText>
+            <ThemedText style={styles.pickerLabel}>
+              {t("chatMeetingDateLabel")}
+            </ThemedText>
             <TextInput
               value={meetingDate}
-              onChangeText={(text) => setMeetingDate(formatMeetingDateInput(text))}
+              onChangeText={(text) =>
+                setMeetingDate(formatMeetingDateInput(text))
+              }
               placeholder={t("chatMeetingDatePlaceholder")}
               placeholderTextColor={colors.icon}
               keyboardType="number-pad"
               maxLength={10}
-              style={[styles.modalInput, { color: colors.text, borderColor: colors.icon + "44" }]}
+              style={[
+                styles.modalInput,
+                { color: colors.text, borderColor: colors.icon + "44" },
+              ]}
             />
-            <ThemedText style={styles.pickerLabel}>{t("chatMeetingTimeLabel")}</ThemedText>
+            <ThemedText style={styles.pickerLabel}>
+              {t("chatMeetingTimeLabel")}
+            </ThemedText>
             <TextInput
               value={meetingTime}
-              onChangeText={(text) => setMeetingTime(formatMeetingTimeInput(text))}
+              onChangeText={(text) =>
+                setMeetingTime(formatMeetingTimeInput(text))
+              }
               placeholder={t("chatMeetingTimePlaceholder")}
               placeholderTextColor={colors.icon}
               keyboardType="number-pad"
               maxLength={5}
-              style={[styles.modalInput, { color: colors.text, borderColor: colors.icon + "44" }]}
+              style={[
+                styles.modalInput,
+                { color: colors.text, borderColor: colors.icon + "44" },
+              ]}
             />
             <TextInput
               value={meetingLocation}
               onChangeText={setMeetingLocation}
               placeholder={t("chatMeetingLocationPlaceholder")}
               placeholderTextColor={colors.icon}
-              style={[styles.modalInput, { color: colors.text, borderColor: colors.icon + "44" }]}
+              style={[
+                styles.modalInput,
+                { color: colors.text, borderColor: colors.icon + "44" },
+              ]}
             />
             <View style={styles.modalRow}>
               <TextInput
@@ -784,13 +939,19 @@ export function ChatRoomScreen({
               disabled={directTradeMutation.isPending}
               style={[
                 styles.modalSaveBtn,
-                { backgroundColor: directTradeMutation.isPending ? colors.icon + "55" : colors.tint },
+                {
+                  backgroundColor: directTradeMutation.isPending
+                    ? colors.icon + "55"
+                    : colors.tint,
+                },
               ]}
             >
               {directTradeMutation.isPending ? (
                 <ActivityIndicator color="#FFF" size="small" />
               ) : (
-                <ThemedText style={styles.modalSaveBtnText}>{t("chatDirectTradeSave")}</ThemedText>
+                <ThemedText style={styles.modalSaveBtnText}>
+                  {t("chatDirectTradeSave")}
+                </ThemedText>
               )}
             </Pressable>
           </View>
@@ -871,10 +1032,20 @@ const styles = StyleSheet.create({
     minHeight: 32,
   },
   liveLocationTitle: { fontSize: 13, fontWeight: "700", flex: 1 },
-  liveMapWrap: { height: LIVE_MAP_HEIGHT, borderRadius: 10, overflow: "hidden", marginTop: 2 },
+  liveMapWrap: {
+    height: LIVE_MAP_HEIGHT,
+    borderRadius: 10,
+    overflow: "hidden",
+    marginTop: 2,
+  },
   liveMapView: { width: "100%", height: LIVE_MAP_HEIGHT },
   liveLocationLine: { fontSize: 12, opacity: 0.85 },
-  liveLegendRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 2 },
+  liveLegendRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 2,
+  },
   liveLegendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   liveLegendDot: { width: 10, height: 10, borderRadius: 5 },
   liveLegendText: { fontSize: 12, opacity: 0.85 },
@@ -884,12 +1055,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingBottom: 6,
   },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, padding: 24 },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    padding: 24,
+  },
   loadingText: { opacity: 0.7, fontSize: 13 },
   errorText: { color: "#D14343", textAlign: "center", fontSize: 14 },
-  retryBtn: { marginTop: 8, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10 },
+  retryBtn: {
+    marginTop: 8,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
   retryBtnText: { color: "#FFF", fontWeight: "700" },
-  messagesContent: { paddingHorizontal: 14, paddingVertical: 12, gap: 8, flexGrow: 1 },
+  messagesContent: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 8,
+    flexGrow: 1,
+  },
   messageRow: { width: "100%" },
   messageRowMine: { alignItems: "flex-end" },
   messageRowOther: { alignItems: "flex-start" },
@@ -907,7 +1094,12 @@ const styles = StyleSheet.create({
   bubbleTextMine: { color: "#FFF" },
   bubbleTime: { fontSize: 10, opacity: 0.65, alignSelf: "flex-end" },
   bubbleTimeMine: { color: "rgba(255,255,255,0.85)" },
-  systemType: { fontSize: 10, fontWeight: "800", opacity: 0.75, textTransform: "uppercase" },
+  systemType: {
+    fontSize: 10,
+    fontWeight: "800",
+    opacity: 0.75,
+    textTransform: "uppercase",
+  },
   historyLoader: {
     flexDirection: "row",
     alignItems: "center",
@@ -916,7 +1108,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   historyLoaderText: { fontSize: 12, opacity: 0.65 },
-  emptyThread: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 48 },
+  emptyThread: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 48,
+  },
   emptyThreadText: { opacity: 0.7, fontSize: 14 },
   composer: {
     flexDirection: "row",

@@ -16,7 +16,8 @@ import type { HttpClient } from "../api/HttpClient";
 type UnknownRecord = Record<string, unknown>;
 
 function asRecord(value: unknown): UnknownRecord | null {
-  if (value == null || typeof value !== "object" || Array.isArray(value)) return null;
+  if (value == null || typeof value !== "object" || Array.isArray(value))
+    return null;
   return value as UnknownRecord;
 }
 
@@ -63,6 +64,93 @@ function mapMessage(value: unknown): ChatMessage | null {
   };
 }
 
+function readListingFields(row: UnknownRecord): {
+  title: string | null;
+  imageUrl: string | null;
+  price: number | null;
+} {
+  const nested = asRecord(row.listing);
+  if (nested) {
+    const price = Number(nested.price);
+    return {
+      title: toNonEmptyString(nested.title),
+      imageUrl: toNonEmptyString(nested.imageUrl),
+      price: Number.isFinite(price) ? price : null,
+    };
+  }
+  const flatPrice = Number(row.listingPrice ?? row.price);
+  return {
+    title: toNonEmptyString(
+      row.listingTitle ?? row.listingName ?? row.productTitle,
+    ),
+    imageUrl: toNonEmptyString(
+      row.listingImageUrl ?? row.listingImage ?? row.productImageUrl,
+    ),
+    price: Number.isFinite(flatPrice) ? flatPrice : null,
+  };
+}
+
+function readCounterpartyFields(row: UnknownRecord): {
+  userId: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+} {
+  const nested = asRecord(row.counterparty);
+  if (nested) {
+    return {
+      userId: toNonEmptyString(nested.userId),
+      displayName: toNonEmptyString(nested.displayName),
+      avatarUrl: toNonEmptyString(nested.avatarUrl),
+    };
+  }
+  return {
+    userId: toNonEmptyString(
+      row.counterpartUserId ?? row.peerUserId ?? row.otherPartyUserId,
+    ),
+    displayName: toNonEmptyString(
+      row.counterpartNickname ?? row.peerNickname ?? row.otherPartyNickname,
+    ),
+    avatarUrl: toNonEmptyString(
+      row.counterpartAvatarUrl ?? row.peerAvatarUrl ?? row.otherPartyAvatarUrl,
+    ),
+  };
+}
+
+function buildChatRoom(row: UnknownRecord): ChatRoom | null {
+  const id = toNonEmptyString(row.chatRoomId ?? row.id);
+  const listingId = toNonEmptyString(row.listingId);
+  const buyerId = toNonEmptyString(row.buyerId);
+  const sellerId = toNonEmptyString(row.sellerId);
+  const updatedAt = toNonEmptyString(row.updatedAt);
+
+  if (!id || !listingId || !buyerId || !sellerId || !updatedAt) {
+    return null;
+  }
+
+  const listing = readListingFields(row);
+  const counterparty = readCounterpartyFields(row);
+  const createdAt = toNonEmptyString(row.createdAt) ?? updatedAt;
+
+  return {
+    id,
+    listingId,
+    buyerId,
+    sellerId,
+    isActive: toBoolean(row.isActive, true),
+    createdAt,
+    updatedAt,
+    lastMessage:
+      mapMessage(row.lastMessage) ?? mapLastMessageFromSummary(row, id),
+    unreadCount: Math.max(0, Math.round(toFiniteNumber(row.unreadCount, 0))),
+    listingTitle: listing.title,
+    listingImageUrl: listing.imageUrl,
+    listingPrice: listing.price,
+    counterpartNickname: counterparty.displayName,
+    counterpartUserId: counterparty.userId,
+    counterpartAvatarUrl: counterparty.avatarUrl,
+  };
+}
+
 /** Build preview message from `ChatRoomSummaryResponseDto` flat latest* fields. */
 function mapLastMessageFromSummary(
   row: UnknownRecord,
@@ -71,7 +159,9 @@ function mapLastMessageFromSummary(
   const messageId = toNonEmptyString(row.latestMessageId);
   const type = toNonEmptyString(row.latestMessageType);
   const content =
-    typeof row.latestMessageContent === "string" ? row.latestMessageContent : null;
+    typeof row.latestMessageContent === "string"
+      ? row.latestMessageContent
+      : null;
   const createdAt =
     toNonEmptyString(row.latestMessageCreatedAt) ??
     toNonEmptyString(row.updatedAt);
@@ -94,94 +184,20 @@ function mapLastMessageFromSummary(
 function mapRoomSummary(value: unknown): ChatRoom | null {
   const row = asRecord(value);
   if (!row) return null;
-
-  const id = toNonEmptyString(row.chatRoomId ?? row.id);
-  const listingId = toNonEmptyString(row.listingId);
-  const buyerId = toNonEmptyString(row.buyerId);
-  const sellerId = toNonEmptyString(row.sellerId);
-  const updatedAt = toNonEmptyString(row.updatedAt);
-
-  if (!id || !listingId || !buyerId || !sellerId || !updatedAt) {
-    return null;
-  }
-
-  const createdAt = toNonEmptyString(row.createdAt) ?? updatedAt;
-
-  return {
-    id,
-    listingId,
-    buyerId,
-    sellerId,
-    isActive: toBoolean(row.isActive, true),
-    createdAt,
-    updatedAt,
-    lastMessage:
-      mapMessage(row.lastMessage) ?? mapLastMessageFromSummary(row, id),
-    unreadCount: Math.max(0, Math.round(toFiniteNumber(row.unreadCount, 0))),
-    listingTitle: toNonEmptyString(
-      row.listingTitle ?? row.listingName ?? row.productTitle,
-    ),
-    listingImageUrl: toNonEmptyString(
-      row.listingImageUrl ?? row.listingImage ?? row.productImageUrl,
-    ),
-    counterpartNickname: toNonEmptyString(
-      row.counterpartNickname ?? row.peerNickname ?? row.otherPartyNickname,
-    ),
-    counterpartUserId: toNonEmptyString(
-      row.counterpartUserId ?? row.peerUserId ?? row.otherPartyUserId,
-    ),
-  };
+  return buildChatRoom(row);
 }
 
 /** Full room from POST /client/chats/rooms (`id`, `createdAt`, …). */
 function mapRoomDetail(value: unknown): ChatRoom | null {
-  const summary = mapRoomSummary(value);
-  if (summary) {
-    const row = asRecord(value)!;
-    const createdAt = toNonEmptyString(row.createdAt);
-    if (createdAt) {
-      return { ...summary, createdAt, isActive: toBoolean(row.isActive, summary.isActive) };
-    }
-    return summary;
-  }
-
   const row = asRecord(value);
   if (!row) return null;
-
-  const id = toNonEmptyString(row.id ?? row.chatRoomId);
-  const listingId = toNonEmptyString(row.listingId);
-  const buyerId = toNonEmptyString(row.buyerId);
-  const sellerId = toNonEmptyString(row.sellerId);
+  const room = buildChatRoom(row);
+  if (!room) return null;
   const createdAt = toNonEmptyString(row.createdAt);
-  const updatedAt = toNonEmptyString(row.updatedAt);
-
-  if (!id || !listingId || !buyerId || !sellerId || !createdAt || !updatedAt) {
-    return null;
-  }
-
   return {
-    id,
-    listingId,
-    buyerId,
-    sellerId,
-    isActive: toBoolean(row.isActive, true),
-    createdAt,
-    updatedAt,
-    lastMessage:
-      mapMessage(row.lastMessage) ?? mapLastMessageFromSummary(row, id),
-    unreadCount: Math.max(0, Math.round(toFiniteNumber(row.unreadCount, 0))),
-    listingTitle: toNonEmptyString(
-      row.listingTitle ?? row.listingName ?? row.productTitle,
-    ),
-    listingImageUrl: toNonEmptyString(
-      row.listingImageUrl ?? row.listingImage ?? row.productImageUrl,
-    ),
-    counterpartNickname: toNonEmptyString(
-      row.counterpartNickname ?? row.peerNickname ?? row.otherPartyNickname,
-    ),
-    counterpartUserId: toNonEmptyString(
-      row.counterpartUserId ?? row.peerUserId ?? row.otherPartyUserId,
-    ),
+    ...room,
+    ...(createdAt ? { createdAt } : {}),
+    isActive: toBoolean(row.isActive, room.isActive),
   };
 }
 
@@ -237,7 +253,9 @@ function readMarkedCount(value: unknown): number {
   return Math.max(0, Math.round(toFiniteNumber(fromKnown, 0)));
 }
 
-function mapDirectTradeTransaction(value: unknown): DirectTradeTransaction | null {
+function mapDirectTradeTransaction(
+  value: unknown,
+): DirectTradeTransaction | null {
   const row = asRecord(value);
   if (!row) return null;
   const id = toNonEmptyString(row.id);
@@ -276,19 +294,27 @@ export class ApiChatRepository implements IChatRepository {
   constructor(private readonly http: HttpClient) {}
 
   async openRoom(input: OpenChatRoomInput): Promise<ChatRoom> {
-    const data = await this.http.post<unknown>(API_ENDPOINTS.CLIENT_CHATS.ROOMS, {
-      listingId: input.listingId,
-      sellerId: input.sellerId,
-    });
+    const data = await this.http.post<unknown>(
+      API_ENDPOINTS.CLIENT_CHATS.ROOMS,
+      {
+        listingId: input.listingId,
+        sellerId: input.sellerId,
+      },
+    );
     const room = mapRoomDetail(data);
     if (!room) throw new Error("Open chat room response is invalid");
     return room;
   }
 
-  async listRooms(params?: CursorPaginationParams): Promise<CursorPage<ChatRoom>> {
-    const data = await this.http.get<unknown>(API_ENDPOINTS.CLIENT_CHATS.ROOMS, {
-      params: buildCursorQuery(params),
-    });
+  async listRooms(
+    params?: CursorPaginationParams,
+  ): Promise<CursorPage<ChatRoom>> {
+    const data = await this.http.get<unknown>(
+      API_ENDPOINTS.CLIENT_CHATS.ROOMS,
+      {
+        params: buildCursorQuery(params),
+      },
+    );
     return mapCursorPage(data, mapRoomSummary);
   }
 

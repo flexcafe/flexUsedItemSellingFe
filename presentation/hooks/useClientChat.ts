@@ -1,7 +1,7 @@
 import type { ChatMessage } from "@/core/domain/entities/Chat";
 import type {
-  CursorPaginationParams,
   CursorPage,
+  CursorPaginationParams,
   DirectTradeRequestInput,
   LocationShareInput,
   OpenChatRoomInput,
@@ -21,7 +21,9 @@ import { useServices } from "../providers/ServicesProvider";
 export const CLIENT_CHAT_QUERY_KEY = ["client", "chat"] as const;
 export const DEFAULT_CHAT_TAKE = 20;
 
-function withDefaultTake(params?: CursorPaginationParams): CursorPaginationParams {
+function withDefaultTake(
+  params?: CursorPaginationParams,
+): CursorPaginationParams {
   return {
     cursor: params?.cursor ?? null,
     take: params?.take ?? DEFAULT_CHAT_TAKE,
@@ -34,7 +36,9 @@ export function useOpenChatRoom() {
   return useMutation({
     mutationFn: (input: OpenChatRoomInput) => chatService.openRoom(input),
     onSuccess: (room) => {
-      void qc.invalidateQueries({ queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"] });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"],
+      });
       qc.setQueryData([...CLIENT_CHAT_QUERY_KEY, "room", room.id], room);
     },
   });
@@ -87,7 +91,8 @@ export function useSendChatMessage(chatRoomId: string | null) {
   const qc = useQueryClient();
   const take = DEFAULT_CHAT_TAKE;
   return useMutation({
-    mutationFn: (input: SendChatMessageInput) => chatService.sendMessage(chatRoomId!, input),
+    mutationFn: (input: SendChatMessageInput) =>
+      chatService.sendMessage(chatRoomId!, input),
     onSuccess: (message) => {
       qc.setQueryData<InfiniteData<CursorPage<ChatMessage>> | undefined>(
         [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId, take],
@@ -108,7 +113,9 @@ export function useSendChatMessage(chatRoomId: string | null) {
           return { ...prev, pages };
         },
       );
-      void qc.invalidateQueries({ queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"] });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"],
+      });
     },
   });
 }
@@ -119,7 +126,9 @@ export function useMarkChatRoomRead(chatRoomId: string | null) {
   return useMutation({
     mutationFn: () => chatService.markRead(chatRoomId!),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"] });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"],
+      });
     },
   });
 }
@@ -131,8 +140,12 @@ export function useRequestDirectTrade(chatRoomId: string | null) {
     mutationFn: (input: DirectTradeRequestInput) =>
       chatService.requestDirectTrade(chatRoomId!, input),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId] });
-      void qc.invalidateQueries({ queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"] });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId],
+      });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"],
+      });
     },
   });
 }
@@ -144,7 +157,9 @@ export function useStartLocationShare(chatRoomId: string | null) {
     mutationFn: (input: LocationShareInput) =>
       chatService.startLocationShare(chatRoomId!, input),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId] });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId],
+      });
     },
   });
 }
@@ -156,7 +171,9 @@ export function useUpdateLocationShare(chatRoomId: string | null) {
     mutationFn: (input: LocationShareInput) =>
       chatService.updateLocationShare(chatRoomId!, input),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId] });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId],
+      });
     },
   });
 }
@@ -167,13 +184,18 @@ export function useStopLocationShare(chatRoomId: string | null) {
   return useMutation({
     mutationFn: () => chatService.stopLocationShare(chatRoomId!),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId] });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId],
+      });
     },
   });
 }
 
 /** Opens room by listing + seller (A.1), then returns stable room id for the thread screen. */
-export function useEnsureChatRoom(listingId: string | null, sellerId: string | null) {
+export function useEnsureChatRoom(
+  listingId: string | null,
+  sellerId: string | null,
+) {
   const { chatService } = useServices();
   const qc = useQueryClient();
   const enabled = Boolean(listingId && sellerId);
@@ -185,7 +207,9 @@ export function useEnsureChatRoom(listingId: string | null, sellerId: string | n
         sellerId: sellerId!,
       });
       qc.setQueryData([...CLIENT_CHAT_QUERY_KEY, "room", room.id], room);
-      void qc.invalidateQueries({ queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"] });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"],
+      });
       return room;
     },
     enabled,

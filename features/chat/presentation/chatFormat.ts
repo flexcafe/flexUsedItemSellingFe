@@ -16,7 +16,9 @@ export function formatChatTimestamp(iso: string): string {
   return `${m}/${d} ${hh}:${mm}`;
 }
 
-export function messagePreview(message: ChatMessage | null | undefined): string {
+export function messagePreview(
+  message: ChatMessage | null | undefined,
+): string {
   if (!message) return "";
   if (message.type === "TEXT") {
     return message.content?.trim() || "";
@@ -72,7 +74,9 @@ function readActorUserId(message: ChatMessage): string | null {
   return typeof raw === "string" && raw.trim() ? raw.trim() : null;
 }
 
-export function locationSharingByUser(messages: ChatMessage[]): Record<string, boolean> {
+export function locationSharingByUser(
+  messages: ChatMessage[],
+): Record<string, boolean> {
   const state: Record<string, boolean> = {};
   for (const msg of messages) {
     const actorUserId = readActorUserId(msg);
@@ -83,7 +87,9 @@ export function locationSharingByUser(messages: ChatMessage[]): Record<string, b
   return state;
 }
 
-export function locationPointsFromMessages(messages: ChatMessage[]): Record<string, LiveLocationPoint> {
+export function locationPointsFromMessages(
+  messages: ChatMessage[],
+): Record<string, LiveLocationPoint> {
   const out: Record<string, LiveLocationPoint> = {};
   for (const msg of messages) {
     const actorUserId = readActorUserId(msg);
@@ -100,10 +106,18 @@ export function locationPointsFromMessages(messages: ChatMessage[]): Record<stri
   return out;
 }
 
-export function chatActionErrorMessage(error: unknown, fallback: string): string {
+export function chatActionErrorMessage(
+  error: unknown,
+  fallback: string,
+): string {
   if (error && typeof error === "object" && "response" in error) {
     const data = (error as { response?: { data?: unknown } }).response?.data;
-    if (data && typeof data === "object" && data !== null && "message" in data) {
+    if (
+      data &&
+      typeof data === "object" &&
+      data !== null &&
+      "message" in data
+    ) {
       const message = (data as { message: unknown }).message;
       if (typeof message === "string" && message.trim()) return message.trim();
     }
@@ -115,18 +129,16 @@ export function chatActionErrorMessage(error: unknown, fallback: string): string
   return fallback;
 }
 
-export function roomDisplayTitle(
+export function roomListingTitle(
   room: ChatRoom,
-  currentUserId: string | null | undefined,
   fallbackListingLabel: string,
-  fallbackPeerLabel: string,
 ): string {
-  if (room.listingTitle?.trim()) return room.listingTitle.trim();
-  if (room.counterpartNickname?.trim()) return room.counterpartNickname.trim();
-  if (currentUserId && room.sellerId === currentUserId) {
-    return `${fallbackListingLabel} · ${room.buyerId.slice(-6)}`;
-  }
-  return `${fallbackListingLabel} · ${fallbackPeerLabel}`;
+  return room.listingTitle?.trim() || fallbackListingLabel;
+}
+
+export function formatRoomListingPrice(price: number | null | undefined): string | null {
+  if (price == null || !Number.isFinite(price)) return null;
+  return `${price.toLocaleString()} MMK`;
 }
 
 export function roomPeerLabel(
@@ -136,6 +148,6 @@ export function roomPeerLabel(
   buyerFallback: string,
 ): string {
   if (room.counterpartNickname?.trim()) return room.counterpartNickname.trim();
-  if (!currentUserId) return sellerFallback;
+  if (!currentUserId) return buyerFallback;
   return currentUserId === room.buyerId ? sellerFallback : buyerFallback;
 }

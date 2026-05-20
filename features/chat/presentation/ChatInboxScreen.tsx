@@ -23,8 +23,9 @@ import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 import {
   formatChatTimestamp,
+  formatRoomListingPrice,
   messagePreview,
-  roomDisplayTitle,
+  roomListingTitle,
   roomPeerLabel,
 } from "./chatFormat";
 
@@ -52,23 +53,20 @@ export function ChatInboxScreen() {
         sellerId: room.sellerId,
         listingTitle: room.listingTitle ?? "",
         peerName: room.counterpartNickname ?? "",
+        peerUserId: room.counterpartUserId ?? "",
       },
     });
   };
 
   const renderItem = ({ item }: { item: ChatRoom }) => {
-    const title = roomDisplayTitle(
-      item,
-      user?.id,
-      t("chatListingFallback"),
-      t("chatSellerFallback"),
-    );
+    const title = roomListingTitle(item, t("chatListingFallback"));
     const peer = roomPeerLabel(
       item,
       user?.id,
       t("chatSellerFallback"),
       t("chatBuyerFallback"),
     );
+    const priceLabel = formatRoomListingPrice(item.listingPrice);
     const preview = messagePreview(item.lastMessage);
     const time = formatChatTimestamp(
       item.lastMessage?.createdAt ?? item.updatedAt,
@@ -118,6 +116,7 @@ export function ChatInboxScreen() {
           </View>
           <ThemedText style={styles.rowPeer} numberOfLines={1}>
             {peer}
+            {priceLabel ? ` · ${priceLabel}` : ""}
           </ThemedText>
           <ThemedText style={styles.rowPreview} numberOfLines={2}>
             {preview || t("chatNoMessagesYet")}

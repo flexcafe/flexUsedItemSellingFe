@@ -34,6 +34,8 @@ export interface ChatRoom {
   unreadCount: number;
   listingTitle?: string | null;
   listingImageUrl?: string | null;
+  listingPrice?: number | null;
   counterpartNickname?: string | null;
   counterpartUserId?: string | null;
+  counterpartAvatarUrl?: string | null;
 }
