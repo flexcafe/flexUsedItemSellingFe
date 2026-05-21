@@ -11,6 +11,9 @@ import type {
   SafePaymentStatus,
   SafePaymentSubmitInput,
   SendChatMessageInput,
+  TransactionCompleteInput,
+  TransactionReview,
+  TransactionReviewInput,
 } from "@/core/domain/types/chat";
 import { API_ENDPOINTS } from "../api/constants";
 import type { HttpClient } from "../api/HttpClient";
@@ -314,7 +317,37 @@ function mapSafePaymentStatus(value: unknown): SafePaymentStatus | null {
     buyerKbzAccountName: toNonEmptyString(row.buyerKbzAccountName),
     buyerKbzPhoneNumber: toNonEmptyString(row.buyerKbzPhoneNumber),
     buyerKbzIsVerified:
-      typeof verifiedRaw === "boolean" ? verifiedRaw : verifiedRaw == null ? null : toBoolean(verifiedRaw),
+      typeof verifiedRaw === "boolean"
+        ? verifiedRaw
+        : verifiedRaw == null
+          ? null
+          : toBoolean(verifiedRaw),
+  };
+}
+
+function mapTransactionReview(value: unknown): TransactionReview | null {
+  const row = asRecord(value);
+  if (!row) return null;
+  const id = toNonEmptyString(row.id);
+  const transactionId = toNonEmptyString(row.transactionId);
+  const reviewerId = toNonEmptyString(row.reviewerId);
+  const revieweeId = toNonEmptyString(row.revieweeId);
+  const createdAt = toNonEmptyString(row.createdAt);
+  if (!id || !transactionId || !reviewerId || !revieweeId || !createdAt) {
+    return null;
+  }
+  const rawComment = row.comment;
+  const comment =
+    typeof rawComment === "string" ? rawComment : toNonEmptyString(rawComment);
+  return {
+    id,
+    transactionId,
+    reviewerId,
+    revieweeId,
+    stars: Math.min(5, Math.max(1, Math.round(toFiniteNumber(row.stars, 0)))),
+    comment,
+    pointsAwarded: toFiniteNumber(row.pointsAwarded, 0),
+    createdAt,
   };
 }
 
@@ -451,13 +484,16 @@ export class ApiChatRepository implements IChatRepository {
     return readBooleanPayload(data);
   }
 
-  async requestSafePayment(chatRoomId: string): Promise<DirectTradeTransaction> {
+  async requestSafePayment(
+    chatRoomId: string,
+  ): Promise<DirectTradeTransaction> {
     const data = await this.http.post<unknown>(
       API_ENDPOINTS.CLIENT_CHATS.SAFE_PAYMENT_REQUEST(chatRoomId),
       {},
     );
     const safePayment = mapDirectTradeTransaction(data);
-    if (!safePayment) throw new Error("Safe payment request response is invalid");
+    if (!safePayment)
+      throw new Error("Safe payment request response is invalid");
     return safePayment;
   }
 
@@ -466,7 +502,8 @@ export class ApiChatRepository implements IChatRepository {
       API_ENDPOINTS.CLIENT_CHATS.SAFE_PAYMENT_STATUS(chatRoomId),
     );
     const safePayment = mapSafePaymentStatus(data);
-    if (!safePayment) throw new Error("Safe payment status response is invalid");
+    if (!safePayment)
+      throw new Error("Safe payment status response is invalid");
     return safePayment;
   }
 
@@ -485,7 +522,41 @@ export class ApiChatRepository implements IChatRepository {
       },
     );
     const safePayment = mapDirectTradeTransaction(data);
-    if (!safePayment) throw new Error("Safe payment submit response is invalid");
+    if (!safePayment)
+      throw new Error("Safe payment submit response is invalid");
     return safePayment;
+  }
+
+  async completeTransaction(
+    input: TransactionCompleteInput,
+  ): Promise<DirectTradeTransaction> {
+    const data = await this.http.post<unknown>(
+      API_ENDPOINTS.CLIENT_CHATS.TRANSACTION_COMPLETE,
+      {
+        transactionId: input.transactionId,
+      },
+    );
+    const transaction = mapDirectTradeTransaction(data);
+    if (!transaction)
+      throw new Error("Complete transaction response is invalid");
+    return transaction;
+  }
+
+  async submitTransactionReview(
+    transactionId: string,
+    input: TransactionReviewInput,
+  ): Promise<TransactionReview> {
+    const comment = input.comment?.trim();
+    const body: Record<string, unknown> = {
+      stars: input.stars,
+    };
+    if (comment) body.comment = comment;
+    const data = await this.http.post<unknown>(
+      API_ENDPOINTS.CLIENT_CHATS.TRANSACTION_REVIEWS(transactionId),
+      body,
+    );
+    const review = mapTransactionReview(data);
+    if (!review) throw new Error("Submit review response is invalid");
+    return review;
   }
 }

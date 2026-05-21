@@ -75,6 +75,9 @@ export const API_ENDPOINTS = {
       `/v1/client/chats/${chatRoomId}/safe-payment`,
     SAFE_PAYMENT_SUBMIT: (chatRoomId: string) =>
       `/v1/client/chats/${chatRoomId}/safe-payment/submit`,
+    TRANSACTION_COMPLETE: "/v1/client/chats/transactions/complete",
+    TRANSACTION_REVIEWS: (transactionId: string) =>
+      `/v1/client/chats/transactions/${transactionId}/reviews`,
   },
   PRODUCTS: {
     LIST: "/v1/products",

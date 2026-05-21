@@ -12,6 +12,9 @@ import type {
   SafePaymentStatus,
   SafePaymentSubmitInput,
   SendChatMessageInput,
+  TransactionCompleteInput,
+  TransactionReview,
+  TransactionReviewInput,
 } from "@/core/domain/types/chat";
 
 export class ChatService implements IChatService {
@@ -81,5 +84,18 @@ export class ChatService implements IChatService {
     input: SafePaymentSubmitInput,
   ): Promise<DirectTradeTransaction> {
     return this.repo.submitSafePayment(chatRoomId, input);
+  }
+
+  completeTransaction(
+    input: TransactionCompleteInput,
+  ): Promise<DirectTradeTransaction> {
+    return this.repo.completeTransaction(input);
+  }
+
+  submitTransactionReview(
+    transactionId: string,
+    input: TransactionReviewInput,
+  ): Promise<TransactionReview> {
+    return this.repo.submitTransactionReview(transactionId, input);
   }
 }

@@ -72,3 +72,23 @@ export interface SafePaymentSubmitInput {
   kbzTransactionId: string;
   idempotencyKey?: string;
 }
+
+export interface TransactionCompleteInput {
+  transactionId: string;
+}
+
+export interface TransactionReviewInput {
+  stars: number;
+  comment?: string;
+}
+
+export interface TransactionReview {
+  id: string;
+  transactionId: string;
+  reviewerId: string;
+  revieweeId: string;
+  stars: number;
+  comment: string | null;
+  pointsAwarded: number;
+  createdAt: string;
+}

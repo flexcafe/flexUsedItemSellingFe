@@ -10,6 +10,9 @@ import type {
   SafePaymentStatus,
   SafePaymentSubmitInput,
   SendChatMessageInput,
+  TransactionCompleteInput,
+  TransactionReview,
+  TransactionReviewInput,
 } from "@/core/domain/types/chat";
 
 export interface IChatService {
@@ -43,4 +46,11 @@ export interface IChatService {
     chatRoomId: string,
     input: SafePaymentSubmitInput,
   ): Promise<DirectTradeTransaction>;
+  completeTransaction(
+    input: TransactionCompleteInput,
+  ): Promise<DirectTradeTransaction>;
+  submitTransactionReview(
+    transactionId: string,
+    input: TransactionReviewInput,
+  ): Promise<TransactionReview>;
 }

@@ -7,7 +7,10 @@ import type {
   OpenChatRoomInput,
   SafePaymentSubmitInput,
   SendChatMessageInput,
+  TransactionCompleteInput,
+  TransactionReviewInput,
 } from "@/core/domain/types/chat";
+import { displayUnreadCount } from "@/features/chat/presentation/chatFormat";
 import {
   useInfiniteQuery,
   useMutation,
@@ -16,7 +19,6 @@ import {
   type InfiniteData,
 } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { displayUnreadCount } from "@/features/chat/presentation/chatFormat";
 import { useAuth } from "../providers/AuthProvider";
 import { useServices } from "../providers/ServicesProvider";
 
@@ -24,7 +26,12 @@ export const CLIENT_CHAT_QUERY_KEY = ["client", "chat"] as const;
 export const DEFAULT_CHAT_TAKE = 20;
 
 export function chatRoomByListingKey(listingId: string, sellerId: string) {
-  return [...CLIENT_CHAT_QUERY_KEY, "roomByListing", listingId, sellerId] as const;
+  return [
+    ...CLIENT_CHAT_QUERY_KEY,
+    "roomByListing",
+    listingId,
+    sellerId,
+  ] as const;
 }
 
 export function cacheChatRoom(
@@ -229,9 +236,8 @@ export function useSafePaymentStatus(
       try {
         return await chatService.getSafePaymentStatus(chatRoomId!);
       } catch (error) {
-        const status = (
-          error as { response?: { status?: number } } | undefined
-        )?.response?.status;
+        const status = (error as { response?: { status?: number } } | undefined)
+          ?.response?.status;
         if (status === 404) return null;
         throw error;
       }
@@ -264,6 +270,51 @@ export function useSubmitSafePayment(chatRoomId: string | null) {
   return useMutation({
     mutationFn: (input: SafePaymentSubmitInput) =>
       chatService.submitSafePayment(chatRoomId!, input),
+    onSuccess: () => {
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId],
+      });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "safePayment", chatRoomId],
+      });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"],
+      });
+    },
+  });
+}
+
+export function useCompleteTransaction(chatRoomId: string | null) {
+  const { chatService } = useServices();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: TransactionCompleteInput) =>
+      chatService.completeTransaction(input),
+    onSuccess: () => {
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId],
+      });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "safePayment", chatRoomId],
+      });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"],
+      });
+    },
+  });
+}
+
+export function useSubmitTransactionReview(chatRoomId: string | null) {
+  const { chatService } = useServices();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      transactionId,
+      input,
+    }: {
+      transactionId: string;
+      input: TransactionReviewInput;
+    }) => chatService.submitTransactionReview(transactionId, input),
     onSuccess: () => {
       void qc.invalidateQueries({
         queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId],

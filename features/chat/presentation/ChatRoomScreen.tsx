@@ -1,8 +1,9 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useQueryClient } from "@tanstack/react-query";
+import { Image } from "expo-image";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   ActivityIndicator,
   Alert,
@@ -17,7 +18,6 @@ import {
   View,
   type FlatList as FlatListType,
 } from "react-native";
-import { Image } from "expo-image";
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -37,17 +37,28 @@ import {
   DEFAULT_CHAT_TAKE,
   useChatMessages,
   useChatRooms,
+  useCompleteTransaction,
   useMarkChatRoomRead,
   useRequestDirectTrade,
   useRequestSafePayment,
-  useSendChatMessage,
   useSafePaymentStatus,
+  useSendChatMessage,
   useStartLocationShare,
   useStopLocationShare,
   useSubmitSafePayment,
+  useSubmitTransactionReview,
   useUpdateLocationShare,
 } from "@/presentation/hooks/useClientChat";
 import { buildLeafletLiveViewHtml } from "@/presentation/lib/leafletPickerHtml";
+import {
+  UI_SECTION_STAGGER_MS,
+  uiCardShadow,
+  uiContentEnter,
+  uiFadeEnter,
+  uiLayoutTransition,
+  uiSectionEnter,
+  usePressScale,
+} from "@/presentation/lib/uiAnimations";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 import {
@@ -66,15 +77,6 @@ import {
   formatMeetingDateInput,
   formatMeetingTimeInput,
 } from "./directTradeForm";
-import {
-  uiCardShadow,
-  uiContentEnter,
-  uiFadeEnter,
-  uiLayoutTransition,
-  uiSectionEnter,
-  UI_SECTION_STAGGER_MS,
-  usePressScale,
-} from "@/presentation/lib/uiAnimations";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -131,9 +133,7 @@ export function ChatRoomScreen({
     roomMeta?.listingTitle?.trim() ||
     t("chatListingFallback");
   const resolvedListingImageUrl =
-    listingImageUrlParam?.trim() ||
-    roomMeta?.listingImageUrl?.trim() ||
-    null;
+    listingImageUrlParam?.trim() || roomMeta?.listingImageUrl?.trim() || null;
   const resolvedPeerName =
     peerName?.trim() ||
     roomMeta?.counterpartNickname?.trim() ||
@@ -150,12 +150,18 @@ export function ChatRoomScreen({
     take: DEFAULT_CHAT_TAKE,
   });
   const [safePaymentOpen, setSafePaymentOpen] = useState(false);
+  const [completionOpen, setCompletionOpen] = useState(false);
   const sendMessage = useSendChatMessage(chatRoomId);
   const markRead = useMarkChatRoomRead(chatRoomId);
   const directTradeMutation = useRequestDirectTrade(chatRoomId);
-  const safePaymentStatusQuery = useSafePaymentStatus(chatRoomId, safePaymentOpen);
+  const safePaymentStatusQuery = useSafePaymentStatus(
+    chatRoomId,
+    safePaymentOpen || completionOpen,
+  );
   const requestSafePaymentMutation = useRequestSafePayment(chatRoomId);
   const submitSafePaymentMutation = useSubmitSafePayment(chatRoomId);
+  const completeTransactionMutation = useCompleteTransaction(chatRoomId);
+  const submitReviewMutation = useSubmitTransactionReview(chatRoomId);
   const startLocationMutation = useStartLocationShare(chatRoomId);
   const updateLocationMutation = useUpdateLocationShare(chatRoomId);
   const stopLocationMutation = useStopLocationShare(chatRoomId);
@@ -170,6 +176,9 @@ export function ChatRoomScreen({
   const [payerKbzPhone, setPayerKbzPhone] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [kbzTransactionId, setKbzTransactionId] = useState("");
+  const [reviewStars, setReviewStars] = useState<number>(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
   const [locationUpdatedAt, setLocationUpdatedAt] = useState<string | null>(
     null,
   );
@@ -249,7 +258,18 @@ export function ChatRoomScreen({
   const hasAnyLivePoint = Boolean(myPoint || counterpartPoint);
   const compactStatus = `${myMarkerLabel}: ${myLocationStatus} · ${peerMarkerLabel}: ${peerLocationStatus}`;
   const safePaymentStatus = safePaymentStatusQuery.data ?? null;
-  const isBuyer = Boolean(user?.id && roomMeta?.buyerId && user.id === roomMeta.buyerId);
+  const activeTransaction = safePaymentStatus?.transaction ?? null;
+  const canCompleteTrade = Boolean(
+    activeTransaction && activeTransaction.status !== "COMPLETED",
+  );
+  const waitingForCounterpartyComplete = Boolean(
+    activeTransaction &&
+      activeTransaction.status !== "COMPLETED" &&
+      (activeTransaction.buyerCompleted || activeTransaction.sellerCompleted),
+  );
+  const isBuyer = Boolean(
+    user?.id && roomMeta?.buyerId && user.id === roomMeta.buyerId,
+  );
   const liveMapHtml = useMemo(() => {
     const markers = [];
     if (myPoint) {
@@ -329,6 +349,14 @@ export function ChatRoomScreen({
     void safePaymentStatusQuery.refetch();
   }, [safePaymentStatusQuery]);
 
+  const openCompletionModal = useCallback(() => {
+    setCompletionOpen(true);
+    setReviewSubmitted(false);
+    setReviewStars(5);
+    setReviewComment("");
+    void safePaymentStatusQuery.refetch();
+  }, [safePaymentStatusQuery]);
+
   const onRequestSafePayment = useCallback(() => {
     if (!chatRoomId) return;
     if (!isBuyer) {
@@ -338,7 +366,10 @@ export function ChatRoomScreen({
     requestSafePaymentMutation.mutate(undefined, {
       onSuccess: async () => {
         await safePaymentStatusQuery.refetch();
-        Alert.alert(t("chatSafePaymentTitle"), t("chatSafePaymentRequestSuccess"));
+        Alert.alert(
+          t("chatSafePaymentTitle"),
+          t("chatSafePaymentRequestSuccess"),
+        );
       },
       onError: (error) => {
         Alert.alert(
@@ -405,6 +436,73 @@ export function ChatRoomScreen({
     paymentAmount,
     submitSafePaymentMutation,
     safePaymentStatusQuery,
+    t,
+  ]);
+
+  const onCompleteTransaction = useCallback(() => {
+    const transactionId = activeTransaction?.id;
+    if (!transactionId) {
+      Alert.alert(t("chatCompleteTradeTitle"), t("chatCompleteTradeUnavailable"));
+      return;
+    }
+    completeTransactionMutation.mutate(
+      { transactionId },
+      {
+        onSuccess: async () => {
+          await safePaymentStatusQuery.refetch();
+          Alert.alert(t("chatCompleteTradeTitle"), t("chatCompleteTradeSuccess"));
+        },
+        onError: (error) => {
+          Alert.alert(
+            t("chatCompleteTradeTitle"),
+            chatActionErrorMessage(error, t("chatSafePaymentLoadFailed")),
+          );
+        },
+      },
+    );
+  }, [
+    activeTransaction?.id,
+    completeTransactionMutation,
+    safePaymentStatusQuery,
+    t,
+  ]);
+
+  const onSubmitReview = useCallback(() => {
+    const transactionId = activeTransaction?.id;
+    if (!transactionId) {
+      Alert.alert(t("chatReviewTitle"), t("chatCompleteTradeUnavailable"));
+      return;
+    }
+    if (!Number.isFinite(reviewStars) || reviewStars < 1 || reviewStars > 5) {
+      Alert.alert(t("chatReviewTitle"), t("chatReviewValidation"));
+      return;
+    }
+    submitReviewMutation.mutate(
+      {
+        transactionId,
+        input: {
+          stars: reviewStars,
+          comment: reviewComment.trim() || undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          setReviewSubmitted(true);
+          Alert.alert(t("chatReviewTitle"), t("chatReviewSuccess"));
+        },
+        onError: (error) => {
+          Alert.alert(
+            t("chatReviewTitle"),
+            chatActionErrorMessage(error, t("chatSafePaymentLoadFailed")),
+          );
+        },
+      },
+    );
+  }, [
+    activeTransaction?.id,
+    reviewComment,
+    reviewStars,
+    submitReviewMutation,
     t,
   ]);
 
@@ -711,7 +809,9 @@ export function ChatRoomScreen({
           accessibilityState={{ expanded: toolsExpanded }}
         >
           <View style={styles.toolsHeaderText}>
-            <ThemedText style={styles.toolsTitle}>{t("chatTradeTools")}</ThemedText>
+            <ThemedText style={styles.toolsTitle}>
+              {t("chatTradeTools")}
+            </ThemedText>
             <ThemedText style={styles.toolsSubtitle} numberOfLines={2}>
               {compactStatus}
             </ThemedText>
@@ -783,6 +883,37 @@ export function ChatRoomScreen({
                 </Pressable>
               </View>
 
+              <Pressable
+                onPress={openCompletionModal}
+                disabled={!chatRoomId}
+                style={({ pressed }) => [
+                  styles.toolChip,
+                  styles.toolChipFull,
+                  {
+                    borderColor: chatRoomId ? colors.tint : colors.icon + "55",
+                    backgroundColor: chatRoomId
+                      ? colors.tint + "12"
+                      : colors.icon + "10",
+                    opacity: !chatRoomId ? 0.55 : pressed ? 0.88 : 1,
+                  },
+                ]}
+              >
+                <MaterialIcons
+                  name="task-alt"
+                  size={17}
+                  color={chatRoomId ? colors.tint : colors.icon}
+                />
+                <ThemedText
+                  style={[
+                    styles.toolChipText,
+                    { color: chatRoomId ? colors.tint : colors.icon },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {t("chatCompleteTradeButton")}
+                </ThemedText>
+              </Pressable>
+
               {!mySharingActive ? (
                 <Pressable
                   onPress={onStartLocationShare}
@@ -821,7 +952,9 @@ export function ChatRoomScreen({
                 <View style={[styles.toolChipRow, styles.toolChipFull]}>
                   <Pressable
                     onPress={onUpdateLocationShare}
-                    disabled={isFetchingCoords || updateLocationMutation.isPending}
+                    disabled={
+                      isFetchingCoords || updateLocationMutation.isPending
+                    }
                     style={({ pressed }) => [
                       styles.toolChip,
                       styles.toolChipRowItem,
@@ -839,7 +972,11 @@ export function ChatRoomScreen({
                     {isFetchingCoords || updateLocationMutation.isPending ? (
                       <ActivityIndicator size="small" color={colors.tint} />
                     ) : (
-                      <MaterialIcons name="sync" size={17} color={colors.tint} />
+                      <MaterialIcons
+                        name="sync"
+                        size={17}
+                        color={colors.tint}
+                      />
                     )}
                     <ThemedText
                       style={[styles.toolChipText, { color: colors.tint }]}
@@ -887,7 +1024,10 @@ export function ChatRoomScreen({
             <View
               style={[
                 styles.mapPreviewCard,
-                { borderColor: colors.icon + "33", backgroundColor: colors.icon + "08" },
+                {
+                  borderColor: colors.icon + "33",
+                  backgroundColor: colors.icon + "08",
+                },
               ]}
             >
               <View style={styles.mapPreviewTextCol}>
@@ -934,106 +1074,104 @@ export function ChatRoomScreen({
       ) : null}
 
       <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
-        >
-          {messagesQuery.isLoading ? (
-            <View style={styles.center}>
-              <ActivityIndicator color={colors.tint} />
-            </View>
-          ) : (
-            <FlatList
-              ref={listRef}
-              data={chronological}
-              keyExtractor={(item) => item.id}
-              renderItem={renderMessage}
-              contentContainerStyle={styles.messagesContent}
-              onScroll={(event) =>
-                onMessagesScroll(event.nativeEvent.contentOffset.y)
-              }
-              scrollEventThrottle={120}
-              ListHeaderComponent={
-                messagesQuery.isFetchingNextPage ? (
-                  <Animated.View
-                    entering={uiFadeEnter(reduceMotion)}
-                    style={styles.historyLoader}
-                  >
-                    <ActivityIndicator color={colors.tint} />
-                    <ThemedText style={styles.historyLoaderText}>
-                      {t("chatLoadingOlder")}
-                    </ThemedText>
-                  </Animated.View>
-                ) : null
-              }
-              ListEmptyComponent={
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+      >
+        {messagesQuery.isLoading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={colors.tint} />
+          </View>
+        ) : (
+          <FlatList
+            ref={listRef}
+            data={chronological}
+            keyExtractor={(item) => item.id}
+            renderItem={renderMessage}
+            contentContainerStyle={styles.messagesContent}
+            onScroll={(event) =>
+              onMessagesScroll(event.nativeEvent.contentOffset.y)
+            }
+            scrollEventThrottle={120}
+            ListHeaderComponent={
+              messagesQuery.isFetchingNextPage ? (
                 <Animated.View
-                  entering={uiFadeEnter(reduceMotion, 360)}
-                  style={styles.emptyThread}
+                  entering={uiFadeEnter(reduceMotion)}
+                  style={styles.historyLoader}
                 >
-                  <MaterialIcons name="chat" size={42} color={colors.icon} />
-                  <ThemedText style={styles.emptyThreadText}>
-                    {t("chatThreadEmpty")}
+                  <ActivityIndicator color={colors.tint} />
+                  <ThemedText style={styles.historyLoaderText}>
+                    {t("chatLoadingOlder")}
                   </ThemedText>
                 </Animated.View>
-              }
-            />
-          )}
+              ) : null
+            }
+            ListEmptyComponent={
+              <Animated.View
+                entering={uiFadeEnter(reduceMotion, 360)}
+                style={styles.emptyThread}
+              >
+                <MaterialIcons name="chat" size={42} color={colors.icon} />
+                <ThemedText style={styles.emptyThreadText}>
+                  {t("chatThreadEmpty")}
+                </ThemedText>
+              </Animated.View>
+            }
+          />
+        )}
 
-          <Animated.View
-            entering={uiSectionEnter(UI_SECTION_STAGGER_MS * 2, reduceMotion)}
+        <Animated.View
+          entering={uiSectionEnter(UI_SECTION_STAGGER_MS * 2, reduceMotion)}
+          style={[
+            styles.composer,
+            {
+              borderTopColor: colors.icon + "33",
+              backgroundColor: colors.background,
+              paddingBottom: Math.max(insets.bottom, 10),
+            },
+          ]}
+        >
+          <TextInput
+            value={draft}
+            onChangeText={setDraft}
+            placeholder={t("chatInputPlaceholder")}
+            placeholderTextColor={colors.icon}
             style={[
-              styles.composer,
+              styles.input,
+              { color: colors.text, borderColor: colors.icon + "44" },
+            ]}
+            multiline
+            maxLength={5000}
+            editable={Boolean(chatRoomId) && !sendMessage.isPending}
+          />
+          <AnimatedPressable
+            onPress={onSend}
+            onPressIn={sendPress.handlers.onPressIn}
+            onPressOut={sendPress.handlers.onPressOut}
+            disabled={
+              !chatRoomId || sendMessage.isPending || draft.trim().length === 0
+            }
+            style={[
+              styles.sendBtn,
+              sendPress.style,
               {
-                borderTopColor: colors.icon + "33",
-                backgroundColor: colors.background,
-                paddingBottom: Math.max(insets.bottom, 10),
+                backgroundColor:
+                  !chatRoomId ||
+                  sendMessage.isPending ||
+                  draft.trim().length === 0
+                    ? colors.icon + "55"
+                    : colors.tint,
               },
             ]}
           >
-            <TextInput
-              value={draft}
-              onChangeText={setDraft}
-              placeholder={t("chatInputPlaceholder")}
-              placeholderTextColor={colors.icon}
-              style={[
-                styles.input,
-                { color: colors.text, borderColor: colors.icon + "44" },
-              ]}
-              multiline
-              maxLength={5000}
-              editable={Boolean(chatRoomId) && !sendMessage.isPending}
-            />
-            <AnimatedPressable
-              onPress={onSend}
-              onPressIn={sendPress.handlers.onPressIn}
-              onPressOut={sendPress.handlers.onPressOut}
-              disabled={
-                !chatRoomId ||
-                sendMessage.isPending ||
-                draft.trim().length === 0
-              }
-              style={[
-                styles.sendBtn,
-                sendPress.style,
-                {
-                  backgroundColor:
-                    !chatRoomId ||
-                    sendMessage.isPending ||
-                    draft.trim().length === 0
-                      ? colors.icon + "55"
-                      : colors.tint,
-                },
-              ]}
-            >
-              {sendMessage.isPending ? (
-                <ActivityIndicator color="#FFF" size="small" />
-              ) : (
-                <MaterialIcons name="send" size={20} color="#FFF" />
-              )}
-            </AnimatedPressable>
-          </Animated.View>
-        </KeyboardAvoidingView>
+            {sendMessage.isPending ? (
+              <ActivityIndicator color="#FFF" size="small" />
+            ) : (
+              <MaterialIcons name="send" size={20} color="#FFF" />
+            )}
+          </AnimatedPressable>
+        </Animated.View>
+      </KeyboardAvoidingView>
 
       <Modal
         transparent
@@ -1204,17 +1342,11 @@ export function ChatRoomScreen({
             {hasAnyLivePoint ? (
               <>
                 <View
-                  style={[
-                    styles.liveMapWrap,
-                    { height: liveMapModalHeight },
-                  ]}
+                  style={[styles.liveMapWrap, { height: liveMapModalHeight }]}
                 >
                   <WebView
                     source={{ html: liveMapHtml }}
-                    style={[
-                      styles.liveMapView,
-                      { height: liveMapModalHeight },
-                    ]}
+                    style={[styles.liveMapView, { height: liveMapModalHeight }]}
                     scrollEnabled={false}
                     originWhitelist={["*"]}
                   />
@@ -1251,12 +1383,168 @@ export function ChatRoomScreen({
                 </View>
               </>
             ) : (
-              <View style={[styles.mapEmptyState, { borderColor: colors.icon }]}>
-                <MaterialIcons name="location-off" size={32} color={colors.icon} />
+              <View
+                style={[styles.mapEmptyState, { borderColor: colors.icon }]}
+              >
+                <MaterialIcons
+                  name="location-off"
+                  size={32}
+                  color={colors.icon}
+                />
                 <ThemedText style={styles.liveLocationLine}>
                   {t("chatMapNoLocations")}
                 </ThemedText>
               </View>
+            )}
+          </Animated.View>
+        </Animated.View>
+      </Modal>
+
+      <Modal
+        transparent
+        visible={completionOpen}
+        animationType="fade"
+        onRequestClose={() => setCompletionOpen(false)}
+      >
+        <Animated.View
+          entering={reduceMotion ? undefined : FadeIn.duration(220)}
+          style={styles.modalBackdrop}
+        >
+          <Animated.View
+            entering={
+              reduceMotion
+                ? undefined
+                : FadeInDown.duration(360).springify().damping(18)
+            }
+            style={[
+              styles.modalCard,
+              uiCardShadow(scheme),
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.icon + "33",
+              },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <ThemedText type="defaultSemiBold">
+                {t("chatCompleteTradeTitle")}
+              </ThemedText>
+              <Pressable
+                onPress={() => setCompletionOpen(false)}
+                style={styles.modalCloseBtn}
+              >
+                <MaterialIcons name="close" size={20} color={colors.icon} />
+              </Pressable>
+            </View>
+
+            {safePaymentStatusQuery.isLoading ? (
+              <View style={styles.center}>
+                <ActivityIndicator color={colors.tint} />
+              </View>
+            ) : !activeTransaction ? (
+              <ThemedText style={styles.safeMutedText}>
+                {t("chatCompleteTradeUnavailable")}
+              </ThemedText>
+            ) : (
+              <>
+                <ThemedText style={styles.pickerLabel}>
+                  {t("chatCompleteTradeStatus")}: {activeTransaction.status}
+                </ThemedText>
+                <ThemedText style={styles.safeMutedText}>
+                  {t("chatCompleteTradeHint")}
+                </ThemedText>
+                {waitingForCounterpartyComplete ? (
+                  <ThemedText style={styles.safeMutedText}>
+                    {t("chatCompleteTradePendingBoth")}
+                  </ThemedText>
+                ) : null}
+
+                {canCompleteTrade ? (
+                  <Pressable
+                    onPress={onCompleteTransaction}
+                    disabled={completeTransactionMutation.isPending}
+                    style={[
+                      styles.modalSaveBtn,
+                      {
+                        backgroundColor: completeTransactionMutation.isPending
+                          ? colors.icon + "55"
+                          : colors.tint,
+                      },
+                    ]}
+                  >
+                    {completeTransactionMutation.isPending ? (
+                      <ActivityIndicator color="#FFF" size="small" />
+                    ) : (
+                      <ThemedText style={styles.modalSaveBtnText}>
+                        {t("chatCompleteTradeAction")}
+                      </ThemedText>
+                    )}
+                  </Pressable>
+                ) : (
+                  <>
+                    <ThemedText style={styles.pickerLabel}>
+                      {t("chatReviewHint")}
+                    </ThemedText>
+                    <ThemedText style={styles.pickerLabel}>
+                      {t("chatReviewStarsLabel")}
+                    </ThemedText>
+                    <View style={styles.reviewStarsRow}>
+                      {[1, 2, 3, 4, 5].map((value) => (
+                        <Pressable
+                          key={value}
+                          onPress={() => setReviewStars(value)}
+                          style={styles.reviewStarButton}
+                        >
+                          <MaterialIcons
+                            name={value <= reviewStars ? "star" : "star-border"}
+                            size={26}
+                            color={value <= reviewStars ? "#F5B400" : colors.icon}
+                          />
+                        </Pressable>
+                      ))}
+                    </View>
+                    <ThemedText style={styles.pickerLabel}>
+                      {t("chatReviewCommentLabel")}
+                    </ThemedText>
+                    <TextInput
+                      value={reviewComment}
+                      onChangeText={setReviewComment}
+                      placeholder={t("chatReviewCommentPlaceholder")}
+                      placeholderTextColor={colors.icon}
+                      multiline
+                      maxLength={500}
+                      style={[
+                        styles.modalInput,
+                        styles.reviewCommentInput,
+                        { color: colors.text, borderColor: colors.icon + "44" },
+                      ]}
+                    />
+                    <Pressable
+                      onPress={onSubmitReview}
+                      disabled={submitReviewMutation.isPending || reviewSubmitted}
+                      style={[
+                        styles.modalSaveBtn,
+                        {
+                          backgroundColor:
+                            submitReviewMutation.isPending || reviewSubmitted
+                              ? colors.icon + "55"
+                              : colors.tint,
+                        },
+                      ]}
+                    >
+                      {submitReviewMutation.isPending ? (
+                        <ActivityIndicator color="#FFF" size="small" />
+                      ) : (
+                        <ThemedText style={styles.modalSaveBtnText}>
+                          {reviewSubmitted
+                            ? t("chatReviewSuccess")
+                            : t("chatReviewSubmit")}
+                        </ThemedText>
+                      )}
+                    </Pressable>
+                  </>
+                )}
+              </>
             )}
           </Animated.View>
         </Animated.View>
@@ -1738,6 +2026,20 @@ const styles = StyleSheet.create({
   modalInputHalf: { flex: 1 },
   pickerLabel: { fontSize: 12, fontWeight: "700", opacity: 0.75 },
   safeMutedText: { fontSize: 13, opacity: 0.75, lineHeight: 18 },
+  reviewStarsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  reviewStarButton: {
+    paddingVertical: 2,
+    paddingHorizontal: 2,
+  },
+  reviewCommentInput: {
+    minHeight: 90,
+    textAlignVertical: "top",
+  },
   modalSaveBtn: {
     borderRadius: 10,
     minHeight: 42,
