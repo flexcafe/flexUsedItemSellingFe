@@ -31,6 +31,7 @@ import { ThemedView } from "@/components/themed-view";
 import { topOffsetForFloatingBackButton } from "@/constants/language-switcher-layout";
 import { Colors } from "@/constants/theme";
 import type { ChatMessage, ChatRoom } from "@/core/domain/entities/Chat";
+import type { DirectTradeTransaction } from "@/core/domain/types/chat";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   CLIENT_CHAT_QUERY_KEY,
@@ -79,6 +80,65 @@ import {
 } from "./directTradeForm";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const SAFE_PAYMENT_COMPLETABLE_STATUSES = new Set([
+  "SAFE_PAYMENT_RECEIVED",
+  "BUYER_COMPLETED",
+  "SELLER_COMPLETED",
+]);
+
+function readTransactionFromMessage(
+  message: ChatMessage,
+): DirectTradeTransaction | null {
+  const md = message.metadata;
+  if (!md || typeof md !== "object") return null;
+  const source =
+    md.transaction && typeof md.transaction === "object"
+      ? (md.transaction as Record<string, unknown>)
+      : (md as Record<string, unknown>);
+  const idRaw = source.id ?? source.transactionId;
+  const chatRoomIdRaw = source.chatRoomId ?? message.chatRoomId;
+  const typeRaw = source.type;
+  const statusRaw = source.status;
+  if (
+    typeof idRaw !== "string" ||
+    !idRaw.trim() ||
+    typeof chatRoomIdRaw !== "string" ||
+    !chatRoomIdRaw.trim()
+  ) {
+    return null;
+  }
+  const fallbackType =
+    message.type === "DIRECT_TRADE_REQUEST"
+      ? "DIRECT_TRADE"
+      : message.type.startsWith("SAFE_PAYMENT") || message.type === "PAYMENT_TRANSFERRED"
+        ? "SAFE_PAYMENT"
+        : null;
+  const type =
+    typeof typeRaw === "string" && typeRaw.trim() ? typeRaw : fallbackType;
+  if (!type) return null;
+  const status =
+    typeof statusRaw === "string" && statusRaw.trim()
+      ? statusRaw
+      : message.type === "TRANSACTION_COMPLETED"
+        ? "COMPLETED"
+        : "INITIATED";
+  return {
+    id: idRaw.trim(),
+    chatRoomId: chatRoomIdRaw.trim(),
+    type,
+    status,
+    amount:
+      typeof source.amount === "number" && Number.isFinite(source.amount)
+        ? source.amount
+        : 0,
+    buyerCompleted: source.buyerCompleted === true,
+    sellerCompleted: source.sellerCompleted === true,
+    completedAt:
+      typeof source.completedAt === "string" && source.completedAt.trim()
+        ? source.completedAt
+        : null,
+  };
+}
 
 type Props = {
   chatRoomId: string;
@@ -172,6 +232,8 @@ export function ChatRoomScreen({
   const [meetingLocation, setMeetingLocation] = useState("");
   const [meetingLatitude, setMeetingLatitude] = useState("");
   const [meetingLongitude, setMeetingLongitude] = useState("");
+  const [directTradeTransaction, setDirectTradeTransaction] =
+    useState<DirectTradeTransaction | null>(null);
   const [payerKbzName, setPayerKbzName] = useState("");
   const [payerKbzPhone, setPayerKbzPhone] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -258,18 +320,51 @@ export function ChatRoomScreen({
   const hasAnyLivePoint = Boolean(myPoint || counterpartPoint);
   const compactStatus = `${myMarkerLabel}: ${myLocationStatus} · ${peerMarkerLabel}: ${peerLocationStatus}`;
   const safePaymentStatus = safePaymentStatusQuery.data ?? null;
-  const activeTransaction = safePaymentStatus?.transaction ?? null;
-  const canCompleteTrade = Boolean(
-    activeTransaction && activeTransaction.status !== "COMPLETED",
-  );
-  const waitingForCounterpartyComplete = Boolean(
-    activeTransaction &&
-      activeTransaction.status !== "COMPLETED" &&
-      (activeTransaction.buyerCompleted || activeTransaction.sellerCompleted),
+  const messageTransaction = useMemo(() => {
+    for (let i = chronological.length - 1; i >= 0; i -= 1) {
+      const fromMessage = readTransactionFromMessage(chronological[i]);
+      if (fromMessage) return fromMessage;
+    }
+    return null;
+  }, [chronological]);
+  const cashTransaction =
+    directTradeTransaction ??
+    (messageTransaction?.type === "DIRECT_TRADE" ? messageTransaction : null);
+  const hasDirectTrade = Boolean(cashTransaction);
+  const toolsSubtitle = hasDirectTrade
+    ? compactStatus
+    : t("chatTradeToolsSubtitleNoDirectTrade");
+  const safeTransaction = safePaymentStatus?.transaction ?? null;
+  const completionTransaction = safeTransaction ?? cashTransaction;
+  const activeTransaction = completionTransaction;
+  const usesSafePaymentCompletion = Boolean(safeTransaction);
+  const isSafeCompletable = Boolean(
+    safeTransaction &&
+      SAFE_PAYMENT_COMPLETABLE_STATUSES.has(safeTransaction.status),
   );
   const isBuyer = Boolean(
     user?.id && roomMeta?.buyerId && user.id === roomMeta.buyerId,
   );
+  const currentUserAlreadyCompleted = Boolean(
+    completionTransaction &&
+      (isBuyer
+        ? completionTransaction.buyerCompleted
+        : completionTransaction.sellerCompleted),
+  );
+  const canCompleteTrade = Boolean(
+    completionTransaction &&
+      !currentUserAlreadyCompleted &&
+      (usesSafePaymentCompletion
+        ? isSafeCompletable
+        : completionTransaction.status !== "COMPLETED"),
+  );
+  const waitingForCounterpartyComplete = Boolean(
+    completionTransaction &&
+      completionTransaction.status !== "COMPLETED" &&
+      currentUserAlreadyCompleted,
+  );
+  const isTransactionFullyCompleted =
+    completionTransaction?.status === "COMPLETED";
   const liveMapHtml = useMemo(() => {
     const markers = [];
     if (myPoint) {
@@ -316,6 +411,22 @@ export function ChatRoomScreen({
     if (myShareOverride == null) return;
     if (myShareOverride === mySharingFromMessages) setMyShareOverride(null);
   }, [myShareOverride, mySharingFromMessages]);
+
+  useEffect(() => {
+    if (!messageTransaction || messageTransaction.type !== "DIRECT_TRADE") return;
+    setDirectTradeTransaction((prev) => {
+      if (!prev || prev.id !== messageTransaction.id) return messageTransaction;
+      return {
+        ...prev,
+        status: messageTransaction.status || prev.status,
+        buyerCompleted:
+          messageTransaction.buyerCompleted || prev.buyerCompleted,
+        sellerCompleted:
+          messageTransaction.sellerCompleted || prev.sellerCompleted,
+        completedAt: messageTransaction.completedAt ?? prev.completedAt,
+      };
+    });
+  }, [messageTransaction]);
 
   const latestMessageId = messages[0]?.id ?? null;
   useEffect(() => {
@@ -440,35 +551,65 @@ export function ChatRoomScreen({
   ]);
 
   const onCompleteTransaction = useCallback(() => {
-    const transactionId = activeTransaction?.id;
+    const transactionId = completionTransaction?.id;
     if (!transactionId) {
       Alert.alert(t("chatCompleteTradeTitle"), t("chatCompleteTradeUnavailable"));
+      return;
+    }
+    if (usesSafePaymentCompletion && !isSafeCompletable) {
+      Alert.alert(
+        t("chatCompleteTradeTitle"),
+        t("chatCompleteTradeWaitAdminReceived"),
+      );
+      return;
+    }
+    if (currentUserAlreadyCompleted && completionTransaction?.status !== "COMPLETED") {
+      Alert.alert(
+        t("chatCompleteTradeTitle"),
+        t("chatCompleteTradePendingBoth"),
+      );
       return;
     }
     completeTransactionMutation.mutate(
       { transactionId },
       {
-        onSuccess: async () => {
+        onSuccess: async (updated) => {
+          if (!usesSafePaymentCompletion) {
+            setDirectTradeTransaction(updated);
+          }
           await safePaymentStatusQuery.refetch();
           Alert.alert(t("chatCompleteTradeTitle"), t("chatCompleteTradeSuccess"));
         },
         onError: (error) => {
+          const message = chatActionErrorMessage(error, t("chatSafePaymentLoadFailed"));
+          const normalized = message.toLowerCase();
+          const mapped = normalized.includes("cannot complete until admin has confirmed")
+            ? t("chatCompleteTradeWaitAdminReceived")
+            : normalized.includes("safe payment was started") ||
+                normalized.includes("finish the safe payment flow")
+              ? t("chatCompleteTradeUseSafePaymentId")
+              : normalized.includes("already completed via safe payment")
+                ? t("chatCompleteTradeAlreadyDone")
+                : message;
           Alert.alert(
             t("chatCompleteTradeTitle"),
-            chatActionErrorMessage(error, t("chatSafePaymentLoadFailed")),
+            mapped,
           );
         },
       },
     );
   }, [
-    activeTransaction?.id,
+    completionTransaction,
     completeTransactionMutation,
+    currentUserAlreadyCompleted,
+    isSafeCompletable,
     safePaymentStatusQuery,
     t,
+    usesSafePaymentCompletion,
   ]);
 
   const onSubmitReview = useCallback(() => {
-    const transactionId = activeTransaction?.id;
+    const transactionId = completionTransaction?.id;
     if (!transactionId) {
       Alert.alert(t("chatReviewTitle"), t("chatCompleteTradeUnavailable"));
       return;
@@ -499,7 +640,7 @@ export function ChatRoomScreen({
       },
     );
   }, [
-    activeTransaction?.id,
+    completionTransaction?.id,
     reviewComment,
     reviewStars,
     submitReviewMutation,
@@ -541,7 +682,8 @@ export function ChatRoomScreen({
     }
 
     directTradeMutation.mutate(built.payload, {
-      onSuccess: () => {
+      onSuccess: (transaction) => {
+        setDirectTradeTransaction(transaction);
         setDirectTradeOpen(false);
         Alert.alert(t("chatDirectTradeTitle"), t("chatDirectTradeSaved"));
       },
@@ -566,7 +708,7 @@ export function ChatRoomScreen({
 
   const shareCoords = useCallback(
     async (mode: "start" | "update", silent = false) => {
-      if (!chatRoomId || isFetchingCoords) return;
+      if (!chatRoomId || !hasDirectTrade || isFetchingCoords) return;
       setIsFetchingCoords(true);
       try {
         const coords = await getCurrentCoords(mode === "start");
@@ -631,6 +773,7 @@ export function ChatRoomScreen({
     [
       chatRoomId,
       getCurrentCoords,
+      hasDirectTrade,
       isFetchingCoords,
       startLocationMutation,
       t,
@@ -639,14 +782,17 @@ export function ChatRoomScreen({
   );
 
   const onStartLocationShare = useCallback(() => {
+    if (!hasDirectTrade || isTransactionFullyCompleted) return;
     void shareCoords("start");
-  }, [shareCoords]);
+  }, [hasDirectTrade, isTransactionFullyCompleted, shareCoords]);
 
   const onUpdateLocationShare = useCallback(() => {
+    if (!hasDirectTrade || isTransactionFullyCompleted) return;
     void shareCoords("update");
-  }, [shareCoords]);
+  }, [hasDirectTrade, isTransactionFullyCompleted, shareCoords]);
 
   const onStopLocationShare = useCallback(() => {
+    if (!hasDirectTrade || isTransactionFullyCompleted) return;
     if (!chatRoomId || stopLocationMutation.isPending) return;
     stopLocationMutation.mutate(undefined, {
       onSuccess: () => {
@@ -661,10 +807,17 @@ export function ChatRoomScreen({
         );
       },
     });
-  }, [chatRoomId, stopLocationMutation, t]);
+  }, [chatRoomId, hasDirectTrade, isTransactionFullyCompleted, stopLocationMutation, t]);
 
   useEffect(() => {
-    if (!chatRoomId || !mySharingActive) return;
+    if (
+      !chatRoomId ||
+      !hasDirectTrade ||
+      !mySharingActive ||
+      isTransactionFullyCompleted
+    ) {
+      return;
+    }
     const id = setInterval(() => {
       if (updateLocationMutation.isPending) return;
       void shareCoords("update", true);
@@ -672,18 +825,39 @@ export function ChatRoomScreen({
     return () => clearInterval(id);
   }, [
     chatRoomId,
+    hasDirectTrade,
     mySharingActive,
     shareCoords,
+    isTransactionFullyCompleted,
     updateLocationMutation.isPending,
   ]);
 
   useEffect(() => {
-    if (!chatRoomId || (!mySharingActive && !counterpartSharingActive)) return;
+    if (
+      !chatRoomId ||
+      !hasDirectTrade ||
+      isTransactionFullyCompleted ||
+      (!mySharingActive && !counterpartSharingActive)
+    ) {
+      return;
+    }
     const id = setInterval(() => {
       void messagesQuery.refetch();
     }, 3000);
     return () => clearInterval(id);
-  }, [chatRoomId, counterpartSharingActive, messagesQuery, mySharingActive]);
+  }, [
+    chatRoomId,
+    counterpartSharingActive,
+    hasDirectTrade,
+    isTransactionFullyCompleted,
+    messagesQuery,
+    mySharingActive,
+  ]);
+
+  useEffect(() => {
+    if (hasDirectTrade || !liveMapModalOpen) return;
+    setLiveMapModalOpen(false);
+  }, [hasDirectTrade, liveMapModalOpen]);
 
   const onMessagesScroll = useCallback(
     (offsetY: number) => {
@@ -813,7 +987,7 @@ export function ChatRoomScreen({
               {t("chatTradeTools")}
             </ThemedText>
             <ThemedText style={styles.toolsSubtitle} numberOfLines={2}>
-              {compactStatus}
+              {toolsSubtitle}
             </ThemedText>
           </View>
           <MaterialIcons
@@ -914,156 +1088,175 @@ export function ChatRoomScreen({
                 </ThemedText>
               </Pressable>
 
-              {!mySharingActive ? (
-                <Pressable
-                  onPress={onStartLocationShare}
-                  disabled={isFetchingCoords || startLocationMutation.isPending}
-                  style={({ pressed }) => [
-                    styles.toolChip,
-                    styles.toolChipFull,
-                    {
-                      borderColor: colors.tint + "55",
-                      opacity:
+              {hasDirectTrade ? (
+                <>
+                  {isTransactionFullyCompleted ? (
+                    <ThemedText style={styles.safeMutedText}>
+                      {t("chatCompleteTradeSuccess")}
+                    </ThemedText>
+                  ) : !mySharingActive ? (
+                    <Pressable
+                      onPress={onStartLocationShare}
+                      disabled={
                         isFetchingCoords || startLocationMutation.isPending
-                          ? 0.55
-                          : pressed
-                            ? 0.88
-                            : 1,
-                    },
-                  ]}
-                >
-                  {isFetchingCoords || startLocationMutation.isPending ? (
-                    <ActivityIndicator size="small" color={colors.tint} />
+                      }
+                      style={({ pressed }) => [
+                        styles.toolChip,
+                        styles.toolChipFull,
+                        {
+                          borderColor: colors.tint + "55",
+                          opacity:
+                            isFetchingCoords || startLocationMutation.isPending
+                              ? 0.55
+                              : pressed
+                                ? 0.88
+                                : 1,
+                        },
+                      ]}
+                    >
+                      {isFetchingCoords || startLocationMutation.isPending ? (
+                        <ActivityIndicator size="small" color={colors.tint} />
+                      ) : (
+                        <MaterialIcons
+                          name="my-location"
+                          size={17}
+                          color={colors.tint}
+                        />
+                      )}
+                      <ThemedText
+                        style={[styles.toolChipText, { color: colors.tint }]}
+                        numberOfLines={1}
+                      >
+                        {t("chatStartSharing")}
+                      </ThemedText>
+                    </Pressable>
                   ) : (
-                    <MaterialIcons
-                      name="my-location"
-                      size={17}
-                      color={colors.tint}
-                    />
-                  )}
-                  <ThemedText
-                    style={[styles.toolChipText, { color: colors.tint }]}
-                    numberOfLines={1}
-                  >
-                    {t("chatStartSharing")}
-                  </ThemedText>
-                </Pressable>
-              ) : (
-                <View style={[styles.toolChipRow, styles.toolChipFull]}>
-                  <Pressable
-                    onPress={onUpdateLocationShare}
-                    disabled={
-                      isFetchingCoords || updateLocationMutation.isPending
-                    }
-                    style={({ pressed }) => [
-                      styles.toolChip,
-                      styles.toolChipRowItem,
-                      {
-                        borderColor: colors.tint + "55",
-                        opacity:
+                    <View style={[styles.toolChipRow, styles.toolChipFull]}>
+                      <Pressable
+                        onPress={onUpdateLocationShare}
+                        disabled={
                           isFetchingCoords || updateLocationMutation.isPending
-                            ? 0.55
-                            : pressed
-                              ? 0.88
-                              : 1,
-                      },
-                    ]}
-                  >
-                    {isFetchingCoords || updateLocationMutation.isPending ? (
-                      <ActivityIndicator size="small" color={colors.tint} />
-                    ) : (
-                      <MaterialIcons
-                        name="sync"
-                        size={17}
-                        color={colors.tint}
-                      />
-                    )}
-                    <ThemedText
-                      style={[styles.toolChipText, { color: colors.tint }]}
-                      numberOfLines={1}
-                    >
-                      {t("chatUpdateLocation")}
-                    </ThemedText>
-                  </Pressable>
-                  <Pressable
-                    onPress={onStopLocationShare}
-                    disabled={stopLocationMutation.isPending}
-                    style={({ pressed }) => [
-                      styles.toolChip,
-                      styles.toolChipRowItem,
-                      {
-                        borderColor: colors.icon + "55",
-                        opacity: stopLocationMutation.isPending
-                          ? 0.55
-                          : pressed
-                            ? 0.88
-                            : 1,
-                      },
-                    ]}
-                  >
-                    {stopLocationMutation.isPending ? (
-                      <ActivityIndicator size="small" color={colors.icon} />
-                    ) : (
-                      <MaterialIcons
-                        name="location-off"
-                        size={17}
-                        color={colors.icon}
-                      />
-                    )}
-                    <ThemedText
-                      style={[styles.toolChipText, { color: colors.icon }]}
-                      numberOfLines={1}
-                    >
-                      {t("chatStopSharing")}
-                    </ThemedText>
-                  </Pressable>
-                </View>
-              )}
-            </View>
+                        }
+                        style={({ pressed }) => [
+                          styles.toolChip,
+                          styles.toolChipRowItem,
+                          {
+                            borderColor: colors.tint + "55",
+                            opacity:
+                              isFetchingCoords ||
+                              updateLocationMutation.isPending
+                                ? 0.55
+                                : pressed
+                                  ? 0.88
+                                  : 1,
+                          },
+                        ]}
+                      >
+                        {isFetchingCoords ||
+                        updateLocationMutation.isPending ? (
+                          <ActivityIndicator size="small" color={colors.tint} />
+                        ) : (
+                          <MaterialIcons
+                            name="sync"
+                            size={17}
+                            color={colors.tint}
+                          />
+                        )}
+                        <ThemedText
+                          style={[styles.toolChipText, { color: colors.tint }]}
+                          numberOfLines={1}
+                        >
+                          {t("chatUpdateLocation")}
+                        </ThemedText>
+                      </Pressable>
+                      <Pressable
+                        onPress={onStopLocationShare}
+                        disabled={stopLocationMutation.isPending}
+                        style={({ pressed }) => [
+                          styles.toolChip,
+                          styles.toolChipRowItem,
+                          {
+                            borderColor: colors.icon + "55",
+                            opacity: stopLocationMutation.isPending
+                              ? 0.55
+                              : pressed
+                                ? 0.88
+                                : 1,
+                          },
+                        ]}
+                      >
+                        {stopLocationMutation.isPending ? (
+                          <ActivityIndicator size="small" color={colors.icon} />
+                        ) : (
+                          <MaterialIcons
+                            name="location-off"
+                            size={17}
+                            color={colors.icon}
+                          />
+                        )}
+                        <ThemedText
+                          style={[styles.toolChipText, { color: colors.icon }]}
+                          numberOfLines={1}
+                        >
+                          {t("chatStopSharing")}
+                        </ThemedText>
+                      </Pressable>
+                    </View>
+                  )}
 
-            <View
-              style={[
-                styles.mapPreviewCard,
-                {
-                  borderColor: colors.icon + "33",
-                  backgroundColor: colors.icon + "08",
-                },
-              ]}
-            >
-              <View style={styles.mapPreviewTextCol}>
-                <ThemedText style={styles.liveLocationTitle}>
-                  {t("chatLiveLocationMap")}
+                  <View
+                    style={[
+                      styles.mapPreviewCard,
+                      {
+                        borderColor: colors.icon + "33",
+                        backgroundColor: colors.icon + "08",
+                      },
+                    ]}
+                  >
+                    <View style={styles.mapPreviewTextCol}>
+                      <ThemedText style={styles.liveLocationTitle}>
+                        {t("chatLiveLocationMap")}
+                      </ThemedText>
+                      <ThemedText
+                        style={styles.liveLocationLine}
+                        numberOfLines={2}
+                      >
+                        {myMarkerLabel}: {myLocationStatus} · {peerMarkerLabel}:{" "}
+                        {peerLocationStatus}
+                      </ThemedText>
+                    </View>
+                    <Pressable
+                      onPress={() => {
+                        setLiveMapModalOpen(true);
+                        setToolsExpanded(false);
+                      }}
+                      style={({ pressed }) => [
+                        styles.mapOpenBtn,
+                        {
+                          backgroundColor: colors.tint,
+                          opacity: pressed ? 0.88 : 1,
+                        },
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={t("chatOpenLiveMap")}
+                    >
+                      <MaterialIcons name="map" size={18} color="#FFF" />
+                      <ThemedText style={styles.mapOpenBtnText}>
+                        {t("chatOpenLiveMap")}
+                      </ThemedText>
+                    </Pressable>
+                  </View>
+                </>
+              ) : (
+                <ThemedText style={styles.safeMutedText}>
+                  {t("chatLocationRequiresDirectTrade")}
                 </ThemedText>
-                <ThemedText style={styles.liveLocationLine} numberOfLines={2}>
-                  {myMarkerLabel}: {myLocationStatus} · {peerMarkerLabel}:{" "}
-                  {peerLocationStatus}
-                </ThemedText>
-              </View>
-              <Pressable
-                onPress={() => {
-                  setLiveMapModalOpen(true);
-                  setToolsExpanded(false);
-                }}
-                style={({ pressed }) => [
-                  styles.mapOpenBtn,
-                  {
-                    backgroundColor: colors.tint,
-                    opacity: pressed ? 0.88 : 1,
-                  },
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel={t("chatOpenLiveMap")}
-              >
-                <MaterialIcons name="map" size={18} color="#FFF" />
-                <ThemedText style={styles.mapOpenBtnText}>
-                  {t("chatOpenLiveMap")}
-                </ThemedText>
-              </Pressable>
+              )}
             </View>
           </Animated.View>
         ) : null}
       </Animated.View>
-      {locationUpdatedAt ? (
+      {hasDirectTrade && locationUpdatedAt ? (
         <Animated.View entering={uiFadeEnter(reduceMotion, 180)}>
           <ThemedText style={styles.locationStamp}>
             {tf("chatLocationUpdatedAt", {
@@ -1480,7 +1673,7 @@ export function ChatRoomScreen({
                       </ThemedText>
                     )}
                   </Pressable>
-                ) : (
+                ) : completionTransaction.status === "COMPLETED" ? (
                   <>
                     <ThemedText style={styles.pickerLabel}>
                       {t("chatReviewHint")}
@@ -1543,6 +1736,12 @@ export function ChatRoomScreen({
                       )}
                     </Pressable>
                   </>
+                ) : (
+                  <ThemedText style={styles.safeMutedText}>
+                    {usesSafePaymentCompletion && !isSafeCompletable
+                      ? t("chatCompleteTradeWaitAdminReceived")
+                      : t("chatCompleteTradePendingBoth")}
+                  </ThemedText>
                 )}
               </>
             )}
