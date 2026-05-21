@@ -69,6 +69,12 @@ export const API_ENDPOINTS = {
       `/v1/client/chats/${chatRoomId}/location`,
     LOCATION_STOP: (chatRoomId: string) =>
       `/v1/client/chats/${chatRoomId}/location/stop`,
+    SAFE_PAYMENT_REQUEST: (chatRoomId: string) =>
+      `/v1/client/chats/${chatRoomId}/safe-payment/request`,
+    SAFE_PAYMENT_STATUS: (chatRoomId: string) =>
+      `/v1/client/chats/${chatRoomId}/safe-payment`,
+    SAFE_PAYMENT_SUBMIT: (chatRoomId: string) =>
+      `/v1/client/chats/${chatRoomId}/safe-payment/submit`,
   },
   PRODUCTS: {
     LIST: "/v1/products",

@@ -17,7 +17,11 @@ import { paddingTopBelowLanguageSwitcher } from "@/constants/language-switcher-l
 import { Colors } from "@/constants/theme";
 import type { ClientNotification } from "@/core/domain/entities/Notification";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { localizeNotification } from "@/presentation/i18n/notifications";
+import {
+  isChatNotification,
+  isGeneralNotification,
+  localizeNotification,
+} from "@/presentation/i18n/notifications";
 import {
   useMarkNotificationRead,
   useNotifications,
@@ -34,6 +38,10 @@ import {
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const UI_SECTION_STAGGER_MS = 70;
+
+type InboxSection = "general" | "chat";
+type ChatFilter = "all" | "unread";
 
 function formatDate(iso: string): string {
   const date = new Date(iso);
@@ -123,6 +131,84 @@ const NotificationRow = memo(function NotificationRow({
   );
 });
 
+function SectionTab({
+  label,
+  active,
+  unread,
+  tint,
+  borderColor,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  unread: number;
+  tint: string;
+  borderColor: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.sectionTab,
+        { borderColor },
+        active && { backgroundColor: tint + "18", borderColor: tint },
+      ]}
+    >
+      <ThemedText
+        style={[
+          styles.sectionTabText,
+          active && { color: tint, fontWeight: "800" },
+        ]}
+        numberOfLines={1}
+      >
+        {label}
+      </ThemedText>
+      {unread > 0 ? (
+        <View style={[styles.sectionTabBadge, { backgroundColor: tint }]}>
+          <ThemedText style={styles.sectionTabBadgeText}>
+            {unread > 99 ? "99+" : unread}
+          </ThemedText>
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+function FilterChip({
+  label,
+  active,
+  tint,
+  borderColor,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  tint: string;
+  borderColor: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.filterChip,
+        { borderColor },
+        active && { backgroundColor: tint, borderColor: tint },
+      ]}
+    >
+      <ThemedText
+        style={[
+          styles.filterChipText,
+          active && styles.filterChipTextActive,
+        ]}
+      >
+        {label}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
 export function NotificationsScreen() {
   const { t, tf, locale } = useLocale();
   const insets = useSafeAreaInsets();
@@ -134,19 +220,53 @@ export function NotificationsScreen() {
   const notificationsQuery = useNotifications(20);
   const markReadMutation = useMarkNotificationRead(20);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [section, setSection] = useState<InboxSection>("general");
+  const [chatFilter, setChatFilter] = useState<ChatFilter>("all");
 
   const notifications = useMemo(
     () => notificationsQuery.data ?? [],
     [notificationsQuery.data],
   );
-  const unreadCount = useMemo(
-    () => notifications.filter((item) => !item.isRead).length,
+
+  const generalNotifications = useMemo(
+    () => notifications.filter(isGeneralNotification),
     [notifications],
   );
+  const chatNotifications = useMemo(
+    () => notifications.filter(isChatNotification),
+    [notifications],
+  );
+
+  const generalUnread = useMemo(
+    () => generalNotifications.filter((item) => !item.isRead).length,
+    [generalNotifications],
+  );
+  const chatUnread = useMemo(
+    () => chatNotifications.filter((item) => !item.isRead).length,
+    [chatNotifications],
+  );
+
+  const filteredNotifications = useMemo(() => {
+    const base =
+      section === "chat" ? chatNotifications : generalNotifications;
+    if (section === "chat" && chatFilter === "unread") {
+      return base.filter((item) => !item.isRead);
+    }
+    return base;
+  }, [chatFilter, chatNotifications, generalNotifications, section]);
+
+  const sectionUnread =
+    section === "chat" ? chatUnread : generalUnread;
 
   const onToggle = (item: ClientNotification) => {
     setExpandedId((prev) => (prev === item.id ? null : item.id));
     if (!item.isRead) void markReadMutation.mutateAsync(item.id);
+  };
+
+  const onSectionChange = (next: InboxSection) => {
+    setSection(next);
+    setExpandedId(null);
+    if (next === "general") setChatFilter("all");
   };
 
   const renderItem = ({
@@ -168,6 +288,14 @@ export function NotificationsScreen() {
     />
   );
 
+  const emptyLabel =
+    section === "chat" ? t("noti.chat.empty") : t("notificationsEmpty");
+
+  const sectionHint =
+    section === "chat"
+      ? t("noti.sections.chatHint")
+      : t("noti.sections.generalHint");
+
   return (
     <ThemedView style={styles.screen}>
       <Animated.View
@@ -175,14 +303,57 @@ export function NotificationsScreen() {
         style={[styles.header, { paddingTop: topInset }]}
       >
         <ThemedText type="title">{t("notificationsTitle")}</ThemedText>
-        {unreadCount > 0 ? (
+        {sectionUnread > 0 ? (
           <View style={[styles.badge, { backgroundColor: colors.tint }]}>
             <ThemedText style={styles.badgeText}>
-              {unreadCount > 99 ? "99+" : unreadCount}
+              {sectionUnread > 99 ? "99+" : sectionUnread}
             </ThemedText>
           </View>
         ) : null}
       </Animated.View>
+
+      <Animated.View
+        entering={uiSectionEnter(UI_SECTION_STAGGER_MS, reduceMotion)}
+        style={styles.sectionTabsRow}
+      >
+        <SectionTab
+          label={t("noti.sections.general")}
+          active={section === "general"}
+          unread={generalUnread}
+          tint={colors.tint}
+          borderColor={colors.icon + "44"}
+          onPress={() => onSectionChange("general")}
+        />
+        <SectionTab
+          label={t("noti.sections.chat")}
+          active={section === "chat"}
+          unread={chatUnread}
+          tint={colors.tint}
+          borderColor={colors.icon + "44"}
+          onPress={() => onSectionChange("chat")}
+        />
+      </Animated.View>
+
+      <ThemedText style={styles.sectionHint}>{sectionHint}</ThemedText>
+
+      {section === "chat" ? (
+        <View style={styles.filterRow}>
+          <FilterChip
+            label={t("noti.chat.filterAll")}
+            active={chatFilter === "all"}
+            tint={colors.tint}
+            borderColor={colors.icon + "44"}
+            onPress={() => setChatFilter("all")}
+          />
+          <FilterChip
+            label={t("noti.chat.filterUnread")}
+            active={chatFilter === "unread"}
+            tint={colors.tint}
+            borderColor={colors.icon + "44"}
+            onPress={() => setChatFilter("unread")}
+          />
+        </View>
+      ) : null}
 
       {notificationsQuery.isLoading ? (
         <Animated.View
@@ -193,12 +364,13 @@ export function NotificationsScreen() {
         </Animated.View>
       ) : (
         <FlatList
-          data={notifications}
+          data={filteredNotifications}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
+          extraData={`${section}-${chatFilter}-${expandedId}`}
           contentContainerStyle={[
             styles.listContent,
-            notifications.length === 0 && styles.listContentEmpty,
+            filteredNotifications.length === 0 && styles.listContentEmpty,
           ]}
           refreshControl={
             <RefreshControl
@@ -213,13 +385,13 @@ export function NotificationsScreen() {
               style={[styles.emptyBox, { borderColor: colors.icon }]}
             >
               <MaterialIcons
-                name="notifications-none"
+                name={
+                  section === "chat" ? "forum" : "notifications-none"
+                }
                 size={40}
                 color={colors.icon}
               />
-              <ThemedText style={styles.emptyTitle}>
-                {t("notificationsEmpty")}
-              </ThemedText>
+              <ThemedText style={styles.emptyTitle}>{emptyLabel}</ThemedText>
             </Animated.View>
           }
         />
@@ -235,7 +407,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingBottom: 10,
   },
   badge: {
     minWidth: 24,
@@ -249,6 +421,68 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "700",
     fontSize: 12,
+  },
+  sectionTabsRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 16,
+    marginBottom: 6,
+  },
+  sectionTab: {
+    flex: 1,
+    minHeight: 40,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+  },
+  sectionTabText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  sectionTabBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  sectionTabBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  sectionHint: {
+    fontSize: 12,
+    opacity: 0.68,
+    lineHeight: 17,
+    paddingHorizontal: 20,
+    marginBottom: 8,
+  },
+  filterRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  filterChip: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontWeight: "700",
+    opacity: 0.75,
+  },
+  filterChipTextActive: {
+    color: "#fff",
+    opacity: 1,
   },
   center: {
     flex: 1,

@@ -191,7 +191,9 @@ export function roomListingTitle(
   return room.listingTitle?.trim() || fallbackListingLabel;
 }
 
-export function formatRoomListingPrice(price: number | null | undefined): string | null {
+export function formatRoomListingPrice(
+  price: number | null | undefined,
+): string | null {
   if (price == null || !Number.isFinite(price)) return null;
   return `${price.toLocaleString()} MMK`;
 }

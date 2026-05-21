@@ -49,3 +49,26 @@ export interface LocationShareInput {
 export interface LocationShareStartResult {
   alreadyActive: boolean;
 }
+
+export interface SafePaymentStatus {
+  transaction: DirectTradeTransaction;
+  adminReceivingPhone: string | null;
+  instructionSentAt: string | null;
+  instructionNote: string | null;
+  canSubmitPayment: boolean;
+  payerKbzName: string | null;
+  payerKbzPhone: string | null;
+  paymentAmount: number | null;
+  kbzTransactionId: string | null;
+  buyerKbzAccountName: string | null;
+  buyerKbzPhoneNumber: string | null;
+  buyerKbzIsVerified: boolean | null;
+}
+
+export interface SafePaymentSubmitInput {
+  payerKbzName: string;
+  payerKbzPhone: string;
+  paymentAmount: number;
+  kbzTransactionId: string;
+  idempotencyKey?: string;
+}

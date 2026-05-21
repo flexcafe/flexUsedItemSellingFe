@@ -1,46 +1,25 @@
 import type { ClientNotification } from "@/core/domain/entities/Notification";
 import type { AppLocale } from "@/core/domain/types/locale";
 
-export type NotificationI18nKey =
-  | "noti.kbz.requested.title"
-  | "noti.kbz.requested.body"
-  | "noti.kbz.instruction.title"
-  | "noti.kbz.instruction.body"
-  | "noti.kbz.transactionSubmitted.title"
-  | "noti.kbz.transactionSubmitted.body"
-  | "noti.kbz.verified.title"
-  | "noti.kbz.verified.body"
-  | "noti.points.reviewReceived.title"
-  | "noti.points.reviewReceived.body"
-  | "noti.points.withdrawalRequested.title"
-  | "noti.points.withdrawalRequested.body"
-  | "noti.points.withdrawalApproved.title"
-  | "noti.points.withdrawalApproved.body"
-  | "noti.points.withdrawalRejected.title"
-  | "noti.points.withdrawalRejected.body"
-  | "noti.points.withdrawalPaid.title"
-  | "noti.points.withdrawalPaid.body"
-  | "noti.points.bonus.registration.title"
-  | "noti.points.bonus.registration.body"
-  | "noti.points.bonus.phone.title"
-  | "noti.points.bonus.phone.body"
-  | "noti.points.bonus.email.title"
-  | "noti.points.bonus.email.body"
-  | "noti.points.bonus.kbzpay.title"
-  | "noti.points.bonus.kbzpay.body"
-  | "noti.points.bonus.generic.title"
-  | "noti.points.bonus.generic.body"
-  | "noti.facebook.linked.title"
-  | "noti.facebook.linked.body"
-  | "noti.facebook.followSubmitted.title"
-  | "noti.facebook.followSubmitted.body"
-  | "noti.facebook.rewarded.title"
-  | "noti.facebook.rewarded.body";
+export const CHAT_EVENT_PREFIX = "CHAT_";
+
+export function isChatNotification(
+  n: Pick<ClientNotification, "eventKey">,
+): boolean {
+  return n.eventKey?.startsWith(CHAT_EVENT_PREFIX) ?? false;
+}
+
+export function isGeneralNotification(
+  n: Pick<ClientNotification, "eventKey">,
+): boolean {
+  if (!n.eventKey) return true;
+  return !isChatNotification(n);
+}
 
 type Tf = (key: string, vars?: Record<string, unknown>) => string;
 
 function toSafeString(value: unknown): string {
-  return typeof value === "string" ? value : "";
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function toDisplay(value: unknown): string {
@@ -57,12 +36,136 @@ function getMetadata(n: ClientNotification): Record<string, unknown> {
   );
 }
 
+function readTradeRole(
+  md: Record<string, unknown>,
+): "buyer" | "seller" | null {
+  const role = md.role;
+  if (role === "buyer" || role === "seller") return role;
+  return null;
+}
+
+function appendNote(body: string, note: string, noteKey: string, tf: Tf): string {
+  if (!note) return body;
+  return `${body}\n${tf(noteKey, { adminNote: note })}`;
+}
+
+function localizeChatNotification(
+  eventKey: string,
+  md: Record<string, unknown>,
+  tf: Tf,
+): { title: string; body: string } | null {
+  switch (eventKey) {
+    case "CHAT_SAFE_PAYMENT_REQUESTED_CLIENT":
+      return {
+        title: tf("noti.chat.events.CHAT_SAFE_PAYMENT_REQUESTED_CLIENT.title"),
+        body: tf("noti.chat.events.CHAT_SAFE_PAYMENT_REQUESTED_CLIENT.body"),
+      };
+    case "CHAT_SAFE_PAYMENT_REQUESTED_ADMIN":
+      return {
+        title: tf("noti.chat.events.CHAT_SAFE_PAYMENT_REQUESTED_ADMIN.title"),
+        body: tf("noti.chat.events.CHAT_SAFE_PAYMENT_REQUESTED_ADMIN.body"),
+      };
+    case "CHAT_SAFE_PAYMENT_INSTRUCTION_SENT_CLIENT": {
+      const adminNote = toSafeString(md.adminNote);
+      const body = tf(
+        "noti.chat.events.CHAT_SAFE_PAYMENT_INSTRUCTION_SENT_CLIENT.body",
+        { adminReceivingPhone: toSafeString(md.adminReceivingPhone) },
+      );
+      return {
+        title: tf(
+          "noti.chat.events.CHAT_SAFE_PAYMENT_INSTRUCTION_SENT_CLIENT.title",
+        ),
+        body: appendNote(
+          body,
+          adminNote,
+          "noti.chat.events.CHAT_SAFE_PAYMENT_INSTRUCTION_SENT_CLIENT.bodyNote",
+          tf,
+        ),
+      };
+    }
+    case "CHAT_SAFE_PAYMENT_INSTRUCTION_SENT_ADMIN":
+      return {
+        title: tf(
+          "noti.chat.events.CHAT_SAFE_PAYMENT_INSTRUCTION_SENT_ADMIN.title",
+        ),
+        body: tf(
+          "noti.chat.events.CHAT_SAFE_PAYMENT_INSTRUCTION_SENT_ADMIN.body",
+          { adminReceivingPhone: toSafeString(md.adminReceivingPhone) },
+        ),
+      };
+    case "CHAT_SAFE_PAYMENT_SUBMITTED_CLIENT":
+      return {
+        title: tf("noti.chat.events.CHAT_SAFE_PAYMENT_SUBMITTED_CLIENT.title"),
+        body: tf("noti.chat.events.CHAT_SAFE_PAYMENT_SUBMITTED_CLIENT.body"),
+      };
+    case "CHAT_SAFE_PAYMENT_SUBMITTED_ADMIN":
+      return {
+        title: tf("noti.chat.events.CHAT_SAFE_PAYMENT_SUBMITTED_ADMIN.title"),
+        body: tf("noti.chat.events.CHAT_SAFE_PAYMENT_SUBMITTED_ADMIN.body", {
+          kbzTransactionId: toSafeString(md.kbzTransactionId),
+          paymentAmount: toDisplay(md.paymentAmount),
+        }),
+      };
+    case "CHAT_SAFE_PAYMENT_RECEIVED_CLIENT": {
+      const role = readTradeRole(md);
+      const prefix =
+        role === "seller"
+          ? "noti.chat.events.CHAT_SAFE_PAYMENT_RECEIVED_CLIENT.seller"
+          : "noti.chat.events.CHAT_SAFE_PAYMENT_RECEIVED_CLIENT.buyer";
+      const adminNote = toSafeString(md.adminNote);
+      const body = tf(`${prefix}.body`);
+      return {
+        title: tf(`${prefix}.title`),
+        body: appendNote(
+          body,
+          adminNote,
+          `${prefix}.bodyNote`,
+          tf,
+        ),
+      };
+    }
+    case "CHAT_SAFE_PAYMENT_RECEIVED_ADMIN":
+      return {
+        title: tf("noti.chat.events.CHAT_SAFE_PAYMENT_RECEIVED_ADMIN.title"),
+        body: tf("noti.chat.events.CHAT_SAFE_PAYMENT_RECEIVED_ADMIN.body"),
+      };
+    case "CHAT_SAFE_PAYMENT_TRANSFERRED_CLIENT": {
+      const role = readTradeRole(md);
+      const prefix =
+        role === "buyer"
+          ? "noti.chat.events.CHAT_SAFE_PAYMENT_TRANSFERRED_CLIENT.buyer"
+          : "noti.chat.events.CHAT_SAFE_PAYMENT_TRANSFERRED_CLIENT.seller";
+      return {
+        title: tf(`${prefix}.title`),
+        body: tf(`${prefix}.body`, {
+          transferRef: toSafeString(md.transferRef),
+        }),
+      };
+    }
+    case "CHAT_SAFE_PAYMENT_TRANSFERRED_ADMIN":
+      return {
+        title: tf("noti.chat.events.CHAT_SAFE_PAYMENT_TRANSFERRED_ADMIN.title"),
+        body: tf("noti.chat.events.CHAT_SAFE_PAYMENT_TRANSFERRED_ADMIN.body", {
+          transferRef: toSafeString(md.transferRef),
+        }),
+      };
+    default:
+      return null;
+  }
+}
+
 export function localizeNotification(
   n: ClientNotification,
   tf: Tf,
   _locale: AppLocale,
 ): { title: string; body: string } {
   if (!n.eventKey) {
+    return { title: n.title, body: n.message };
+  }
+
+  if (isChatNotification(n)) {
+    const chat = localizeChatNotification(n.eventKey, getMetadata(n), tf);
+    if (chat) return chat;
     return { title: n.title, body: n.message };
   }
 

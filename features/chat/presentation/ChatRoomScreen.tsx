@@ -13,6 +13,7 @@ import {
   Pressable,
   StyleSheet,
   TextInput,
+  useWindowDimensions,
   View,
   type FlatList as FlatListType,
 } from "react-native";
@@ -38,9 +39,12 @@ import {
   useChatRooms,
   useMarkChatRoomRead,
   useRequestDirectTrade,
+  useRequestSafePayment,
   useSendChatMessage,
+  useSafePaymentStatus,
   useStartLocationShare,
   useStopLocationShare,
+  useSubmitSafePayment,
   useUpdateLocationShare,
 } from "@/presentation/hooks/useClientChat";
 import { buildLeafletLiveViewHtml } from "@/presentation/lib/leafletPickerHtml";
@@ -82,7 +86,7 @@ type Props = {
   peerUserId?: string;
 };
 
-const LIVE_MAP_HEIGHT = 220;
+const LIVE_MAP_MODAL_MAX_HEIGHT = 400;
 
 export function ChatRoomScreen({
   chatRoomId,
@@ -99,6 +103,11 @@ export function ChatRoomScreen({
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
   const reduceMotion = useReducedMotion();
+  const { height: windowHeight } = useWindowDimensions();
+  const liveMapModalHeight = Math.min(
+    LIVE_MAP_MODAL_MAX_HEIGHT,
+    Math.round(windowHeight * 0.52),
+  );
   const backTop = topOffsetForFloatingBackButton(insets.top);
   const queryClient = useQueryClient();
   const backPress = usePressScale();
@@ -140,9 +149,13 @@ export function ChatRoomScreen({
   const messagesQuery = useChatMessages(chatRoomId, {
     take: DEFAULT_CHAT_TAKE,
   });
+  const [safePaymentOpen, setSafePaymentOpen] = useState(false);
   const sendMessage = useSendChatMessage(chatRoomId);
   const markRead = useMarkChatRoomRead(chatRoomId);
   const directTradeMutation = useRequestDirectTrade(chatRoomId);
+  const safePaymentStatusQuery = useSafePaymentStatus(chatRoomId, safePaymentOpen);
+  const requestSafePaymentMutation = useRequestSafePayment(chatRoomId);
+  const submitSafePaymentMutation = useSubmitSafePayment(chatRoomId);
   const startLocationMutation = useStartLocationShare(chatRoomId);
   const updateLocationMutation = useUpdateLocationShare(chatRoomId);
   const stopLocationMutation = useStopLocationShare(chatRoomId);
@@ -153,6 +166,10 @@ export function ChatRoomScreen({
   const [meetingLocation, setMeetingLocation] = useState("");
   const [meetingLatitude, setMeetingLatitude] = useState("");
   const [meetingLongitude, setMeetingLongitude] = useState("");
+  const [payerKbzName, setPayerKbzName] = useState("");
+  const [payerKbzPhone, setPayerKbzPhone] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [kbzTransactionId, setKbzTransactionId] = useState("");
   const [locationUpdatedAt, setLocationUpdatedAt] = useState<string | null>(
     null,
   );
@@ -164,7 +181,7 @@ export function ChatRoomScreen({
     updatedAt: string;
   } | null>(null);
   const [toolsExpanded, setToolsExpanded] = useState(false);
-  const [liveMapExpanded, setLiveMapExpanded] = useState(false);
+  const [liveMapModalOpen, setLiveMapModalOpen] = useState(false);
   const listRef = useRef<FlatListType<ChatMessage>>(null);
   const messages = useMemo(() => {
     const pages = messagesQuery.data?.pages ?? [];
@@ -231,6 +248,8 @@ export function ChatRoomScreen({
   );
   const hasAnyLivePoint = Boolean(myPoint || counterpartPoint);
   const compactStatus = `${myMarkerLabel}: ${myLocationStatus} · ${peerMarkerLabel}: ${peerLocationStatus}`;
+  const safePaymentStatus = safePaymentStatusQuery.data ?? null;
+  const isBuyer = Boolean(user?.id && roomMeta?.buyerId && user.id === roomMeta.buyerId);
   const liveMapHtml = useMemo(() => {
     const markers = [];
     if (myPoint) {
@@ -251,6 +270,27 @@ export function ChatRoomScreen({
     }
     return buildLeafletLiveViewHtml(markers);
   }, [counterpartPoint, myMarkerLabel, myPoint, peerMarkerLabel]);
+
+  useEffect(() => {
+    if (!safePaymentOpen) return;
+    const nextName =
+      safePaymentStatus?.payerKbzName ??
+      safePaymentStatus?.buyerKbzAccountName ??
+      "";
+    const nextPhone =
+      safePaymentStatus?.payerKbzPhone ??
+      safePaymentStatus?.buyerKbzPhoneNumber ??
+      "";
+    const nextAmount =
+      safePaymentStatus?.paymentAmount != null
+        ? String(safePaymentStatus.paymentAmount)
+        : "";
+    const nextTxn = safePaymentStatus?.kbzTransactionId ?? "";
+    setPayerKbzName(nextName);
+    setPayerKbzPhone(nextPhone);
+    setPaymentAmount(nextAmount);
+    setKbzTransactionId(nextTxn);
+  }, [safePaymentOpen, safePaymentStatus]);
 
   useEffect(() => {
     if (myShareOverride == null) return;
@@ -283,6 +323,90 @@ export function ChatRoomScreen({
     setMeetingTime(defaultMeetingTimeString());
     setDirectTradeOpen(true);
   }, []);
+
+  const openSafePaymentModal = useCallback(() => {
+    setSafePaymentOpen(true);
+    void safePaymentStatusQuery.refetch();
+  }, [safePaymentStatusQuery]);
+
+  const onRequestSafePayment = useCallback(() => {
+    if (!chatRoomId) return;
+    if (!isBuyer) {
+      Alert.alert(t("chatSafePaymentTitle"), t("chatSafePaymentBuyerOnly"));
+      return;
+    }
+    requestSafePaymentMutation.mutate(undefined, {
+      onSuccess: async () => {
+        await safePaymentStatusQuery.refetch();
+        Alert.alert(t("chatSafePaymentTitle"), t("chatSafePaymentRequestSuccess"));
+      },
+      onError: (error) => {
+        Alert.alert(
+          t("chatSafePaymentTitle"),
+          chatActionErrorMessage(error, t("chatSafePaymentLoadFailed")),
+        );
+      },
+    });
+  }, [
+    chatRoomId,
+    isBuyer,
+    requestSafePaymentMutation,
+    safePaymentStatusQuery,
+    t,
+  ]);
+
+  const onSubmitSafePayment = useCallback(() => {
+    if (!chatRoomId) return;
+    if (!isBuyer) {
+      Alert.alert(t("chatSafePaymentTitle"), t("chatSafePaymentBuyerOnly"));
+      return;
+    }
+    const amount = Number(paymentAmount);
+    if (
+      !payerKbzName.trim() ||
+      !payerKbzPhone.trim() ||
+      !kbzTransactionId.trim() ||
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+      Alert.alert(t("chatSafePaymentTitle"), t("chatSafePaymentValidation"));
+      return;
+    }
+    submitSafePaymentMutation.mutate(
+      {
+        payerKbzName: payerKbzName.trim(),
+        payerKbzPhone: payerKbzPhone.trim(),
+        paymentAmount: amount,
+        kbzTransactionId: kbzTransactionId.trim(),
+      },
+      {
+        onSuccess: async () => {
+          await safePaymentStatusQuery.refetch();
+          Alert.alert(
+            t("chatSafePaymentTitle"),
+            t("chatSafePaymentSubmitSuccess"),
+          );
+          setSafePaymentOpen(false);
+        },
+        onError: (error) => {
+          Alert.alert(
+            t("chatSafePaymentTitle"),
+            chatActionErrorMessage(error, t("chatSafePaymentLoadFailed")),
+          );
+        },
+      },
+    );
+  }, [
+    chatRoomId,
+    isBuyer,
+    kbzTransactionId,
+    payerKbzName,
+    payerKbzPhone,
+    paymentAmount,
+    submitSafePaymentMutation,
+    safePaymentStatusQuery,
+    t,
+  ]);
 
   const getCurrentCoords = useCallback(
     async (shouldPrompt: boolean) => {
@@ -587,10 +711,8 @@ export function ChatRoomScreen({
           accessibilityState={{ expanded: toolsExpanded }}
         >
           <View style={styles.toolsHeaderText}>
-            <ThemedText style={styles.toolsTitle}>
-              {t("chatDirectTradeButton")} · {t("chatLiveLocationMap")}
-            </ThemedText>
-            <ThemedText style={styles.toolsSubtitle} numberOfLines={1}>
+            <ThemedText style={styles.toolsTitle}>{t("chatTradeTools")}</ThemedText>
+            <ThemedText style={styles.toolsSubtitle} numberOfLines={2}>
               {compactStatus}
             </ThemedText>
           </View>
@@ -607,30 +729,69 @@ export function ChatRoomScreen({
             layout={uiLayoutTransition}
             style={styles.toolsExpandedBody}
           >
-            <View style={styles.toolsActionRow}>
-              <Pressable
-                onPress={openDirectTradeModal}
-                style={({ pressed }) => [
-                  styles.actionBtnPrimary,
-                  styles.toolsPrimaryAction,
-                  { backgroundColor: colors.tint, opacity: pressed ? 0.88 : 1 },
-                ]}
-              >
-                <MaterialIcons name="event" size={18} color="#FFF" />
-                <ThemedText style={styles.actionBtnPrimaryText}>
-                  {t("chatDirectTradeButton")}
-                </ThemedText>
-              </Pressable>
+            <View style={styles.toolsActionGrid}>
+              <View style={styles.toolChipPairRow}>
+                <Pressable
+                  onPress={openDirectTradeModal}
+                  style={({ pressed }) => [
+                    styles.toolChip,
+                    styles.toolChipFlex,
+                    {
+                      backgroundColor: colors.tint,
+                      opacity: pressed ? 0.88 : 1,
+                    },
+                  ]}
+                >
+                  <MaterialIcons name="event" size={17} color="#FFF" />
+                  <ThemedText
+                    style={styles.toolChipTextLight}
+                    numberOfLines={1}
+                  >
+                    {t("chatDirectTradeButton")}
+                  </ThemedText>
+                </Pressable>
+
+                <Pressable
+                  onPress={openSafePaymentModal}
+                  disabled={!isBuyer}
+                  style={({ pressed }) => [
+                    styles.toolChip,
+                    styles.toolChipFlex,
+                    {
+                      borderColor: isBuyer ? colors.tint : colors.icon + "55",
+                      backgroundColor: isBuyer
+                        ? colors.tint + "12"
+                        : colors.icon + "10",
+                      opacity: !isBuyer ? 0.55 : pressed ? 0.88 : 1,
+                    },
+                  ]}
+                >
+                  <MaterialIcons
+                    name="verified-user"
+                    size={17}
+                    color={isBuyer ? colors.tint : colors.icon}
+                  />
+                  <ThemedText
+                    style={[
+                      styles.toolChipText,
+                      { color: isBuyer ? colors.tint : colors.icon },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {t("chatSafePaymentButton")}
+                  </ThemedText>
+                </Pressable>
+              </View>
 
               {!mySharingActive ? (
                 <Pressable
                   onPress={onStartLocationShare}
                   disabled={isFetchingCoords || startLocationMutation.isPending}
                   style={({ pressed }) => [
-                    styles.actionBtnOutline,
-                    styles.toolsSecondaryAction,
+                    styles.toolChip,
+                    styles.toolChipFull,
                     {
-                      borderColor: colors.tint,
+                      borderColor: colors.tint + "55",
                       opacity:
                         isFetchingCoords || startLocationMutation.isPending
                           ? 0.55
@@ -645,26 +806,27 @@ export function ChatRoomScreen({
                   ) : (
                     <MaterialIcons
                       name="my-location"
-                      size={18}
+                      size={17}
                       color={colors.tint}
                     />
                   )}
                   <ThemedText
-                    style={[styles.actionBtnOutlineText, { color: colors.tint }]}
+                    style={[styles.toolChipText, { color: colors.tint }]}
+                    numberOfLines={1}
                   >
                     {t("chatStartSharing")}
                   </ThemedText>
                 </Pressable>
               ) : (
-                <View style={styles.locationRow}>
+                <View style={[styles.toolChipRow, styles.toolChipFull]}>
                   <Pressable
                     onPress={onUpdateLocationShare}
                     disabled={isFetchingCoords || updateLocationMutation.isPending}
                     style={({ pressed }) => [
-                      styles.actionBtnOutline,
-                      styles.locationRowBtn,
+                      styles.toolChip,
+                      styles.toolChipRowItem,
                       {
-                        borderColor: colors.tint,
+                        borderColor: colors.tint + "55",
                         opacity:
                           isFetchingCoords || updateLocationMutation.isPending
                             ? 0.55
@@ -677,10 +839,11 @@ export function ChatRoomScreen({
                     {isFetchingCoords || updateLocationMutation.isPending ? (
                       <ActivityIndicator size="small" color={colors.tint} />
                     ) : (
-                      <MaterialIcons name="sync" size={18} color={colors.tint} />
+                      <MaterialIcons name="sync" size={17} color={colors.tint} />
                     )}
                     <ThemedText
-                      style={[styles.actionBtnOutlineText, { color: colors.tint }]}
+                      style={[styles.toolChipText, { color: colors.tint }]}
+                      numberOfLines={1}
                     >
                       {t("chatUpdateLocation")}
                     </ThemedText>
@@ -689,10 +852,10 @@ export function ChatRoomScreen({
                     onPress={onStopLocationShare}
                     disabled={stopLocationMutation.isPending}
                     style={({ pressed }) => [
-                      styles.actionBtnOutline,
-                      styles.locationRowBtn,
+                      styles.toolChip,
+                      styles.toolChipRowItem,
                       {
-                        borderColor: colors.icon + "66",
+                        borderColor: colors.icon + "55",
                         opacity: stopLocationMutation.isPending
                           ? 0.55
                           : pressed
@@ -706,12 +869,13 @@ export function ChatRoomScreen({
                     ) : (
                       <MaterialIcons
                         name="location-off"
-                        size={18}
+                        size={17}
                         color={colors.icon}
                       />
                     )}
                     <ThemedText
-                      style={[styles.actionBtnOutlineText, { color: colors.icon }]}
+                      style={[styles.toolChipText, { color: colors.icon }]}
+                      numberOfLines={1}
                     >
                       {t("chatStopSharing")}
                     </ThemedText>
@@ -720,71 +884,42 @@ export function ChatRoomScreen({
               )}
             </View>
 
-            <Pressable
-              onPress={() => setLiveMapExpanded((open) => !open)}
-              style={styles.liveLocationHeader}
-              accessibilityRole="button"
-              accessibilityState={{ expanded: liveMapExpanded }}
+            <View
+              style={[
+                styles.mapPreviewCard,
+                { borderColor: colors.icon + "33", backgroundColor: colors.icon + "08" },
+              ]}
             >
-              <ThemedText style={styles.liveLocationTitle}>
-                {t("chatLiveLocationMap")}
-              </ThemedText>
-              <MaterialIcons
-                name={liveMapExpanded ? "expand-less" : "expand-more"}
-                size={22}
-                color={colors.icon}
-              />
-            </Pressable>
-            {!liveMapExpanded ? (
-              <ThemedText style={styles.liveLocationLine} numberOfLines={2}>
-                {compactStatus}
-              </ThemedText>
-            ) : hasAnyLivePoint ? (
-              <>
-                <View style={styles.liveMapWrap}>
-                  <WebView
-                    source={{ html: liveMapHtml }}
-                    style={styles.liveMapView}
-                    scrollEnabled={false}
-                    originWhitelist={["*"]}
-                  />
-                </View>
-                <ThemedText style={styles.liveLocationLine}>
-                  {myMarkerLabel}: {myLocationStatus}
+              <View style={styles.mapPreviewTextCol}>
+                <ThemedText style={styles.liveLocationTitle}>
+                  {t("chatLiveLocationMap")}
                 </ThemedText>
-                <ThemedText style={styles.liveLocationLine}>
-                  {peerMarkerLabel}: {peerLocationStatus}
+                <ThemedText style={styles.liveLocationLine} numberOfLines={2}>
+                  {myMarkerLabel}: {myLocationStatus} · {peerMarkerLabel}:{" "}
+                  {peerLocationStatus}
                 </ThemedText>
-                <View style={styles.liveLegendRow}>
-                  <View style={styles.liveLegendItem}>
-                    <View
-                      style={[
-                        styles.liveLegendDot,
-                        { backgroundColor: "#1E88E5" },
-                      ]}
-                    />
-                    <ThemedText style={styles.liveLegendText}>
-                      {myMarkerLabel}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.liveLegendItem}>
-                    <View
-                      style={[
-                        styles.liveLegendDot,
-                        { backgroundColor: "#E53935" },
-                      ]}
-                    />
-                    <ThemedText style={styles.liveLegendText}>
-                      {peerMarkerLabel}
-                    </ThemedText>
-                  </View>
-                </View>
-              </>
-            ) : (
-              <ThemedText style={styles.liveLocationLine}>
-                {t("chatNoMessagesYet")}
-              </ThemedText>
-            )}
+              </View>
+              <Pressable
+                onPress={() => {
+                  setLiveMapModalOpen(true);
+                  setToolsExpanded(false);
+                }}
+                style={({ pressed }) => [
+                  styles.mapOpenBtn,
+                  {
+                    backgroundColor: colors.tint,
+                    opacity: pressed ? 0.88 : 1,
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={t("chatOpenLiveMap")}
+              >
+                <MaterialIcons name="map" size={18} color="#FFF" />
+                <ThemedText style={styles.mapOpenBtnText}>
+                  {t("chatOpenLiveMap")}
+                </ThemedText>
+              </Pressable>
+            </View>
           </Animated.View>
         ) : null}
       </Animated.View>
@@ -1029,6 +1164,287 @@ export function ChatRoomScreen({
           </Animated.View>
         </Animated.View>
       </Modal>
+
+      <Modal
+        transparent
+        visible={liveMapModalOpen}
+        animationType="fade"
+        onRequestClose={() => setLiveMapModalOpen(false)}
+      >
+        <Animated.View
+          entering={reduceMotion ? undefined : FadeIn.duration(220)}
+          style={styles.modalBackdrop}
+        >
+          <Animated.View
+            entering={
+              reduceMotion
+                ? undefined
+                : FadeInDown.duration(360).springify().damping(18)
+            }
+            style={[
+              styles.mapModalCard,
+              uiCardShadow(scheme),
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.icon + "33",
+              },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <ThemedText type="defaultSemiBold">
+                {t("chatLiveLocationMap")}
+              </ThemedText>
+              <Pressable
+                onPress={() => setLiveMapModalOpen(false)}
+                style={styles.modalCloseBtn}
+              >
+                <MaterialIcons name="close" size={20} color={colors.icon} />
+              </Pressable>
+            </View>
+            {hasAnyLivePoint ? (
+              <>
+                <View
+                  style={[
+                    styles.liveMapWrap,
+                    { height: liveMapModalHeight },
+                  ]}
+                >
+                  <WebView
+                    source={{ html: liveMapHtml }}
+                    style={[
+                      styles.liveMapView,
+                      { height: liveMapModalHeight },
+                    ]}
+                    scrollEnabled={false}
+                    originWhitelist={["*"]}
+                  />
+                </View>
+                <ThemedText style={styles.liveLocationLine}>
+                  {myMarkerLabel}: {myLocationStatus}
+                </ThemedText>
+                <ThemedText style={styles.liveLocationLine}>
+                  {peerMarkerLabel}: {peerLocationStatus}
+                </ThemedText>
+                <View style={styles.liveLegendRow}>
+                  <View style={styles.liveLegendItem}>
+                    <View
+                      style={[
+                        styles.liveLegendDot,
+                        { backgroundColor: "#1E88E5" },
+                      ]}
+                    />
+                    <ThemedText style={styles.liveLegendText}>
+                      {myMarkerLabel}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.liveLegendItem}>
+                    <View
+                      style={[
+                        styles.liveLegendDot,
+                        { backgroundColor: "#E53935" },
+                      ]}
+                    />
+                    <ThemedText style={styles.liveLegendText}>
+                      {peerMarkerLabel}
+                    </ThemedText>
+                  </View>
+                </View>
+              </>
+            ) : (
+              <View style={[styles.mapEmptyState, { borderColor: colors.icon }]}>
+                <MaterialIcons name="location-off" size={32} color={colors.icon} />
+                <ThemedText style={styles.liveLocationLine}>
+                  {t("chatMapNoLocations")}
+                </ThemedText>
+              </View>
+            )}
+          </Animated.View>
+        </Animated.View>
+      </Modal>
+
+      <Modal
+        transparent
+        visible={safePaymentOpen}
+        animationType="fade"
+        onRequestClose={() => setSafePaymentOpen(false)}
+      >
+        <Animated.View
+          entering={reduceMotion ? undefined : FadeIn.duration(220)}
+          style={styles.modalBackdrop}
+        >
+          <Animated.View
+            entering={
+              reduceMotion
+                ? undefined
+                : FadeInDown.duration(360).springify().damping(18)
+            }
+            style={[
+              styles.modalCard,
+              uiCardShadow(scheme),
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.icon + "33",
+              },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <ThemedText type="defaultSemiBold">
+                {t("chatSafePaymentTitle")}
+              </ThemedText>
+              <Pressable
+                onPress={() => setSafePaymentOpen(false)}
+                style={styles.modalCloseBtn}
+              >
+                <MaterialIcons name="close" size={20} color={colors.icon} />
+              </Pressable>
+            </View>
+
+            {!isBuyer ? (
+              <ThemedText style={styles.safeMutedText}>
+                {t("chatSafePaymentBuyerOnly")}
+              </ThemedText>
+            ) : safePaymentStatusQuery.isLoading ? (
+              <View style={styles.center}>
+                <ActivityIndicator color={colors.tint} />
+              </View>
+            ) : safePaymentStatusQuery.isError ? (
+              <ThemedText style={styles.errorText}>
+                {t("chatSafePaymentLoadFailed")}
+              </ThemedText>
+            ) : !safePaymentStatus ? (
+              <>
+                <ThemedText style={styles.safeMutedText}>
+                  {t("chatSafePaymentRequestHint")}
+                </ThemedText>
+                <Pressable
+                  onPress={onRequestSafePayment}
+                  disabled={requestSafePaymentMutation.isPending || !isBuyer}
+                  style={[
+                    styles.modalSaveBtn,
+                    {
+                      backgroundColor:
+                        requestSafePaymentMutation.isPending || !isBuyer
+                          ? colors.icon + "55"
+                          : colors.tint,
+                    },
+                  ]}
+                >
+                  {requestSafePaymentMutation.isPending ? (
+                    <ActivityIndicator color="#FFF" size="small" />
+                  ) : (
+                    <ThemedText style={styles.modalSaveBtnText}>
+                      {t("chatSafePaymentRequest")}
+                    </ThemedText>
+                  )}
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <ThemedText style={styles.pickerLabel}>
+                  {t("chatSafePaymentStatusLabel")}:{" "}
+                  {safePaymentStatus.transaction.status}
+                </ThemedText>
+                <ThemedText style={styles.safeMutedText}>
+                  {t("chatSafePaymentInstructionPhone")}:{" "}
+                  {safePaymentStatus.adminReceivingPhone ??
+                    t("chatSafePaymentNoInstruction")}
+                </ThemedText>
+                {safePaymentStatus.instructionSentAt ? (
+                  <ThemedText style={styles.safeMutedText}>
+                    {t("chatSafePaymentInstructionSentAt")}:{" "}
+                    {formatChatTimestamp(safePaymentStatus.instructionSentAt)}
+                  </ThemedText>
+                ) : null}
+                {safePaymentStatus.instructionNote ? (
+                  <ThemedText style={styles.safeMutedText}>
+                    {t("chatSafePaymentInstructionNote")}:{" "}
+                    {safePaymentStatus.instructionNote}
+                  </ThemedText>
+                ) : null}
+
+                {isBuyer && safePaymentStatus.canSubmitPayment ? (
+                  <>
+                    <ThemedText style={styles.pickerLabel}>
+                      {t("chatSafePaymentFormName")}
+                    </ThemedText>
+                    <TextInput
+                      value={payerKbzName}
+                      onChangeText={setPayerKbzName}
+                      placeholder={t("chatSafePaymentFormName")}
+                      placeholderTextColor={colors.icon}
+                      style={[
+                        styles.modalInput,
+                        { color: colors.text, borderColor: colors.icon + "44" },
+                      ]}
+                    />
+                    <ThemedText style={styles.pickerLabel}>
+                      {t("chatSafePaymentFormPhone")}
+                    </ThemedText>
+                    <TextInput
+                      value={payerKbzPhone}
+                      onChangeText={setPayerKbzPhone}
+                      placeholder={t("chatSafePaymentFormPhone")}
+                      placeholderTextColor={colors.icon}
+                      style={[
+                        styles.modalInput,
+                        { color: colors.text, borderColor: colors.icon + "44" },
+                      ]}
+                      keyboardType="phone-pad"
+                    />
+                    <ThemedText style={styles.pickerLabel}>
+                      {t("chatSafePaymentFormAmount")}
+                    </ThemedText>
+                    <TextInput
+                      value={paymentAmount}
+                      onChangeText={setPaymentAmount}
+                      placeholder={t("chatSafePaymentFormAmount")}
+                      placeholderTextColor={colors.icon}
+                      style={[
+                        styles.modalInput,
+                        { color: colors.text, borderColor: colors.icon + "44" },
+                      ]}
+                      keyboardType="decimal-pad"
+                    />
+                    <ThemedText style={styles.pickerLabel}>
+                      {t("chatSafePaymentFormTxnId")}
+                    </ThemedText>
+                    <TextInput
+                      value={kbzTransactionId}
+                      onChangeText={setKbzTransactionId}
+                      placeholder={t("chatSafePaymentFormTxnId")}
+                      placeholderTextColor={colors.icon}
+                      style={[
+                        styles.modalInput,
+                        { color: colors.text, borderColor: colors.icon + "44" },
+                      ]}
+                    />
+                    <Pressable
+                      onPress={onSubmitSafePayment}
+                      disabled={submitSafePaymentMutation.isPending}
+                      style={[
+                        styles.modalSaveBtn,
+                        {
+                          backgroundColor: submitSafePaymentMutation.isPending
+                            ? colors.icon + "55"
+                            : colors.tint,
+                        },
+                      ]}
+                    >
+                      {submitSafePaymentMutation.isPending ? (
+                        <ActivityIndicator color="#FFF" size="small" />
+                      ) : (
+                        <ThemedText style={styles.modalSaveBtnText}>
+                          {t("chatSafePaymentSubmit")}
+                        </ThemedText>
+                      )}
+                    </Pressable>
+                  </>
+                ) : null}
+              </>
+            )}
+          </Animated.View>
+        </Animated.View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -1086,50 +1502,102 @@ const styles = StyleSheet.create({
   toolsHeaderText: { flex: 1, minWidth: 0, gap: 2 },
   toolsTitle: { fontSize: 13, fontWeight: "700" },
   toolsSubtitle: { fontSize: 12, opacity: 0.75 },
-  toolsExpandedBody: { gap: 8 },
-  toolsActionRow: { gap: 8 },
-  toolsPrimaryAction: { width: "100%" },
-  toolsSecondaryAction: { width: "100%" },
-  actionBtnPrimary: {
-    minHeight: 44,
+  toolsExpandedBody: { gap: 10 },
+  toolsActionGrid: {
+    gap: 8,
+  },
+  toolChipPairRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  toolChip: {
+    minHeight: 40,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  toolChipFlex: {
+    flex: 1,
+    minWidth: 0,
+  },
+  toolChipFull: {
+    width: "100%",
+  },
+  toolChipRow: {
+    flexDirection: "row",
     gap: 8,
+  },
+  toolChipRowItem: {
+    flex: 1,
+    minWidth: 0,
+  },
+  toolChipText: {
+    fontSize: 12,
+    fontWeight: "700",
+    flexShrink: 1,
+  },
+  toolChipTextLight: {
+    color: "#FFF",
+    fontSize: 12,
+    fontWeight: "700",
+    flexShrink: 1,
+  },
+  mapPreviewCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
     borderRadius: 12,
-    paddingHorizontal: 14,
+    paddingHorizontal: 10,
     paddingVertical: 10,
   },
-  actionBtnPrimaryText: { color: "#FFF", fontSize: 14, fontWeight: "700" },
-  actionBtnOutline: {
-    minHeight: 44,
+  mapPreviewTextCol: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  mapOpenBtn: {
     flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  mapOpenBtnText: {
+    color: "#FFF",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  mapModalCard: {
+    width: "100%",
+    maxHeight: "88%",
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    gap: 10,
+  },
+  mapEmptyState: {
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
     borderWidth: 1,
+    borderStyle: "dashed",
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 28,
+    paddingHorizontal: 16,
   },
-  actionBtnOutlineText: { fontSize: 14, fontWeight: "700" },
-  locationRow: { flexDirection: "row", gap: 8 },
-  locationRowBtn: { flex: 1 },
-  liveLocationHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-    minHeight: 32,
-  },
-  liveLocationTitle: { fontSize: 13, fontWeight: "700", flex: 1 },
+  liveLocationTitle: { fontSize: 13, fontWeight: "700" },
   liveMapWrap: {
-    height: LIVE_MAP_HEIGHT,
     borderRadius: 10,
     overflow: "hidden",
-    marginTop: 2,
   },
-  liveMapView: { width: "100%", height: LIVE_MAP_HEIGHT },
+  liveMapView: { width: "100%" },
   liveLocationLine: { fontSize: 12, opacity: 0.85 },
   liveLegendRow: {
     flexDirection: "row",
@@ -1269,6 +1737,7 @@ const styles = StyleSheet.create({
   modalRow: { flexDirection: "row", gap: 8 },
   modalInputHalf: { flex: 1 },
   pickerLabel: { fontSize: 12, fontWeight: "700", opacity: 0.75 },
+  safeMutedText: { fontSize: 13, opacity: 0.75, lineHeight: 18 },
   modalSaveBtn: {
     borderRadius: 10,
     minHeight: 42,

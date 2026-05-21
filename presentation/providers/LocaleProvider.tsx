@@ -762,6 +762,21 @@ const DICT: Dictionary = {
     my: "စနစ်မက်ဆေ့ချ်",
     zh: "系统消息",
   },
+  chatTradeTools: {
+    ko: "거래 도구",
+    my: "ကုန်သွယ်မှုကိရိယာ",
+    zh: "交易工具",
+  },
+  chatOpenLiveMap: {
+    ko: "지도 열기",
+    my: "မြေပုံ ဖွင့်မည်",
+    zh: "打开地图",
+  },
+  chatMapNoLocations: {
+    ko: "공유 중인 위치가 없습니다. 위치 공유를 시작해 주세요.",
+    my: "မျှဝေထားသော တည်နေရာ မရှိသေးပါ။ တည်နေရာမျှဝေမှု စတင်ပါ။",
+    zh: "暂无共享位置，请先开始位置共享。",
+  },
   chatDirectTradeButton: {
     ko: "직거래",
     my: "တိုက်ရိုက်တွေ့ဆုံ",
@@ -791,6 +806,101 @@ const DICT: Dictionary = {
     ko: "직거래 요청에 실패했습니다.",
     my: "တိုက်ရိုက်တွေ့ဆုံ တောင်းဆိုမှု မအောင်မြင်ပါ။",
     zh: "提交当面交易失败。",
+  },
+  chatSafePaymentButton: {
+    ko: "안전결제",
+    my: "လုံခြုံငွေပေးချေမှု",
+    zh: "担保支付",
+  },
+  chatSafePaymentTitle: {
+    ko: "안전결제",
+    my: "လုံခြုံငွေပေးချေမှု",
+    zh: "担保支付",
+  },
+  chatSafePaymentBuyerOnly: {
+    ko: "안전결제 요청과 제출은 구매자만 가능합니다.",
+    my: "လုံခြုံငွေပေးချေမှုကို ဝယ်သူသာ တောင်းဆို/တင်ပြနိုင်ပါသည်။",
+    zh: "仅买家可以请求或提交担保支付。",
+  },
+  chatSafePaymentStatusLabel: {
+    ko: "현재 상태",
+    my: "လက်ရှိအခြေအနေ",
+    zh: "当前状态",
+  },
+  chatSafePaymentRequestHint: {
+    ko: "안전결제를 요청하면 관리자가 KBZ 수취 번호를 안내합니다.",
+    my: "လုံခြုံငွေပေးချေမှု တောင်းဆိုပြီးနောက် Admin က KBZ လက်ခံနံပါတ် ပေးပို့ပါမည်။",
+    zh: "请求担保支付后，管理员会发送 KBZ 收款号码。",
+  },
+  chatSafePaymentRequest: {
+    ko: "안전결제 요청",
+    my: "လုံခြုံငွေပေးချေမှု တောင်းဆိုမည်",
+    zh: "请求担保支付",
+  },
+  chatSafePaymentRequestSuccess: {
+    ko: "안전결제를 요청했습니다. 관리자 안내를 기다려주세요.",
+    my: "လုံခြုံငွေပေးချေမှု တောင်းဆိုပြီးပါပြီ။ Admin ညွှန်ကြားချက်ကို စောင့်ပါ။",
+    zh: "担保支付请求已发送，请等待管理员指引。",
+  },
+  chatSafePaymentLoadFailed: {
+    ko: "안전결제 정보를 불러오지 못했습니다.",
+    my: "လုံခြုံငွေပေးချေမှု အချက်အလက် မရယူနိုင်ပါ။",
+    zh: "加载担保支付信息失败。",
+  },
+  chatSafePaymentNoInstruction: {
+    ko: "관리자 안내 대기 중",
+    my: "Admin ညွှန်ကြားချက် စောင့်ဆိုင်းနေသည်",
+    zh: "等待管理员指引",
+  },
+  chatSafePaymentInstructionPhone: {
+    ko: "관리자 수취 번호",
+    my: "Admin လက်ခံဖုန်းနံပါတ်",
+    zh: "管理员收款号码",
+  },
+  chatSafePaymentInstructionSentAt: {
+    ko: "안내 발송 시각",
+    my: "ညွှန်ကြားချက် ပို့ချိန်",
+    zh: "指引发送时间",
+  },
+  chatSafePaymentInstructionNote: {
+    ko: "관리자 메모",
+    my: "Admin မှတ်ချက်",
+    zh: "管理员备注",
+  },
+  chatSafePaymentFormName: {
+    ko: "송금자 KBZ 이름",
+    my: "ပေးချေသူ KBZ အမည်",
+    zh: "付款人 KBZ 姓名",
+  },
+  chatSafePaymentFormPhone: {
+    ko: "송금자 KBZ 전화번호",
+    my: "ပေးချေသူ KBZ ဖုန်း",
+    zh: "付款人 KBZ 手机号",
+  },
+  chatSafePaymentFormAmount: {
+    ko: "결제 금액 (MMK)",
+    my: "ငွေပေးချေမှုပမာဏ (MMK)",
+    zh: "支付金额 (MMK)",
+  },
+  chatSafePaymentFormTxnId: {
+    ko: "KBZ 거래 ID",
+    my: "KBZ လုပ်ဆောင်မှု ID",
+    zh: "KBZ 交易号",
+  },
+  chatSafePaymentSubmit: {
+    ko: "결제 정보 제출",
+    my: "ငွေပေးချေမှု အချက်အလက် တင်ပြမည်",
+    zh: "提交支付信息",
+  },
+  chatSafePaymentValidation: {
+    ko: "이름, 전화번호, 금액, 거래 ID를 모두 입력해주세요.",
+    my: "အမည်၊ ဖုန်း၊ ငွေပမာဏနှင့် လုပ်ဆောင်မှု ID ကို အပြည့်အစုံ ဖြည့်ပါ။",
+    zh: "请完整填写姓名、手机号、金额和交易号。",
+  },
+  chatSafePaymentSubmitSuccess: {
+    ko: "결제 정보를 제출했습니다. 관리자 확인을 기다려주세요.",
+    my: "ငွေပေးချေမှုအချက်အလက် တင်ပြပြီးပါပြီ။ Admin အတည်ပြုချက်ကို စောင့်ပါ။",
+    zh: "支付信息已提交，请等待管理员确认。",
   },
   chatMeetingDateLabel: {
     ko: "만남 날짜",
@@ -1109,6 +1219,178 @@ const DICT: Dictionary = {
     ko: "페이지 팔로우가 승인되어 포인트가 지급되었습니다.",
     my: "စာမျက်နှာ လိုက်ပါမှုကို အတည်ပြုပြီး အမှတ်များ ပေးအပ်ပါသည်။",
     zh: "关注审核已通过，积分已发放。",
+  },
+
+  "noti.sections.general": {
+    ko: "일반",
+    my: "အထွေထွေ",
+    zh: "通用",
+  },
+  "noti.sections.generalHint": {
+    ko: "KBZPay, 포인트, 계정 알림",
+    my: "KBZPay၊ အမှတ်များ၊ အကောင့် အပ်ဒိတ်",
+    zh: "KBZPay、积分与账户通知",
+  },
+  "noti.sections.chat": {
+    ko: "채팅·거래",
+    my: "ချတ် နှင့် ကုန်သွယ်မှု",
+    zh: "聊天与交易",
+  },
+  "noti.sections.chatHint": {
+    ko: "안전결제, 만남, 거래 업데이트",
+    my: "လုံခြုံငွေပေးချေမှု၊ တွေ့ဆုံမှုနှင့် ကုန်သွယ်မှု အပ်ဒိတ်",
+    zh: "担保支付、见面与交易动态",
+  },
+  "noti.chat.empty": {
+    ko: "채팅 알림이 없습니다.",
+    my: "ချတ် အသိပေးချက် မရှိသေးပါ။",
+    zh: "暂无聊天通知。",
+  },
+  "noti.chat.filterAll": {
+    ko: "전체",
+    my: "အားလုံး",
+    zh: "全部",
+  },
+  "noti.chat.filterUnread": {
+    ko: "읽지 않음",
+    my: "မဖတ်ရသေး",
+    zh: "未读",
+  },
+
+  "noti.chat.events.CHAT_SAFE_PAYMENT_REQUESTED_CLIENT.title": {
+    ko: "안전결제 요청됨",
+    my: "လုံခြုံငွေပေးချေမှု တောင်းဆိုပြီး",
+    zh: "已请求担保支付",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_REQUESTED_CLIENT.body": {
+    ko: "요청이 접수되었습니다. 관리자가 KBZPay 번호를 알림으로내면, KBZPay에서 결제 후 채팅에서 거래 ID를 제출하세요.",
+    my: "တောင်းဆိုမှုကို လက်ခံပြီးပါပြီ။ Admin က KBZPay နံပါတ်ကို အသိပေးချက်ဖြင့် ပို့ပေးမည်။ ရရှိပြီးနောက် KBZPay တွင် ပေးချေပြီး ချတ်တွင် လုပ်ဆောင်မှုအမှတ်ကို တင်ပြပါ။",
+    zh: "您的请求已提交。管理员将通过通知发送 KBZPay 号码。收到后请在 KBZPay 付款，并在聊天中提交交易号。",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_REQUESTED_ADMIN.title": {
+    ko: "안전결제 요청",
+    my: "လုံခြုံငွေပေးချေမှု တောင်းဆိုမှု",
+    zh: "担保支付请求",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_REQUESTED_ADMIN.body": {
+    ko: "구매자가 안전결제를 요청했습니다. KBZPay 수취 번호를 보내주세요.",
+    my: "ဝယ်သူက လုံခြုံငွေပေးချေမှု တောင်းဆိုထားသည်။ KBZPay လက်ခံနံပါတ်ကို ပို့ပေးပါ။",
+    zh: "买家请求了担保支付。请发送 KBZPay 收款号码。",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_INSTRUCTION_SENT_CLIENT.title": {
+    ko: "KBZPay 송금 안내",
+    my: "KBZPay လွှဲပြောင်းညွှန်ကြားချက်",
+    zh: "KBZPay 转账指引",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_INSTRUCTION_SENT_CLIENT.body": {
+    ko: "{{adminReceivingPhone}}(으)로 송금하세요. KBZPay에서 결제 후 채팅에서 거래 ID를 제출하세요.",
+    my: "{{adminReceivingPhone}} သို့ လွှဲပေးပါ။ KBZPay တွင် ပေးချေပြီးနောက် ချတ်တွင် လုပ်ဆောင်မှုအမှတ်ကို တင်ပြပါ။",
+    zh: "请转账至 {{adminReceivingPhone}}。在 KBZPay 付款后，打开聊天提交交易号。",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_INSTRUCTION_SENT_CLIENT.bodyNote": {
+    ko: "메모: {{adminNote}}",
+    my: "မှတ်ချက်: {{adminNote}}",
+    zh: "备注：{{adminNote}}",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_INSTRUCTION_SENT_ADMIN.title": {
+    ko: "안내 발송 완료",
+    my: "ညွှန်ကြားချက် ပို့ပြီး",
+    zh: "指引已发送",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_INSTRUCTION_SENT_ADMIN.body": {
+    ko: "구매자에게 KBZPay 안내를 보냈습니다. 수취 번호: {{adminReceivingPhone}}",
+    my: "ဝယ်သူထံ KBZPay ညွှန်ကြားချက် ပို့ပြီးပါပြီ။ လက်ခံနံပါတ်: {{adminReceivingPhone}}",
+    zh: "已向买家发送 KBZPay 指引。收款号码：{{adminReceivingPhone}}",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_SUBMITTED_CLIENT.title": {
+    ko: "결제 정보 제출됨",
+    my: "ငွေပေးချေမှု တင်ပြပြီး",
+    zh: "已提交付款",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_SUBMITTED_CLIENT.body": {
+    ko: "KBZ 거래 ID가 제출되었습니다. 관리자가 확인 후 입금 완료 시 채팅이 업데이트됩니다.",
+    my: "KBZ လုပ်ဆောင်မှုအမှတ်ကို တင်ပြပြီးပါပြီ။ Admin အတည်ပြုပြီး ငွေလက်ခံပြီးပါက ချတ်ကို အပ်ဒိတ်လုပ်ပါမည်။",
+    zh: "您的 KBZ 交易号已提交。管理员核实后会在聊天中更新收款状态。",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_SUBMITTED_ADMIN.title": {
+    ko: "안전결제 검토 필요",
+    my: "လုံခြုံငွေပေးချေမှု စစ်ဆေးရန်",
+    zh: "担保支付待审核",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_SUBMITTED_ADMIN.body": {
+    ko: "구매자가 KBZ 결제를 제출했습니다. 거래 ID: {{kbzTransactionId}} · 금액: {{paymentAmount}} MMK",
+    my: "ဝယ်သူက KBZ ငွေပေးချေမှု တင်ပြထားသည်။ လုပ်ဆောင်မှုအမှတ်: {{kbzTransactionId}} · ပမာဏ: {{paymentAmount}} MMK",
+    zh: "买家已提交 KBZ 付款。交易号：{{kbzTransactionId}} · 金额：{{paymentAmount}} MMK",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_RECEIVED_CLIENT.buyer.title": {
+    ko: "결제 확인됨",
+    my: "ငွေပေးချေမှု အတည်ပြုပြီး",
+    zh: "付款已确认",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_RECEIVED_CLIENT.buyer.body": {
+    ko: "관리자가 결제를 확인했습니다. 거래가 끝나면 완료 처리할 수 있습니다.",
+    my: "Admin က သင့်ငွေပေးချေမှုကို အတည်ပြုပြီးပါပြီ။ ကုန်သွယ်မှု ပြီးဆုံးပါက ပြီးမြောက်ဟု မှတ်သားနိုင်ပါသည်။",
+    zh: "管理员已确认您的付款。交易完成后可标记完成。",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_RECEIVED_CLIENT.buyer.bodyNote": {
+    ko: "메모: {{adminNote}}",
+    my: "မှတ်ချက်: {{adminNote}}",
+    zh: "备注：{{adminNote}}",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_RECEIVED_CLIENT.seller.title": {
+    ko: "구매자 결제 확보됨",
+    my: "ဝယ်သူငွေပေးချေမှု လုံခြုံမှု",
+    zh: "买家付款已确认",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_RECEIVED_CLIENT.seller.body": {
+    ko: "관리자가 구매자 결제를 확인했습니다. 채팅에서 거래를 완료하세요.",
+    my: "Admin က ဝယ်သူ၏ ငွေပေးချေမှုကို အတည်ပြုပြီးပါပြီ။ ချတ်တွင် ကုန်သွယ်မှုကို ပြီးမြောက်အောင် လုပ်ဆောင်ပါ။",
+    zh: "管理员已确认买家付款。请在聊天中完成交易。",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_RECEIVED_CLIENT.seller.bodyNote": {
+    ko: "메모: {{adminNote}}",
+    my: "မှတ်ချက်: {{adminNote}}",
+    zh: "备注：{{adminNote}}",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_RECEIVED_ADMIN.title": {
+    ko: "입금 확인 처리됨",
+    my: "ငွေလက်ခံ အတည်ပြုပြီး",
+    zh: "已标记收款",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_RECEIVED_ADMIN.body": {
+    ko: "이 안전결제를 입금 확인 처리했습니다.",
+    my: "ဤလုံခြုံငွေပေးချေမှုကို ငွေလက်ခံအဖြစ် မှတ်သားပြီးပါပြီ။",
+    zh: "您已将此担保支付标记为已收款。",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_TRANSFERRED_CLIENT.seller.title": {
+    ko: "대금이 송금되었습니다",
+    my: "ငွေလွှဲပြောင်း ရရှိပြီး",
+    zh: "款项已释放给您",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_TRANSFERRED_CLIENT.seller.body": {
+    ko: "관리자가 대금을 송금했습니다. 참조: {{transferRef}}",
+    my: "Admin က သင့်ရငွေကို လွှဲပြောင်းပြီးပါပြီ။ ကိုးကား: {{transferRef}}",
+    zh: "管理员已向您转账。参考：{{transferRef}}",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_TRANSFERRED_CLIENT.buyer.title": {
+    ko: "판매자에게 결제 해제됨",
+    my: "ရောင်းသူထံ ငွေလွှဲပြောင်း ပြီး",
+    zh: "已向卖家放款",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_TRANSFERRED_CLIENT.buyer.body": {
+    ko: "관리자가 판매자에게 결제를 해제했습니다. 참조: {{transferRef}}",
+    my: "Admin က ရောင်းသူထံ ငွေကို လွှဲပြောင်းပြီးပါပြီ။ ကိုးကား: {{transferRef}}",
+    zh: "管理员已向卖家释放款项。参考：{{transferRef}}",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_TRANSFERRED_ADMIN.title": {
+    ko: "결제 송금 완료",
+    my: "ငွေလွှဲပြောင်း ပြီးစီး",
+    zh: "已完成放款",
+  },
+  "noti.chat.events.CHAT_SAFE_PAYMENT_TRANSFERRED_ADMIN.body": {
+    ko: "안전결제가 판매자에게 송금 처리되었습니다. 참조: {{transferRef}}",
+    my: "လုံခြုံငွေပေးချေမှုကို ရောင်းသူထံ လွှဲပြောင်းပြီးဟု မှတ်သားပြီးပါပြီ။ ကိုးကား: {{transferRef}}",
+    zh: "担保支付已标记为已向卖家转账。参考：{{transferRef}}",
   },
 
   homeWelcome: { ko: "환영합니다", my: "ကြိုဆိုပါသည်", zh: "欢迎" },

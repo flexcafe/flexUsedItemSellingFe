@@ -93,7 +93,12 @@ const ChatInboxRow = memo(function ChatInboxRow({
   const cardAnimStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        scale: interpolate(pressed.value, [0, 1], [1, 0.985], Extrapolation.CLAMP),
+        scale: interpolate(
+          pressed.value,
+          [0, 1],
+          [1, 0.985],
+          Extrapolation.CLAMP,
+        ),
       },
     ],
   }));
@@ -139,11 +144,7 @@ const ChatInboxRow = memo(function ChatInboxRow({
                 contentFit="cover"
               />
             ) : (
-              <MaterialIcons
-                name="inventory-2"
-                size={22}
-                color={colors.tint}
-              />
+              <MaterialIcons name="inventory-2" size={22} color={colors.tint} />
             )}
           </View>
           {item.counterpartAvatarUrl ? (

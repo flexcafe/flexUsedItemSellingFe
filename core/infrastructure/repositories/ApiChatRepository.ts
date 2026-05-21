@@ -8,6 +8,8 @@ import type {
   LocationShareInput,
   LocationShareStartResult,
   OpenChatRoomInput,
+  SafePaymentStatus,
+  SafePaymentSubmitInput,
   SendChatMessageInput,
 } from "@/core/domain/types/chat";
 import { API_ENDPOINTS } from "../api/constants";
@@ -290,6 +292,32 @@ function readBooleanPayload(value: unknown): boolean {
   return toBoolean(fromKnown, false);
 }
 
+function mapSafePaymentStatus(value: unknown): SafePaymentStatus | null {
+  const row = asRecord(value);
+  if (!row) return null;
+  const transaction = mapDirectTradeTransaction(row.transaction);
+  if (!transaction) return null;
+  const paymentAmountRaw = row.paymentAmount;
+  const paymentAmount =
+    paymentAmountRaw == null ? null : toFiniteNumber(paymentAmountRaw, 0);
+  const verifiedRaw = row.buyerKbzIsVerified;
+  return {
+    transaction,
+    adminReceivingPhone: toNonEmptyString(row.adminReceivingPhone),
+    instructionSentAt: toNonEmptyString(row.instructionSentAt),
+    instructionNote: toNonEmptyString(row.instructionNote),
+    canSubmitPayment: toBoolean(row.canSubmitPayment),
+    payerKbzName: toNonEmptyString(row.payerKbzName),
+    payerKbzPhone: toNonEmptyString(row.payerKbzPhone),
+    paymentAmount,
+    kbzTransactionId: toNonEmptyString(row.kbzTransactionId),
+    buyerKbzAccountName: toNonEmptyString(row.buyerKbzAccountName),
+    buyerKbzPhoneNumber: toNonEmptyString(row.buyerKbzPhoneNumber),
+    buyerKbzIsVerified:
+      typeof verifiedRaw === "boolean" ? verifiedRaw : verifiedRaw == null ? null : toBoolean(verifiedRaw),
+  };
+}
+
 export class ApiChatRepository implements IChatRepository {
   constructor(private readonly http: HttpClient) {}
 
@@ -421,5 +449,43 @@ export class ApiChatRepository implements IChatRepository {
       {},
     );
     return readBooleanPayload(data);
+  }
+
+  async requestSafePayment(chatRoomId: string): Promise<DirectTradeTransaction> {
+    const data = await this.http.post<unknown>(
+      API_ENDPOINTS.CLIENT_CHATS.SAFE_PAYMENT_REQUEST(chatRoomId),
+      {},
+    );
+    const safePayment = mapDirectTradeTransaction(data);
+    if (!safePayment) throw new Error("Safe payment request response is invalid");
+    return safePayment;
+  }
+
+  async getSafePaymentStatus(chatRoomId: string): Promise<SafePaymentStatus> {
+    const data = await this.http.get<unknown>(
+      API_ENDPOINTS.CLIENT_CHATS.SAFE_PAYMENT_STATUS(chatRoomId),
+    );
+    const safePayment = mapSafePaymentStatus(data);
+    if (!safePayment) throw new Error("Safe payment status response is invalid");
+    return safePayment;
+  }
+
+  async submitSafePayment(
+    chatRoomId: string,
+    input: SafePaymentSubmitInput,
+  ): Promise<DirectTradeTransaction> {
+    const data = await this.http.post<unknown>(
+      API_ENDPOINTS.CLIENT_CHATS.SAFE_PAYMENT_SUBMIT(chatRoomId),
+      {
+        payerKbzName: input.payerKbzName,
+        payerKbzPhone: input.payerKbzPhone,
+        paymentAmount: input.paymentAmount,
+        kbzTransactionId: input.kbzTransactionId,
+        idempotencyKey: input.idempotencyKey,
+      },
+    );
+    const safePayment = mapDirectTradeTransaction(data);
+    if (!safePayment) throw new Error("Safe payment submit response is invalid");
+    return safePayment;
   }
 }

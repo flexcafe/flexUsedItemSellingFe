@@ -7,6 +7,8 @@ import type {
   LocationShareInput,
   LocationShareStartResult,
   OpenChatRoomInput,
+  SafePaymentStatus,
+  SafePaymentSubmitInput,
   SendChatMessageInput,
 } from "@/core/domain/types/chat";
 
@@ -35,4 +37,10 @@ export interface IChatService {
     input: LocationShareInput,
   ): Promise<boolean>;
   stopLocationShare(chatRoomId: string): Promise<boolean>;
+  requestSafePayment(chatRoomId: string): Promise<DirectTradeTransaction>;
+  getSafePaymentStatus(chatRoomId: string): Promise<SafePaymentStatus>;
+  submitSafePayment(
+    chatRoomId: string,
+    input: SafePaymentSubmitInput,
+  ): Promise<DirectTradeTransaction>;
 }

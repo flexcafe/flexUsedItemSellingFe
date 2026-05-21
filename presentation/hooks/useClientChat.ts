@@ -5,11 +5,13 @@ import type {
   DirectTradeRequestInput,
   LocationShareInput,
   OpenChatRoomInput,
+  SafePaymentSubmitInput,
   SendChatMessageInput,
 } from "@/core/domain/types/chat";
 import {
   useInfiniteQuery,
   useMutation,
+  useQuery,
   useQueryClient,
   type InfiniteData,
 } from "@tanstack/react-query";
@@ -209,6 +211,68 @@ export function useStopLocationShare(chatRoomId: string | null) {
     onSuccess: () => {
       void qc.invalidateQueries({
         queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId],
+      });
+    },
+  });
+}
+
+export function useSafePaymentStatus(
+  chatRoomId: string | null,
+  enabled = true,
+) {
+  const { chatService } = useServices();
+  return useQuery({
+    queryKey: [...CLIENT_CHAT_QUERY_KEY, "safePayment", chatRoomId],
+    enabled: Boolean(chatRoomId) && enabled,
+    retry: false,
+    queryFn: async () => {
+      try {
+        return await chatService.getSafePaymentStatus(chatRoomId!);
+      } catch (error) {
+        const status = (
+          error as { response?: { status?: number } } | undefined
+        )?.response?.status;
+        if (status === 404) return null;
+        throw error;
+      }
+    },
+  });
+}
+
+export function useRequestSafePayment(chatRoomId: string | null) {
+  const { chatService } = useServices();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => chatService.requestSafePayment(chatRoomId!),
+    onSuccess: () => {
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId],
+      });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "safePayment", chatRoomId],
+      });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"],
+      });
+    },
+  });
+}
+
+export function useSubmitSafePayment(chatRoomId: string | null) {
+  const { chatService } = useServices();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SafePaymentSubmitInput) =>
+      chatService.submitSafePayment(chatRoomId!, input),
+    onSuccess: () => {
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId],
+      });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "safePayment", chatRoomId],
+      });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"],
       });
     },
   });

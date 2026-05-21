@@ -9,6 +9,8 @@ import type {
   LocationShareInput,
   LocationShareStartResult,
   OpenChatRoomInput,
+  SafePaymentStatus,
+  SafePaymentSubmitInput,
   SendChatMessageInput,
 } from "@/core/domain/types/chat";
 
@@ -64,5 +66,20 @@ export class ChatService implements IChatService {
 
   stopLocationShare(chatRoomId: string): Promise<boolean> {
     return this.repo.stopLocationShare(chatRoomId);
+  }
+
+  requestSafePayment(chatRoomId: string): Promise<DirectTradeTransaction> {
+    return this.repo.requestSafePayment(chatRoomId);
+  }
+
+  getSafePaymentStatus(chatRoomId: string): Promise<SafePaymentStatus> {
+    return this.repo.getSafePaymentStatus(chatRoomId);
+  }
+
+  submitSafePayment(
+    chatRoomId: string,
+    input: SafePaymentSubmitInput,
+  ): Promise<DirectTradeTransaction> {
+    return this.repo.submitSafePayment(chatRoomId, input);
   }
 }
