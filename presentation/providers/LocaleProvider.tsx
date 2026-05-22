@@ -132,6 +132,91 @@ const DICT: Dictionary = {
     zh: "隐藏密码",
   },
   signIn: { ko: "로그인", my: "ဝင်မည်", zh: "登录" },
+  forgotPassword: {
+    ko: "비밀번호 찾기",
+    my: "စကားဝှက် မေ့နေပါသလား",
+    zh: "忘记密码",
+  },
+  forgotPasswordTitle: {
+    ko: "비밀번호 재설정",
+    my: "စကားဝှက် ပြန်လည်သတ်မှတ်ရန်",
+    zh: "重置密码",
+  },
+  forgotPasswordSubtitle: {
+    ko: "등록된 전화번호로 6자리 SMS 인증번호를 받습니다.",
+    my: "မှတ်ပုံတင်ထားသော ဖုန်းနံပါတ်သို့ SMS OTP ၆ လုံးပို့ပေးပါမည်။",
+    zh: "将向注册手机号发送 6 位短信验证码。",
+  },
+  forgotPasswordSendOtp: {
+    ko: "인증번호 받기",
+    my: "OTP ပို့မည်",
+    zh: "获取验证码",
+  },
+  forgotPasswordResetStepHint: {
+    ko: "SMS로 받은 6자리 코드와 새 비밀번호를 입력하세요.",
+    my: "SMS မှ ရသော ကုဒ် ၆ လုံးနှင့် စကားဝှက်အသစ်ကို ရိုက်ထည့်ပါ။",
+    zh: "请输入短信 6 位验证码和新密码。",
+  },
+  forgotPasswordResetSubmit: {
+    ko: "비밀번호 변경",
+    my: "စကားဝှက် ပြောင်းမည်",
+    zh: "更新密码",
+  },
+  forgotPasswordOtpSent: {
+    ko: "비밀번호 재설정 인증번호가 전송되었습니다.",
+    my: "စကားဝှက် ပြန်လည်သတ်မှတ်ရန် OTP ပို့ပြီးပါပြီ။",
+    zh: "密码重置验证码已发送。",
+  },
+  forgotPasswordSuccess: {
+    ko: "비밀번호가 변경되었습니다. 새 비밀번호로 로그인하세요.",
+    my: "စကားဝှက် ပြောင်းပြီးပါပြီ။ အသစ်ဖြင့် ဝင်ရောက်ပါ။",
+    zh: "密码已更新，请使用新密码登录。",
+  },
+  forgotPasswordSuccessTitle: {
+    ko: "완료",
+    my: "အောင်မြင်သည်",
+    zh: "成功",
+  },
+  forgotPasswordDeactivated: {
+    ko: "계정이 비활성화되었거나 정지되었습니다.",
+    my: "အကောင့် ပိတ်ထားသည် သို့မဟုတ် ပိတ်ပင်ထားသည်။",
+    zh: "账号已停用或被封禁。",
+  },
+  forgotPasswordAdminAccount: {
+    ko: "관리자 계정은 관리자 대시보드를 이용하세요.",
+    my: "အက်ဒမင်အကောင့် — admin dashboard သုံးပါ။",
+    zh: "管理员账号请使用管理后台。",
+  },
+  forgotPasswordPhoneNotFound: {
+    ko: "등록되지 않은 전화번호입니다.",
+    my: "မှတ်ပုံတင်ထားသော ဖုန်းနံပါတ် မရှိပါ။",
+    zh: "该手机号未注册。",
+  },
+  forgotPasswordRateLimit: {
+    ko: "요청이 너무 많습니다. 잠시 후 다시 시도하세요.",
+    my: "တောင်းဆိုမှု များလွန်းသည်။ ခဏနေ၍ ပြန်ကြိုးစားပါ။",
+    zh: "请求过于频繁，请稍后再试。",
+  },
+  forgotPasswordInvalidOtp: {
+    ko: "인증번호가 올바르지 않거나 만료되었습니다.",
+    my: "OTP မမှန်ကန်ပါ သို့မဟုတ် သက်တမ်းကုန်ပါပြီ။",
+    zh: "验证码无效或已过期。",
+  },
+  forgotPasswordMismatch: {
+    ko: "비밀번호가 일치하지 않거나 인증 요청이 없습니다.",
+    my: "စကားဝှက် မကိုက်ညီပါ သို့မဟုတ် OTP တောင်းဆိုမှု မရှိပါ။",
+    zh: "密码不一致或尚未请求重置验证码。",
+  },
+  newPassword: {
+    ko: "새 비밀번호",
+    my: "စကားဝှက်အသစ်",
+    zh: "新密码",
+  },
+  newPasswordPlaceholder: {
+    ko: "새 비밀번호 입력",
+    my: "စကားဝှက်အသစ် ရိုက်ထည့်ပါ",
+    zh: "输入新密码",
+  },
   phoneMode: { ko: "전화번호", my: "ဖုန်း", zh: "手机号" },
   facebookMode: { ko: "페이스북", my: "ဖေ့စ်ဘွတ်", zh: "Facebook" },
   loginFailedTitle: {
@@ -169,6 +254,16 @@ const DICT: Dictionary = {
     ko: "전화번호를 입력하세요",
     my: "ဖုန်းနံပါတ် လိုအပ်သည်",
     zh: "请输入手机号",
+  },
+  phoneInvalid: {
+    ko: "올바른 전화번호를 입력하세요",
+    my: "မှန်ကန်သော ဖုန်းနံပါတ် ရိုက်ထည့်ပါ",
+    zh: "请输入有效的手机号",
+  },
+  otpInvalid: {
+    ko: "6자리 인증번호를 입력하세요",
+    my: "ကုဒ် ၆ လုံး ရိုက်ထည့်ပါ",
+    zh: "请输入 6 位验证码",
   },
   facebookIdRequired: {
     ko: "Facebook ID를 입력하세요",
@@ -1381,9 +1476,9 @@ const DICT: Dictionary = {
     zh: "通用",
   },
   "noti.sections.generalHint": {
-    ko: "KBZPay, 포인트, 계정 알림",
-    my: "KBZPay၊ အမှတ်များ၊ အကောင့် အပ်ဒိတ်",
-    zh: "KBZPay、积分与账户通知",
+    ko: "KBZPay, 포인트, 제안·신고, 계정 알림",
+    my: "KBZPay၊ အမှတ်များ၊ အကြံပြု/တိုင်ကြား၊ အကောင့်",
+    zh: "KBZPay、积分、建议/举报与账户通知",
   },
   "noti.sections.chat": {
     ko: "채팅·거래",
@@ -1545,6 +1640,143 @@ const DICT: Dictionary = {
     ko: "안전결제가 판매자에게 송금 처리되었습니다. 참조: {{transferRef}}",
     my: "လုံခြုံငွေပေးချေမှုကို ရောင်းသူထံ လွှဲပြောင်းပြီးဟု မှတ်သားပြီးပါပြီ။ ကိုးကား: {{transferRef}}",
     zh: "担保支付已标记为已向卖家转账。参考：{{transferRef}}",
+  },
+
+  "noti.suggestion.events.SUGGESTION_SUBMITTED_CLIENT.title": {
+    ko: "제안 접수됨",
+    my: "အကြံပြုချက် လက်ခံပြီး",
+    zh: "建议已提交",
+  },
+  "noti.suggestion.events.SUGGESTION_SUBMITTED_CLIENT.body": {
+    ko: "제안이 접수되었습니다. 검토 후 포인트가 지급될 수 있습니다.",
+    my: "သင့်အကြံပြုချက်ကို လက်ခံပြီးပါပြီ။ စစ်ဆေးပြီးနောက် ပွိုင့်ရနိုင်ပါသည်။",
+    zh: "您的建议已提交，审核通过后可能获得积分奖励。",
+  },
+  "noti.suggestion.events.SUGGESTION_SUBMITTED_ADMIN.title": {
+    ko: "새 제안",
+    my: "အကြံပြုချက် အသစ်",
+    zh: "新建议",
+  },
+  "noti.suggestion.events.SUGGESTION_SUBMITTED_ADMIN.body": {
+    ko: "{{nickname}} ({{name}}) · {{accountNickname}} · {{phone}}",
+    my: "{{nickname}} ({{name}}) · {{accountNickname}} · {{phone}}",
+    zh: "{{nickname}}（{{name}}）· {{accountNickname}} · {{phone}}",
+  },
+  "noti.suggestion.events.SUGGESTION_REWARDED_CLIENT.title": {
+    ko: "제안 보상",
+    my: "အကြံပြုချက် ဆုလာဘ်",
+    zh: "建议奖励",
+  },
+  "noti.suggestion.events.SUGGESTION_REWARDED_CLIENT.body": {
+    ko: "제안이 채택되어 {{pointsAwarded}}포인트가 지급되었습니다.",
+    my: "အကြံပြုချက်အတွက် {{pointsAwarded}} ပွိုင့် ရရှိပါသည်။",
+    zh: "您的建议已采纳，获得 {{pointsAwarded}} 积分。",
+  },
+  "noti.suggestion.events.SUGGESTION_REWARDED_ADMIN.title": {
+    ko: "제안 보상 처리됨",
+    my: "အကြံပြုချက် ဆုလာဘ် ပေးပြီး",
+    zh: "已发放建议奖励",
+  },
+  "noti.suggestion.events.SUGGESTION_REWARDED_ADMIN.body": {
+    ko: "사용자에게 {{pointsAwarded}}포인트를 지급했습니다.",
+    my: "အသုံးပြုသူထံ {{pointsAwarded}} ပွိုင့် ပေးအပ်ပြီးပါပြီ။",
+    zh: "已向用户发放 {{pointsAwarded}} 积分。",
+  },
+  "noti.suggestion.events.SUGGESTION_DISMISSED_CLIENT.title": {
+    ko: "제안 검토 완료",
+    my: "အကြံပြုချက် စစ်ဆေးပြီး",
+    zh: "建议已处理",
+  },
+  "noti.suggestion.events.SUGGESTION_DISMISSED_CLIENT.body": {
+    ko: "제안이 반영되지 않았습니다. 다른 아이디어도 환영합니다.",
+    my: "ဤအကြံပြုချက်ကို မလက်ခံပါ။ အခြကြံများကို ဆက်လက်ပို့နိုင်ပါသည်။",
+    zh: "该建议暂未采纳，欢迎继续提交其他想法。",
+  },
+  "noti.suggestion.events.SUGGESTION_DISMISSED_CLIENT.bodyNote": {
+    ko: "관리자 메모: {{adminNote}}",
+    my: "Admin မှတ်ချက်: {{adminNote}}",
+    zh: "管理员备注：{{adminNote}}",
+  },
+
+  "noti.fraud.events.FRAUD_REPORT_SUBMITTED_CLIENT.title": {
+    ko: "사기 신고 접수",
+    my: "လိမ်လည်မှု တိုင်ကြားချက် လက်ခံ",
+    zh: "诈骗举报已提交",
+  },
+  "noti.fraud.events.FRAUD_REPORT_SUBMITTED_CLIENT.body": {
+    ko: "신고가 접수되었습니다. 검토 후 알려드리겠습니다.",
+    my: "တိုင်ကြားချက်ကို လက်ခံပြီးပါပြီ။ စစ်ဆေးပြီး အကြောင်းကြားပါမည်။",
+    zh: "您的举报已受理，我们将尽快审核。",
+  },
+  "noti.fraud.events.FRAUD_REPORT_SUBMITTED_ADMIN.title": {
+    ko: "새 사기 신고",
+    my: "လိမ်လည်မှု တိုင်ကြားချက် အသစ်",
+    zh: "新诈骗举报",
+  },
+  "noti.fraud.events.FRAUD_REPORT_SUBMITTED_ADMIN.body": {
+    ko: "{{fraudUserName}} · 코드 {{reportedReferralCode}} · {{fraudType}}",
+    my: "{{fraudUserName}} · ကုဒ် {{reportedReferralCode}} · {{fraudType}}",
+    zh: "{{fraudUserName}} · 邀请码 {{reportedReferralCode}} · {{fraudType}}",
+  },
+  "noti.fraud.events.FRAUD_REPORT_CONFIRMED_CLIENT.title": {
+    ko: "신고 확인됨",
+    my: "တိုင်ကြားချက် အတည်ပြုပြီး",
+    zh: "举报已确认",
+  },
+  "noti.fraud.events.FRAUD_REPORT_CONFIRMED_CLIENT.body": {
+    ko: "신고가 확인되었습니다. 조치가 진행 중입니다.",
+    my: "တိုင်ကြားချက်ကို အတည်ပြုပြီးပါပြီ။ ဆက်လက်လုပ်ဆောင်နေပါသည်။",
+    zh: "您的举报已确认，我们正在处理。",
+  },
+  "noti.fraud.events.FRAUD_REPORT_CONFIRMED_CLIENT.bodyBlocked": {
+    ko: "신고가 확인되었고 해당 사용자가 차단되었습니다.",
+    my: "တိုင်ကြားချက်အတည်ပြုပြီး အသုံးပြုသူကို ပိတ်ပင်ထားပါသည်။",
+    zh: "举报已确认，相关用户已被封禁。",
+  },
+  "noti.fraud.events.FRAUD_REPORT_DISMISSED_CLIENT.title": {
+    ko: "신고 기각",
+    my: "တိုင်ကြားချက် ပယ်ချခြင်း",
+    zh: "举报未通过",
+  },
+  "noti.fraud.events.FRAUD_REPORT_DISMISSED_CLIENT.body": {
+    ko: "신고 내용을 확인했으나 조치 대상이 아닙니다.",
+    my: "တိုင်ကြားချက်ကို စစ်ဆေးပြီးသော်လည်း လုပ်ဆောင်ရန် မလိုအပ်ပါ။",
+    zh: "经审核，该举报暂不成立。",
+  },
+  "noti.fraud.events.FRAUD_REPORT_ACTION_REPORTED_USER.title": {
+    ko: "사기 신고 관련 조치",
+    my: "လိမ်လည်မှု တိုင်ကြားချက် ဆိုင်ရာ",
+    zh: "欺诈举报相关通知",
+  },
+  "noti.fraud.events.FRAUD_REPORT_ACTION_REPORTED_USER.body": {
+    ko: "귀하에 대한 신고가 확인되어 계정이 검토 중입니다.",
+    my: "သင့်အပေါ် တိုင်ကြားချက်အတည်ပြုပြီး အကောင့်ကို စစ်ဆေးနေပါသည်။",
+    zh: "针对您的举报已确认，账号正在审核中。",
+  },
+  "noti.fraud.events.ACCOUNT_BANNED_CLIENT.title": {
+    ko: "계정 정지",
+    my: "အကောင့် ပိတ်ပင်",
+    zh: "账号已封禁",
+  },
+  "noti.fraud.events.ACCOUNT_BANNED_CLIENT.body": {
+    ko: "계정이 정지되었습니다.",
+    my: "သင့်အကောင့်ကို ပိတ်ပင်ထားပါသည်။",
+    zh: "您的账号已被封禁。",
+  },
+  "noti.fraud.events.ACCOUNT_BANNED_CLIENT.bodyReason": {
+    ko: "사유: {{adminNote}}",
+    my: "အကြောင်းရင်း: {{adminNote}}",
+    zh: "原因：{{adminNote}}",
+  },
+  "noti.fraud.events.ACCOUNT_UNBANNED_CLIENT.title": {
+    ko: "계정 정지 해제",
+    my: "အကောင့် ပိတ်ပင်မှု ဖြုတ်ပြီး",
+    zh: "账号已解封",
+  },
+  "noti.fraud.events.ACCOUNT_UNBANNED_CLIENT.body": {
+    ko: "계정 정지가 해제되었습니다. 다시 이용할 수 있습니다.",
+    my: "အကောင့် ပိတ်ပင်မှုကို ဖြုတ်ပြီးပါပြီ။ ပြန်လည်အသုံးပြုနိုင်ပါသည်။",
+    zh: "账号已解封，您可以继续使用。",
   },
 
   homeWelcome: { ko: "환영합니다", my: "ကြိုဆိုပါသည်", zh: "欢迎" },

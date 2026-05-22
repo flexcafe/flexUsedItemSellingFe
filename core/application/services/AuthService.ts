@@ -5,9 +5,11 @@ import type {
 } from "@/core/domain/repositories/IAuthRepository";
 import type { IAuthService } from "@/core/domain/services/IAuthService";
 import type {
+  ForgotPasswordInput,
   LoginCredentials,
   RegisterData,
   RegisterInput,
+  ResetPasswordInput,
 } from "@/core/domain/types/auth";
 import type { VerificationActionResult } from "@/core/domain/types/verification";
 
@@ -68,5 +70,15 @@ export class AuthService implements IAuthService {
 
   submitKbzPayTransaction(kbzTransactionId: string): Promise<void> {
     return this.repo.submitKbzPayTransaction(kbzTransactionId);
+  }
+
+  requestPasswordResetOtp(
+    input: ForgotPasswordInput,
+  ): Promise<VerificationActionResult> {
+    return this.repo.requestPasswordResetOtp(input);
+  }
+
+  resetPassword(input: ResetPasswordInput): Promise<VerificationActionResult> {
+    return this.repo.resetPassword(input);
   }
 }

@@ -1,8 +1,10 @@
 import type { AuthUser } from "@/core/domain/entities/User";
 import type {
+  ForgotPasswordInput,
   LoginCredentials,
   RegisterData,
   RegisterInput,
+  ResetPasswordInput,
 } from "@/core/domain/types/auth";
 import type { VerificationActionResult } from "@/core/domain/types/verification";
 import { useQueryClient } from "@tanstack/react-query";
@@ -36,6 +38,10 @@ interface AuthContextValue extends AuthState {
   verifyEmail: (email: string, token: string) => Promise<void>;
   requestKbzPayVerification: (message?: string) => Promise<void>;
   submitKbzPayTransaction: (kbzTransactionId: string) => Promise<void>;
+  requestPasswordResetOtp: (
+    input: ForgotPasswordInput,
+  ) => Promise<VerificationActionResult>;
+  resetPassword: (input: ResetPasswordInput) => Promise<VerificationActionResult>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -154,6 +160,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [authService],
   );
 
+  const requestPasswordResetOtp = useCallback(
+    async (input: ForgotPasswordInput) => {
+      return authService.requestPasswordResetOtp(input);
+    },
+    [authService],
+  );
+
+  const resetPassword = useCallback(
+    async (input: ResetPasswordInput) => {
+      return authService.resetPassword(input);
+    },
+    [authService],
+  );
+
   const value = useMemo<AuthContextValue>(
     () => ({
       ...state,
@@ -167,6 +187,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyEmail,
       requestKbzPayVerification,
       submitKbzPayTransaction,
+      requestPasswordResetOtp,
+      resetPassword,
     }),
     [
       state,
@@ -180,6 +202,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyEmail,
       requestKbzPayVerification,
       submitKbzPayTransaction,
+      requestPasswordResetOtp,
+      resetPassword,
     ],
   );
 

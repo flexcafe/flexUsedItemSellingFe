@@ -41,3 +41,14 @@ export interface AuthTokens {
   accessToken: string;
   refreshToken?: string;
 }
+
+export interface ForgotPasswordInput {
+  phone: string;
+}
+
+export interface ResetPasswordInput {
+  phone: string;
+  code: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}

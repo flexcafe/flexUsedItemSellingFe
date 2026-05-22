@@ -13,9 +13,11 @@ import type {
   UnauthorizedHandler,
 } from "@/core/domain/repositories/IAuthRepository";
 import type {
+  ForgotPasswordInput,
   LoginCredentials,
   RegisterData,
   RegisterInput,
+  ResetPasswordInput,
 } from "@/core/domain/types/auth";
 import type { VerificationActionResult } from "@/core/domain/types/verification";
 import type { HttpClient } from "../api/HttpClient";
@@ -108,5 +110,38 @@ export class ApiAuthRepository implements IAuthRepository {
     await this.http.post(API_ENDPOINTS.AUTH.KBZPAY_SUBMIT_TRANSACTION, {
       kbzTransactionId: kbzTransactionId.trim(),
     });
+  }
+
+  private mapVerificationResult(
+    res: VerificationActionResultDto | null | undefined,
+  ): VerificationActionResult {
+    const action =
+      typeof res?.action === "string" ? res.action : "PHONE_VERIFIED";
+    return { action: action as VerificationActionResult["action"] };
+  }
+
+  async requestPasswordResetOtp(
+    input: ForgotPasswordInput,
+  ): Promise<VerificationActionResult> {
+    const res = await this.http.post<VerificationActionResultDto>(
+      API_ENDPOINTS.AUTH.FORGOT_PASSWORD,
+      { phone: input.phone.trim() },
+    );
+    return this.mapVerificationResult(res);
+  }
+
+  async resetPassword(
+    input: ResetPasswordInput,
+  ): Promise<VerificationActionResult> {
+    const res = await this.http.post<VerificationActionResultDto>(
+      API_ENDPOINTS.AUTH.RESET_PASSWORD,
+      {
+        phone: input.phone.trim(),
+        code: input.code.trim(),
+        newPassword: input.newPassword,
+        confirmNewPassword: input.confirmNewPassword,
+      },
+    );
+    return this.mapVerificationResult(res);
   }
 }

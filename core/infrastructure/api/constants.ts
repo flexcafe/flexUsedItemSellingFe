@@ -19,6 +19,8 @@ export const API_ENDPOINTS = {
     EMAIL_VERIFY: "/v1/client/auth/email/verify",
     KBZPAY_REQUEST: "/v1/client/auth/kbzpay/request-verification",
     KBZPAY_SUBMIT_TRANSACTION: "/v1/client/auth/kbzpay/submit-transaction",
+    FORGOT_PASSWORD: "/v1/client/auth/forgot-password",
+    RESET_PASSWORD: "/v1/client/auth/reset-password",
   },
   PUSHER: {
     AUTH: "/v1/client/pusher/auth",

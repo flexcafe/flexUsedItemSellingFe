@@ -49,6 +49,27 @@ function appendNote(body: string, note: string, noteKey: string, tf: Tf): string
   return `${body}\n${tf(noteKey, { adminNote: note })}`;
 }
 
+function toBool(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  if (value === 1 || value === "1" || value === "true") return true;
+  return false;
+}
+
+function localizeFraudTypeLabel(fraudType: string, tf: Tf): string {
+  switch (fraudType) {
+    case "FAKE_PRODUCT":
+      return tf("homeFraudTypeFakeProduct");
+    case "FAKE_PAYMENT":
+      return tf("homeFraudTypeFakePayment");
+    case "HARASSMENT":
+      return tf("homeFraudTypeHarassment");
+    case "OTHER":
+      return tf("homeFraudTypeOther");
+    default:
+      return fraudType;
+  }
+}
+
 function localizeChatNotification(
   eventKey: string,
   md: Record<string, unknown>,
@@ -315,6 +336,112 @@ export function localizeNotification(
       return {
         title: tf("noti.facebook.rewarded.title"),
         body: tf("noti.facebook.rewarded.body"),
+      };
+
+    case "SUGGESTION_SUBMITTED_CLIENT":
+      return {
+        title: tf("noti.suggestion.events.SUGGESTION_SUBMITTED_CLIENT.title"),
+        body: tf("noti.suggestion.events.SUGGESTION_SUBMITTED_CLIENT.body", {
+          suggestionId: toDisplay(md.suggestionId),
+        }),
+      };
+    case "SUGGESTION_SUBMITTED_ADMIN":
+      return {
+        title: tf("noti.suggestion.events.SUGGESTION_SUBMITTED_ADMIN.title"),
+        body: tf("noti.suggestion.events.SUGGESTION_SUBMITTED_ADMIN.body", {
+          suggestionId: toDisplay(md.suggestionId),
+          nickname: toSafeString(md.nickname),
+          name: toSafeString(md.name),
+          accountNickname: toSafeString(md.accountNickname),
+          phone: toSafeString(md.phone),
+        }),
+      };
+    case "SUGGESTION_REWARDED_CLIENT":
+      return {
+        title: tf("noti.suggestion.events.SUGGESTION_REWARDED_CLIENT.title"),
+        body: tf("noti.suggestion.events.SUGGESTION_REWARDED_CLIENT.body", {
+          pointsAwarded: toDisplay(md.pointsAwarded),
+        }),
+      };
+    case "SUGGESTION_REWARDED_ADMIN":
+      return {
+        title: tf("noti.suggestion.events.SUGGESTION_REWARDED_ADMIN.title"),
+        body: tf("noti.suggestion.events.SUGGESTION_REWARDED_ADMIN.body", {
+          pointsAwarded: toDisplay(md.pointsAwarded),
+          targetUserId: toDisplay(md.targetUserId),
+        }),
+      };
+    case "SUGGESTION_DISMISSED_CLIENT": {
+      const adminNote = toSafeString(md.adminNote);
+      const body = tf("noti.suggestion.events.SUGGESTION_DISMISSED_CLIENT.body");
+      return {
+        title: tf("noti.suggestion.events.SUGGESTION_DISMISSED_CLIENT.title"),
+        body: appendNote(
+          body,
+          adminNote,
+          "noti.suggestion.events.SUGGESTION_DISMISSED_CLIENT.bodyNote",
+          tf,
+        ),
+      };
+    }
+
+    case "FRAUD_REPORT_SUBMITTED_CLIENT":
+      return {
+        title: tf("noti.fraud.events.FRAUD_REPORT_SUBMITTED_CLIENT.title"),
+        body: tf("noti.fraud.events.FRAUD_REPORT_SUBMITTED_CLIENT.body", {
+          reportId: toDisplay(md.reportId),
+        }),
+      };
+    case "FRAUD_REPORT_SUBMITTED_ADMIN":
+      return {
+        title: tf("noti.fraud.events.FRAUD_REPORT_SUBMITTED_ADMIN.title"),
+        body: tf("noti.fraud.events.FRAUD_REPORT_SUBMITTED_ADMIN.body", {
+          reportId: toDisplay(md.reportId),
+          fraudUserName: toSafeString(md.fraudUserName),
+          reportedReferralCode: toSafeString(md.reportedReferralCode),
+          fraudType: localizeFraudTypeLabel(toSafeString(md.fraudType), tf),
+        }),
+      };
+    case "FRAUD_REPORT_CONFIRMED_CLIENT": {
+      const blocked = toBool(md.blocked);
+      return {
+        title: tf("noti.fraud.events.FRAUD_REPORT_CONFIRMED_CLIENT.title"),
+        body: blocked
+          ? tf("noti.fraud.events.FRAUD_REPORT_CONFIRMED_CLIENT.bodyBlocked")
+          : tf("noti.fraud.events.FRAUD_REPORT_CONFIRMED_CLIENT.body"),
+      };
+    }
+    case "FRAUD_REPORT_DISMISSED_CLIENT":
+      return {
+        title: tf("noti.fraud.events.FRAUD_REPORT_DISMISSED_CLIENT.title"),
+        body: tf("noti.fraud.events.FRAUD_REPORT_DISMISSED_CLIENT.body", {
+          reportId: toDisplay(md.reportId),
+        }),
+      };
+    case "FRAUD_REPORT_ACTION_REPORTED_USER":
+      return {
+        title: tf("noti.fraud.events.FRAUD_REPORT_ACTION_REPORTED_USER.title"),
+        body: tf("noti.fraud.events.FRAUD_REPORT_ACTION_REPORTED_USER.body", {
+          reportId: toDisplay(md.reportId),
+        }),
+      };
+    case "ACCOUNT_BANNED_CLIENT": {
+      const banReason = toSafeString(md.banReason);
+      const body = tf("noti.fraud.events.ACCOUNT_BANNED_CLIENT.body");
+      return {
+        title: tf("noti.fraud.events.ACCOUNT_BANNED_CLIENT.title"),
+        body: appendNote(
+          body,
+          banReason,
+          "noti.fraud.events.ACCOUNT_BANNED_CLIENT.bodyReason",
+          tf,
+        ),
+      };
+    }
+    case "ACCOUNT_UNBANNED_CLIENT":
+      return {
+        title: tf("noti.fraud.events.ACCOUNT_UNBANNED_CLIENT.title"),
+        body: tf("noti.fraud.events.ACCOUNT_UNBANNED_CLIENT.body"),
       };
 
     default:

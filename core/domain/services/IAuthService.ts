@@ -1,9 +1,11 @@
 import type { AuthUser } from "@/core/domain/entities/User";
 import type { UnauthorizedHandler } from "@/core/domain/repositories/IAuthRepository";
 import type {
+  ForgotPasswordInput,
   LoginCredentials,
   RegisterData,
   RegisterInput,
+  ResetPasswordInput,
 } from "@/core/domain/types/auth";
 import type { VerificationActionResult } from "@/core/domain/types/verification";
 
@@ -25,4 +27,7 @@ export interface IAuthService {
 
   requestKbzPayVerification(message?: string): Promise<void>;
   submitKbzPayTransaction(kbzTransactionId: string): Promise<void>;
+
+  requestPasswordResetOtp(input: ForgotPasswordInput): Promise<VerificationActionResult>;
+  resetPassword(input: ResetPasswordInput): Promise<VerificationActionResult>;
 }

@@ -193,6 +193,15 @@ export function LoginScreen() {
               {errors.password && (
                 <ThemedText style={styles.error}>{errors.password}</ThemedText>
               )}
+              <Pressable
+                disabled={isSubmitting}
+                onPress={() => router.push("/(auth)/forgot-password" as Href)}
+                style={styles.forgotRow}
+              >
+                <ThemedText style={[styles.forgotLink, { color: colors.tint }]}>
+                  {t("forgotPassword")}
+                </ThemedText>
+              </Pressable>
             </AuthStaggerItem>
 
             <AuthStaggerItem index={2} reduceMotion={reduceMotion}>
@@ -302,6 +311,14 @@ const styles = StyleSheet.create({
   error: {
     color: "#e74c3c",
     fontSize: 12,
+  },
+  forgotRow: {
+    alignSelf: "flex-end",
+    marginTop: 4,
+  },
+  forgotLink: {
+    fontSize: 13,
+    fontWeight: "700",
   },
   button: {
     borderRadius: 10,
