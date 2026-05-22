@@ -7,6 +7,7 @@ export interface ProductSellerSummary {
   currentRank?: string | null;
   averageStars?: number | null;
   totalReviews?: number | null;
+  referralCode?: string | null;
 }
 
 export interface ProductPreferredLocation {

@@ -2,11 +2,12 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { uiCardShadow, uiSectionEnter } from "@/presentation/lib/uiAnimations";
 import {
   usePublicUserProfile,
   useSellerReviews,
 } from "@/presentation/hooks/useClientProducts";
+import { ReferralCodeBlock } from "@/presentation/components/ReferralCodeBlock";
+import { uiCardShadow, uiSectionEnter } from "@/presentation/lib/uiAnimations";
 import {
   useLocale,
   userRankLabelKey,
@@ -16,12 +17,7 @@ import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { memo, useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   Extrapolation,
   FadeIn,
@@ -85,7 +81,9 @@ const ReviewBar = memo(function ReviewBar({
     <View style={styles.breakdownRow}>
       <ThemedText style={styles.breakdownStars}>{stars}★</ThemedText>
       <View style={styles.breakdownTrack}>
-        <Animated.View style={[styles.breakdownFill, { backgroundColor: tint }, fillStyle]} />
+        <Animated.View
+          style={[styles.breakdownFill, { backgroundColor: tint }, fillStyle]}
+        />
       </View>
       <ThemedText style={styles.breakdownCount}>{count}</ThemedText>
     </View>
@@ -110,7 +108,10 @@ export function PublicSellerProfileScreen({ userId }: Props) {
   const borderColor = colors.icon + "22";
 
   const sortedBreakdown = useMemo(
-    () => [...(reviewsQuery.data?.starBreakdown ?? [])].sort((a, b) => b.stars - a.stars),
+    () =>
+      [...(reviewsQuery.data?.starBreakdown ?? [])].sort(
+        (a, b) => b.stars - a.stars,
+      ),
     [reviewsQuery.data?.starBreakdown],
   );
 
@@ -122,7 +123,12 @@ export function PublicSellerProfileScreen({ userId }: Props) {
   const backAnimStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        scale: interpolate(backPressed.value, [0, 1], [1, 0.9], Extrapolation.CLAMP),
+        scale: interpolate(
+          backPressed.value,
+          [0, 1],
+          [1, 0.9],
+          Extrapolation.CLAMP,
+        ),
       },
     ],
   }));
@@ -139,20 +145,30 @@ export function PublicSellerProfileScreen({ userId }: Props) {
             }}
             onPressOut={() => {
               if (reduceMotion) return;
-              backPressed.value = withSpring(0, { damping: 14, stiffness: 320 });
+              backPressed.value = withSpring(0, {
+                damping: 14,
+                stiffness: 320,
+              });
             }}
             style={[styles.backButton, backAnimStyle]}
           >
             <MaterialIcons name="arrow-back" size={20} color="#FFF" />
           </AnimatedPressable>
-          <ThemedText style={styles.topTitle}>{t("publicProfileTitle")}</ThemedText>
+          <ThemedText style={styles.topTitle}>
+            {t("publicProfileTitle")}
+          </ThemedText>
           <View style={styles.backButton} />
         </View>
 
         {profileQuery.isLoading ? (
-          <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(280)} style={styles.centeredFull}>
+          <Animated.View
+            entering={reduceMotion ? undefined : FadeIn.duration(280)}
+            style={styles.centeredFull}
+          >
             <ActivityIndicator color={colors.tint} size="large" />
-            <ThemedText style={styles.loadingText}>{t("productsDetailLoading")}</ThemedText>
+            <ThemedText style={styles.loadingText}>
+              {t("productsDetailLoading")}
+            </ThemedText>
           </Animated.View>
         ) : !profile ? (
           <View style={styles.centeredFull}>
@@ -182,18 +198,30 @@ export function PublicSellerProfileScreen({ userId }: Props) {
                 { backgroundColor: surface, borderColor },
               ]}
             >
-              <View style={[styles.avatarRing, { borderColor: colors.tint + "50" }]}>
+              <View
+                style={[styles.avatarRing, { borderColor: colors.tint + "50" }]}
+              >
                 <Image
                   source={profile.avatar ? { uri: profile.avatar } : undefined}
-                  style={[styles.avatar, { backgroundColor: colors.icon + "1f" }]}
+                  style={[
+                    styles.avatar,
+                    { backgroundColor: colors.icon + "1f" },
+                  ]}
                 />
               </View>
               <View style={styles.sellerCopy}>
                 <ThemedText type="defaultSemiBold" style={styles.sellerName}>
                   {profile.nickname}
                 </ThemedText>
-                <View style={[styles.rankPill, { backgroundColor: colors.tint + "18" }]}>
-                  <ThemedText style={[styles.rankPillText, { color: colors.tint }]}>
+                <View
+                  style={[
+                    styles.rankPill,
+                    { backgroundColor: colors.tint + "18" },
+                  ]}
+                >
+                  <ThemedText
+                    style={[styles.rankPillText, { color: colors.tint }]}
+                  >
                     {t(userRankLabelKey(profile.currentRank))}
                   </ThemedText>
                 </View>
@@ -204,10 +232,28 @@ export function PublicSellerProfileScreen({ userId }: Props) {
                   })}
                 </ThemedText>
                 <ThemedText style={styles.sellerSub}>
-                  {tf("publicProfileRegion", { region: profile.region?.trim() || "—" })}
+                  {tf("publicProfileRegion", {
+                    region: profile.region?.trim() || "—",
+                  })}
                 </ThemedText>
               </View>
             </Animated.View>
+
+            {profile.referralCode?.trim() ? (
+              <Animated.View
+                entering={staggerEnter(SECTION_STAGGER_MS * 0.75, reduceMotion)}
+                style={{ marginBottom: 12 }}
+              >
+                <ReferralCodeBlock
+                  code={profile.referralCode.trim()}
+                  title={t("publicProfileReferralTitle")}
+                  hint={t("publicProfileReferralHint")}
+                  tint={colors.tint}
+                  borderColor={colors.icon + "33"}
+                  surfaceColor={surface}
+                />
+              </Animated.View>
+            ) : null}
 
             <Animated.View
               entering={staggerEnter(SECTION_STAGGER_MS, reduceMotion)}
@@ -226,23 +272,48 @@ export function PublicSellerProfileScreen({ userId }: Props) {
                 { backgroundColor: surface, borderColor },
               ]}
             >
-              <View style={[styles.statItem, { backgroundColor: colors.tint + "0C" }]}>
+              <View
+                style={[
+                  styles.statItem,
+                  { backgroundColor: colors.tint + "0C" },
+                ]}
+              >
                 <MaterialIcons name="store" size={18} color={colors.tint} />
-                <ThemedText style={styles.statLabel}>{t("rewardCompletedSales")}</ThemedText>
+                <ThemedText style={styles.statLabel}>
+                  {t("rewardCompletedSales")}
+                </ThemedText>
                 <ThemedText style={[styles.statValue, { color: colors.tint }]}>
                   {profile.completedSales}
                 </ThemedText>
               </View>
-              <View style={[styles.statItem, { backgroundColor: colors.tint + "0C" }]}>
-                <MaterialIcons name="shopping-cart" size={18} color={colors.tint} />
-                <ThemedText style={styles.statLabel}>{t("rewardCompletedPurchases")}</ThemedText>
+              <View
+                style={[
+                  styles.statItem,
+                  { backgroundColor: colors.tint + "0C" },
+                ]}
+              >
+                <MaterialIcons
+                  name="shopping-cart"
+                  size={18}
+                  color={colors.tint}
+                />
+                <ThemedText style={styles.statLabel}>
+                  {t("rewardCompletedPurchases")}
+                </ThemedText>
                 <ThemedText style={[styles.statValue, { color: colors.tint }]}>
                   {profile.completedPurchases}
                 </ThemedText>
               </View>
-              <View style={[styles.statItem, { backgroundColor: colors.tint + "0C" }]}>
+              <View
+                style={[
+                  styles.statItem,
+                  { backgroundColor: colors.tint + "0C" },
+                ]}
+              >
                 <MaterialIcons name="event" size={18} color={colors.tint} />
-                <ThemedText style={styles.statLabel}>{t("publicProfileMemberSince")}</ThemedText>
+                <ThemedText style={styles.statLabel}>
+                  {t("publicProfileMemberSince")}
+                </ThemedText>
                 <ThemedText style={styles.statValue}>
                   {profile.memberSince
                     ? formatListingDate(profile.memberSince, locale)
@@ -324,7 +395,9 @@ export function PublicSellerProfileScreen({ userId }: Props) {
                       {item.comment?.trim() || t("publicProfileNoComment")}
                     </ThemedText>
                     <ThemedText style={styles.reviewDate}>
-                      {item.createdAt ? formatListingDate(item.createdAt, locale) : "—"}
+                      {item.createdAt
+                        ? formatListingDate(item.createdAt, locale)
+                        : "—"}
                     </ThemedText>
                   </Animated.View>
                 ))}
@@ -360,7 +433,9 @@ export function PublicSellerProfileScreen({ userId }: Props) {
                 <ThemedText>{t("publicProfilePrev")}</ThemedText>
               </Pressable>
               <ThemedText style={styles.pageText}>
-                {tf("publicProfilePage", { page: reviewsQuery.data?.page ?? page })}
+                {tf("publicProfilePage", {
+                  page: reviewsQuery.data?.page ?? page,
+                })}
               </ThemedText>
               <Pressable
                 onPress={() => {
@@ -465,7 +540,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     gap: 5,
   },
-  statLabel: { fontSize: 10, opacity: 0.65, textAlign: "center", lineHeight: 13 },
+  statLabel: {
+    fontSize: 10,
+    opacity: 0.65,
+    textAlign: "center",
+    lineHeight: 13,
+  },
   statValue: { fontSize: 13, fontWeight: "800", textAlign: "center" },
   breakdownCard: { padding: 14, borderRadius: 18, borderWidth: 1, gap: 10 },
   sectionTitle: { fontSize: 15, marginBottom: 4 },

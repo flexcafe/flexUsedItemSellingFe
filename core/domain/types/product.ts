@@ -116,6 +116,8 @@ export interface PublicUserProfile {
   userId: string;
   nickname: string;
   avatar?: string | null;
+  /** Invite code for registration — not userId. */
+  referralCode?: string | null;
   region?: string | null;
   currentRank: "NEWBIE" | "BRONZE" | "SILVER" | "GOLD" | "VIP";
   averageStars: number;

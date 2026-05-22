@@ -69,8 +69,7 @@ function pickDisplayName(user: AuthProfileDto | undefined): string | null {
   if (!user) return null;
   const name = typeof user.name === "string" ? user.name.trim() : "";
   if (name) return name;
-  const nick =
-    typeof user.nickname === "string" ? user.nickname.trim() : "";
+  const nick = typeof user.nickname === "string" ? user.nickname.trim() : "";
   return nick || null;
 }
 
@@ -78,7 +77,9 @@ function pickDisplayName(user: AuthProfileDto | undefined): string | null {
  * Resolves avatar URL from root `avatarUrl`, nested `profile.avatar` (string or object),
  * and common backend field names.
  */
-export function resolveAuthAvatarUrl(user: AuthProfileDto | undefined): string | null {
+export function resolveAuthAvatarUrl(
+  user: AuthProfileDto | undefined,
+): string | null {
   if (!user) return null;
   const combined = extractAvatarFromUserPayload(user);
   if (!combined) return null;
@@ -138,6 +139,10 @@ export function toAuthUser(
         : typeof user?.kbzPay?.requestedAt === "string"
           ? user.kbzPay.requestedAt
           : null,
+    referralCode:
+      typeof user?.referralCode === "string" && user.referralCode.trim()
+        ? user.referralCode.trim()
+        : null,
     accessToken: token,
   };
 }

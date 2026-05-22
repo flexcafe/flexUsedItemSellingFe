@@ -1,11 +1,11 @@
 import * as Location from "expo-location";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   isValidPhoneNumber,
   parsePhoneNumberFromString,
   type CountryCode,
 } from "libphonenumber-js";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -35,6 +35,11 @@ import type {
 } from "@/core/domain/types/auth";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/presentation/providers/AuthProvider";
+import {
+  isUuidLike,
+  mapRegisterReferralError,
+  normalizeReferralCodeInput,
+} from "@/presentation/lib/referral";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 
 import {
@@ -125,6 +130,7 @@ function Segmented<T extends string>({
 
 export function RegisterScreen() {
   const router = useRouter();
+  const { ref: refFromLink } = useLocalSearchParams<{ ref?: string | string[] }>();
   const { register } = useAuth();
   const { locale, setLocale, t } = useLocale();
   const colorScheme = useColorScheme();
@@ -157,6 +163,12 @@ export function RegisterScreen() {
   const [regionAuto, setRegionAuto] = useState(true);
   const [referralId, setReferralId] = useState("");
 
+  useEffect(() => {
+    const raw = Array.isArray(refFromLink) ? refFromLink[0] : refFromLink;
+    const code = normalizeReferralCodeInput(typeof raw === "string" ? raw : "");
+    if (code && !isUuidLike(code)) setReferralId(code);
+  }, [refFromLink]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -186,6 +198,10 @@ export function RegisterScreen() {
       referralId: z.string().trim().optional(),
     });
     return base
+      .refine(
+        (v) => !v.referralId?.trim() || !isUuidLike(v.referralId),
+        { path: ["referralId"], message: t("referralCodeInvalid") },
+      )
       .refine((v) => v.password === v.confirmPassword, {
         path: ["confirmPassword"],
         message: t("passwordMismatch"),
@@ -377,7 +393,7 @@ export function RegisterScreen() {
       region: parsed.data.region,
       gpsLatitude: locationCoords.latitude,
       gpsLongitude: locationCoords.longitude,
-      referralId: parsed.data.referralId,
+      referralId: normalizeReferralCodeInput(parsed.data.referralId ?? ""),
     };
 
     setIsSubmitting(true);
@@ -401,10 +417,18 @@ export function RegisterScreen() {
       if (status === 409) {
         Alert.alert(t("registerFailedTitle"), t("registerConflictBody"));
       } else if (status === 400) {
-        Alert.alert(
-          t("invalidRequestTitle"),
-          serverMessage ?? t("registerFailedBody"),
+        const mapped = mapRegisterReferralError(
+          serverMessage,
+          t("referralCodeInvalid"),
+          t("registerFailedBody"),
         );
+        if (
+          serverMessage &&
+          mapped === t("referralCodeInvalid")
+        ) {
+          setErrors({ referralId: mapped });
+        }
+        Alert.alert(t("invalidRequestTitle"), mapped);
       } else {
         // Backend can create user, then fail on SMS/email sending. If that happens,
         // send user to verification where they can resend OTP/token.
@@ -465,11 +489,19 @@ export function RegisterScreen() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          <AuthAnimatedSection delayMs={0} reduceMotion={reduceMotion} style={styles.brandArea}>
+          <AuthAnimatedSection
+            delayMs={0}
+            reduceMotion={reduceMotion}
+            style={styles.brandArea}
+          >
             <AuthLogo variant="compact" />
           </AuthAnimatedSection>
 
-          <AuthStaggerItem index={0} reduceMotion={reduceMotion} style={styles.headerRow}>
+          <AuthStaggerItem
+            index={0}
+            reduceMotion={reduceMotion}
+            style={styles.headerRow}
+          >
             <Pressable
               onPress={() => router.back()}
               hitSlop={12}
@@ -484,7 +516,11 @@ export function RegisterScreen() {
           </AuthStaggerItem>
 
           {/* Nickname */}
-          <AuthStaggerItem index={1} reduceMotion={reduceMotion} style={styles.field}>
+          <AuthStaggerItem
+            index={1}
+            reduceMotion={reduceMotion}
+            style={styles.field}
+          >
             <ThemedText style={styles.label}>{t("nickname")}</ThemedText>
             <TextInput
               style={inputStyle(!!errors.nickname)}
@@ -502,7 +538,11 @@ export function RegisterScreen() {
           </AuthStaggerItem>
 
           {/* Password */}
-          <AuthStaggerItem index={2} reduceMotion={reduceMotion} style={styles.field}>
+          <AuthStaggerItem
+            index={2}
+            reduceMotion={reduceMotion}
+            style={styles.field}
+          >
             <ThemedText style={styles.label}>{t("password")}</ThemedText>
             <PasswordInput
               value={password}
@@ -518,7 +558,11 @@ export function RegisterScreen() {
           </AuthStaggerItem>
 
           {/* Confirm Password */}
-          <AuthStaggerItem index={3} reduceMotion={reduceMotion} style={styles.field}>
+          <AuthStaggerItem
+            index={3}
+            reduceMotion={reduceMotion}
+            style={styles.field}
+          >
             <ThemedText style={styles.label}>{t("confirmPassword")}</ThemedText>
             <PasswordInput
               value={confirmPassword}
@@ -535,7 +579,11 @@ export function RegisterScreen() {
           </AuthStaggerItem>
 
           {/* Phone */}
-          <AuthStaggerItem index={4} reduceMotion={reduceMotion} style={styles.field}>
+          <AuthStaggerItem
+            index={4}
+            reduceMotion={reduceMotion}
+            style={styles.field}
+          >
             <ThemedText style={styles.label}>{t("phoneNumber")}</ThemedText>
             <PhoneNumberInput
               value={phone}
@@ -552,7 +600,11 @@ export function RegisterScreen() {
           </AuthStaggerItem>
 
           {/* Email */}
-          <AuthStaggerItem index={5} reduceMotion={reduceMotion} style={styles.field}>
+          <AuthStaggerItem
+            index={5}
+            reduceMotion={reduceMotion}
+            style={styles.field}
+          >
             <ThemedText style={styles.label}>{t("emailAddress")}</ThemedText>
             <TextInput
               style={inputStyle(!!errors.email)}
@@ -575,62 +627,68 @@ export function RegisterScreen() {
 
           {/* K-pay section */}
           <AuthStaggerItem index={6} reduceMotion={reduceMotion}>
-          <View style={[styles.section, { borderColor: colors.icon }]}>
-            <ThemedText style={styles.sectionTitle}>
-              {t("kPayRegistration")}
-            </ThemedText>
-
-            <View style={styles.field}>
-              <ThemedText style={styles.label}>{t("kPayName")}</ThemedText>
-              <TextInput
-                style={inputStyle(!!errors.kbzPayName)}
-                value={kbzPayName}
-                onChangeText={setKbzPayName}
-                placeholder={t("kPayNamePlaceholder")}
-                placeholderTextColor={colors.icon}
-                autoCapitalize="words"
-                editable={!isSubmitting}
-              />
-              {errors.kbzPayName ? (
-                <ThemedText style={styles.error}>
-                  {errors.kbzPayName}
-                </ThemedText>
-              ) : null}
-            </View>
-
-            <View style={styles.field}>
-              <ThemedText style={styles.label}>{t("kPayPhone")}</ThemedText>
-              <PhoneNumberInput
-                value={kbzPayPhoneNumber}
-                onChangeText={setKbzPayPhoneNumber}
-                selectedCountry={kbzPayPhoneCountry}
-                onCountryChange={setKbzPayPhoneCountry}
-                placeholder={t("phoneNumberPlaceholder")}
-                error={!!errors.kbzPayPhoneNumber}
-                editable={!isSubmitting}
-              />
-              {errors.kbzPayPhoneNumber ? (
-                <ThemedText style={styles.error}>
-                  {errors.kbzPayPhoneNumber}
-                </ThemedText>
-              ) : null}
-            </View>
-
-            <View
-              style={[
-                styles.warningBox,
-                { backgroundColor: WARNING_BG, borderColor: WARNING_BORDER },
-              ]}
-            >
-              <ThemedText style={[styles.warningText, { color: WARNING_TEXT }]}>
-                ⚠ {t("kPayWarning")}
+            <View style={[styles.section, { borderColor: colors.icon }]}>
+              <ThemedText style={styles.sectionTitle}>
+                {t("kPayRegistration")}
               </ThemedText>
+
+              <View style={styles.field}>
+                <ThemedText style={styles.label}>{t("kPayName")}</ThemedText>
+                <TextInput
+                  style={inputStyle(!!errors.kbzPayName)}
+                  value={kbzPayName}
+                  onChangeText={setKbzPayName}
+                  placeholder={t("kPayNamePlaceholder")}
+                  placeholderTextColor={colors.icon}
+                  autoCapitalize="words"
+                  editable={!isSubmitting}
+                />
+                {errors.kbzPayName ? (
+                  <ThemedText style={styles.error}>
+                    {errors.kbzPayName}
+                  </ThemedText>
+                ) : null}
+              </View>
+
+              <View style={styles.field}>
+                <ThemedText style={styles.label}>{t("kPayPhone")}</ThemedText>
+                <PhoneNumberInput
+                  value={kbzPayPhoneNumber}
+                  onChangeText={setKbzPayPhoneNumber}
+                  selectedCountry={kbzPayPhoneCountry}
+                  onCountryChange={setKbzPayPhoneCountry}
+                  placeholder={t("phoneNumberPlaceholder")}
+                  error={!!errors.kbzPayPhoneNumber}
+                  editable={!isSubmitting}
+                />
+                {errors.kbzPayPhoneNumber ? (
+                  <ThemedText style={styles.error}>
+                    {errors.kbzPayPhoneNumber}
+                  </ThemedText>
+                ) : null}
+              </View>
+
+              <View
+                style={[
+                  styles.warningBox,
+                  { backgroundColor: WARNING_BG, borderColor: WARNING_BORDER },
+                ]}
+              >
+                <ThemedText
+                  style={[styles.warningText, { color: WARNING_TEXT }]}
+                >
+                  ⚠ {t("kPayWarning")}
+                </ThemedText>
+              </View>
             </View>
-          </View>
           </AuthStaggerItem>
 
           {/* Gender */}
-          <AuthStaggerItem index={7} reduceMotion={reduceMotion} style={styles.field}>
+          <AuthStaggerItem
+            index={7}
+            reduceMotion={reduceMotion}
+            style={styles.field}
+          >
             <ThemedText style={styles.label}>{t("gender")}</ThemedText>
             <Segmented<Gender>
               options={[
@@ -646,7 +704,11 @@ export function RegisterScreen() {
           </AuthStaggerItem>
 
           {/* Age */}
-          <AuthStaggerItem index={8} reduceMotion={reduceMotion} style={styles.field}>
+          <AuthStaggerItem
+            index={8}
+            reduceMotion={reduceMotion}
+            style={styles.field}
+          >
             <ThemedText style={styles.label}>{t("age")}</ThemedText>
             <TextInput
               style={inputStyle(!!errors.age)}
@@ -664,7 +726,11 @@ export function RegisterScreen() {
           </AuthStaggerItem>
 
           {/* Marital status */}
-          <AuthStaggerItem index={9} reduceMotion={reduceMotion} style={styles.field}>
+          <AuthStaggerItem
+            index={9}
+            reduceMotion={reduceMotion}
+            style={styles.field}
+          >
             <ThemedText style={styles.label}>{t("maritalStatus")}</ThemedText>
             <Segmented<MaritalStatus>
               options={[
@@ -680,7 +746,11 @@ export function RegisterScreen() {
           </AuthStaggerItem>
 
           {/* Region */}
-          <AuthStaggerItem index={10} reduceMotion={reduceMotion} style={styles.field}>
+          <AuthStaggerItem
+            index={10}
+            reduceMotion={reduceMotion}
+            style={styles.field}
+          >
             <ThemedText style={styles.label}>{t("region")}</ThemedText>
             <TextInput
               style={inputStyle(!!errors.region)}
@@ -766,23 +836,25 @@ export function RegisterScreen() {
           </AuthStaggerItem>
 
           {/* Referral */}
-          <AuthStaggerItem index={11} reduceMotion={reduceMotion} style={styles.field}>
-            <ThemedText style={styles.label}>
-              {t("referralId")}{" "}
-              <ThemedText style={styles.optionalText}>
-                ({t("optional")})
-              </ThemedText>
-            </ThemedText>
+          <AuthStaggerItem
+            index={11}
+            reduceMotion={reduceMotion}
+            style={styles.field}
+          >
+            <ThemedText style={styles.label}>{t("referralCodeLabel")}</ThemedText>
             <TextInput
-              style={inputStyle(false)}
+              style={inputStyle(Boolean(errors.referralId))}
               value={referralId}
               onChangeText={setReferralId}
               placeholder={t("referralPlaceholder")}
               placeholderTextColor={colors.icon}
-              autoCapitalize="none"
+              autoCapitalize="characters"
               autoCorrect={false}
               editable={!isSubmitting}
             />
+            {errors.referralId ? (
+              <ThemedText style={styles.error}>{errors.referralId}</ThemedText>
+            ) : null}
           </AuthStaggerItem>
 
           {/* Submit */}
@@ -803,7 +875,11 @@ export function RegisterScreen() {
             </AuthPrimaryButton>
           </AuthStaggerItem>
 
-          <AuthStaggerItem index={13} reduceMotion={reduceMotion} style={styles.footer}>
+          <AuthStaggerItem
+            index={13}
+            reduceMotion={reduceMotion}
+            style={styles.footer}
+          >
             <ThemedText style={styles.footerText}>
               {t("haveAccount")}{" "}
             </ThemedText>

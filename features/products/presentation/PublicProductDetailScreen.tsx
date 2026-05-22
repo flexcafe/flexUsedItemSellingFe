@@ -8,16 +8,18 @@ import {
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useOpenChatRoom } from "@/presentation/hooks/useClientChat";
-import { useClientProductDetail, useSellerReviews } from "@/presentation/hooks/useClientProducts";
-import { uiCardShadow, uiSectionEnter } from "@/presentation/lib/uiAnimations";
 import {
-  buildLeafletStaticViewHtml,
-} from "@/presentation/lib/leafletPickerHtml";
+  useClientProductDetail,
+  useSellerReviews,
+} from "@/presentation/hooks/useClientProducts";
+import { buildLeafletStaticViewHtml } from "@/presentation/lib/leafletPickerHtml";
 import {
   canOpenMapsForTarget,
   openInMapsApp,
   type MapOpenTarget,
 } from "@/presentation/lib/openMapsApp";
+import { ReferralCodeBlock } from "@/presentation/components/ReferralCodeBlock";
+import { uiCardShadow, uiSectionEnter } from "@/presentation/lib/uiAnimations";
 import {
   formatProductConditionForDisplay,
   productStatusLabelKey,
@@ -98,7 +100,10 @@ function staggerEnter(delay: number, reduceMotion: boolean | null) {
   });
 }
 
-function paymentMethodLabel(method: string, t: ReturnType<typeof useLocale>["t"]) {
+function paymentMethodLabel(
+  method: string,
+  t: ReturnType<typeof useLocale>["t"],
+) {
   const v = method.toUpperCase();
   if (v === "CASH") return t("productsPaymentCash");
   if (v === "KBZPAY") return t("productsPaymentKbzpay");
@@ -123,11 +128,20 @@ const GalleryDot = memo(function GalleryDot({
       progress.value = target;
       return;
     }
-    progress.value = withSpring(target, { damping: 16, stiffness: 300, mass: 0.35 });
+    progress.value = withSpring(target, {
+      damping: 16,
+      stiffness: 300,
+      mass: 0.35,
+    });
   }, [active, progress, reduceMotion]);
 
   const dotStyle = useAnimatedStyle(() => ({
-    width: interpolate(progress.value, [0, 1], [DOT_MIN_W, DOT_MAX_W], Extrapolation.CLAMP),
+    width: interpolate(
+      progress.value,
+      [0, 1],
+      [DOT_MIN_W, DOT_MAX_W],
+      Extrapolation.CLAMP,
+    ),
     backgroundColor: interpolateColor(progress.value, [0, 1], [muted, tint]),
     opacity: interpolate(progress.value, [0, 1], [0.4, 1], Extrapolation.CLAMP),
   }));
@@ -152,7 +166,12 @@ const ImageThumb = memo(function ImageThumb({
   const animStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        scale: interpolate(pressed.value, [0, 1], [1, 0.94], Extrapolation.CLAMP),
+        scale: interpolate(
+          pressed.value,
+          [0, 1],
+          [1, 0.94],
+          Extrapolation.CLAMP,
+        ),
       },
     ],
     borderColor: interpolateColor(
@@ -179,7 +198,12 @@ const ImageThumb = memo(function ImageThumb({
         animStyle,
       ]}
     >
-      <Image source={{ uri }} style={styles.thumb} contentFit="cover" transition={240} />
+      <Image
+        source={{ uri }}
+        style={styles.thumb}
+        contentFit="cover"
+        transition={240}
+      />
     </AnimatedPressable>
   );
 });
@@ -205,7 +229,10 @@ const SectionCard = memo(function SectionCard({
 }) {
   const reduceMotion = useReducedMotion();
   return (
-    <Animated.View entering={staggerEnter(enterDelay, reduceMotion)} style={styles.sectionWrap}>
+    <Animated.View
+      entering={staggerEnter(enterDelay, reduceMotion)}
+      style={styles.sectionWrap}
+    >
       <View
         style={[
           styles.sectionCard,
@@ -223,7 +250,9 @@ const SectionCard = memo(function SectionCard({
         ]}
       >
         <View style={styles.sectionHeader}>
-          <View style={[styles.sectionIconWrap, { backgroundColor: tint + "18" }]}>
+          <View
+            style={[styles.sectionIconWrap, { backgroundColor: tint + "18" }]}
+          >
             <MaterialIcons name={icon} size={18} color={tint} />
           </View>
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
@@ -265,11 +294,18 @@ const DetailField = memo(function DetailField({
           {display}
         </ThemedText>
         {onPress && actionLabel ? (
-          <ThemedText style={[styles.fieldAction, { color: tint }]}>{actionLabel}</ThemedText>
+          <ThemedText style={[styles.fieldAction, { color: tint }]}>
+            {actionLabel}
+          </ThemedText>
         ) : null}
       </View>
       {onPress ? (
-        <MaterialIcons name="open-in-new" size={18} color={tint} style={styles.fieldActionIcon} />
+        <MaterialIcons
+          name="open-in-new"
+          size={18}
+          color={tint}
+          style={styles.fieldActionIcon}
+        />
       ) : null}
     </View>
   );
@@ -320,7 +356,13 @@ const ReviewRow = memo(function ReviewRow({
     <View style={styles.reviewBreakdownRow}>
       <ThemedText style={styles.reviewBreakdownStar}>{stars}★</ThemedText>
       <View style={styles.reviewBreakdownBarTrack}>
-        <Animated.View style={[styles.reviewBreakdownBarFill, { backgroundColor: tint }, fillStyle]} />
+        <Animated.View
+          style={[
+            styles.reviewBreakdownBarFill,
+            { backgroundColor: tint },
+            fillStyle,
+          ]}
+        />
       </View>
       <ThemedText style={styles.reviewBreakdownCount}>{count}</ThemedText>
     </View>
@@ -361,7 +403,10 @@ const ImageViewerModal = memo(function ImageViewerModal({
               source={{ uri }}
               style={{
                 width: width - 32,
-                height: Math.min(height * 0.78, height - insets.top - insets.bottom - 80),
+                height: Math.min(
+                  height * 0.78,
+                  height - insets.top - insets.bottom - 80,
+                ),
               }}
               contentFit="contain"
               recyclingKey={uri}
@@ -418,13 +463,23 @@ function ReviewsSheet({
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        translateY: interpolate(progress.value, [0, 1], [420, 0], Extrapolation.CLAMP),
+        translateY: interpolate(
+          progress.value,
+          [0, 1],
+          [420, 0],
+          Extrapolation.CLAMP,
+        ),
       },
     ],
   }));
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      onRequestClose={onClose}
+    >
       <Animated.View style={[styles.sheetBackdrop, backdropStyle]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <Animated.View
@@ -476,14 +531,18 @@ export function PublicProductDetailScreen({ productId }: Props) {
     limit: 20,
   });
 
-  const images = useMemo(() => (product ? productImageUrls(product) : []), [product]);
+  const images = useMemo(
+    () => (product ? productImageUrls(product) : []),
+    [product],
+  );
   const preferred = useMemo(
     () => (product ? parsePreferredLocations(product.preferredLocations) : []),
     [product],
   );
 
   const hasCoordinates =
-    product?.directTradeLatitude != null && product.directTradeLongitude != null;
+    product?.directTradeLatitude != null &&
+    product.directTradeLongitude != null;
 
   const mapHtml = useMemo(() => {
     if (
@@ -586,7 +645,12 @@ export function PublicProductDetailScreen({ productId }: Props) {
   const chatAnimStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        scale: interpolate(chatPressed.value, [0, 1], [1, 0.97], Extrapolation.CLAMP),
+        scale: interpolate(
+          chatPressed.value,
+          [0, 1],
+          [1, 0.97],
+          Extrapolation.CLAMP,
+        ),
       },
     ],
   }));
@@ -594,7 +658,12 @@ export function PublicProductDetailScreen({ productId }: Props) {
   const backAnimStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        scale: interpolate(backPressed.value, [0, 1], [1, 0.9], Extrapolation.CLAMP),
+        scale: interpolate(
+          backPressed.value,
+          [0, 1],
+          [1, 0.9],
+          Extrapolation.CLAMP,
+        ),
       },
     ],
   }));
@@ -622,9 +691,14 @@ export function PublicProductDetailScreen({ productId }: Props) {
     return (
       <ThemedView style={[styles.centered, { paddingTop: topContentInset }]}>
         {screenBackButton}
-        <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(300)} style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.tint} />
-        <ThemedText style={styles.loadingText}>{t("productsDetailLoading")}</ThemedText>
+        <Animated.View
+          entering={reduceMotion ? undefined : FadeIn.duration(300)}
+          style={styles.centered}
+        >
+          <ActivityIndicator size="large" color={colors.tint} />
+          <ThemedText style={styles.loadingText}>
+            {t("productsDetailLoading")}
+          </ThemedText>
         </Animated.View>
       </ThemedView>
     );
@@ -653,16 +727,16 @@ export function PublicProductDetailScreen({ productId }: Props) {
   const mapsActionLabel = t("publicDetailOpenInMaps");
 
   return (
-      <ThemedView style={styles.container}>
+    <ThemedView style={styles.container}>
       {screenBackButton}
-        <Animated.ScrollView
+      <Animated.ScrollView
         entering={reduceMotion ? undefined : FadeIn.duration(240)}
         contentContainerStyle={[
           styles.content,
           { paddingTop: topContentInset, paddingBottom: 96 + insets.bottom },
         ]}
-          showsVerticalScrollIndicator={false}
-        >
+        showsVerticalScrollIndicator={false}
+      >
         <Animated.View
           entering={staggerEnter(0, reduceMotion)}
           style={[
@@ -680,27 +754,27 @@ export function PublicProductDetailScreen({ productId }: Props) {
             { borderColor },
           ]}
         >
-            {hasCoordinates ? (
-              <>
+          {hasCoordinates ? (
+            <>
               <WebView
                 source={{ html: mapHtml }}
                 style={styles.mapView}
                 scrollEnabled={false}
                 pointerEvents="none"
                 originWhitelist={["*"]}
-                  onLoadEnd={() => setMapLoading(false)}
-                  onError={() => setMapLoading(false)}
+                onLoadEnd={() => setMapLoading(false)}
+                onError={() => setMapLoading(false)}
+              />
+              {!mapLoading ? (
+                <Pressable
+                  style={styles.mapTapOverlay}
+                  onPress={() => openMaps(directTradeMapsTarget)}
+                  accessibilityRole="button"
+                  accessibilityLabel={mapsActionLabel}
                 />
-                {!mapLoading ? (
-                  <Pressable
-                    style={styles.mapTapOverlay}
-                    onPress={() => openMaps(directTradeMapsTarget)}
-                    accessibilityRole="button"
-                    accessibilityLabel={mapsActionLabel}
-                  />
-                ) : null}
-              </>
-            ) : product.mapScreenshotUrl ? (
+              ) : null}
+            </>
+          ) : product.mapScreenshotUrl ? (
             <Pressable
               onPress={() => openImageViewer(product.mapScreenshotUrl ?? "")}
               accessibilityRole="imagebutton"
@@ -718,7 +792,11 @@ export function PublicProductDetailScreen({ productId }: Props) {
             </Pressable>
           ) : (
             <View style={styles.mapPlaceholder}>
-              <ProductListingThumbnail imageUrl={null} size={MAP_HEIGHT} borderRadius={0} />
+              <ProductListingThumbnail
+                imageUrl={null}
+                size={MAP_HEIGHT}
+                borderRadius={0}
+              />
             </View>
           )}
 
@@ -730,13 +808,17 @@ export function PublicProductDetailScreen({ productId }: Props) {
                 styles.mapLoadingOverlay,
                 {
                   backgroundColor:
-                    scheme === "dark" ? "rgba(35,39,46,0.92)" : "rgba(255,255,255,0.92)",
+                    scheme === "dark"
+                      ? "rgba(35,39,46,0.92)"
+                      : "rgba(255,255,255,0.92)",
                 },
               ]}
               pointerEvents="none"
             >
               <ActivityIndicator size="large" color={colors.tint} />
-              <ThemedText style={[styles.mapLoadingText, { color: colors.icon }]}>
+              <ThemedText
+                style={[styles.mapLoadingText, { color: colors.icon }]}
+              >
                 {t("productsDetailLoading")}
               </ThemedText>
             </Animated.View>
@@ -747,7 +829,9 @@ export function PublicProductDetailScreen({ productId }: Props) {
 
           <View style={styles.mapOverlayTop}>
             <View style={styles.mapIdPill}>
-              <ThemedText style={styles.mapIdText}>#{product.id.slice(-6)}</ThemedText>
+              <ThemedText style={styles.mapIdText}>
+                #{product.id.slice(-6)}
+              </ThemedText>
             </View>
           </View>
 
@@ -769,10 +853,15 @@ export function PublicProductDetailScreen({ productId }: Props) {
               {product.directTradeLocation ?? "—"}
             </ThemedText>
             {canOpenDirectTradeMaps ? (
-              <MaterialIcons name="open-in-new" size={14} color="#FFF" style={styles.locationChipAction} />
+              <MaterialIcons
+                name="open-in-new"
+                size={14}
+                color="#FFF"
+                style={styles.locationChipAction}
+              />
             ) : null}
           </Pressable>
-          </Animated.View>
+        </Animated.View>
 
         <Animated.View
           entering={staggerEnter(SECTION_STAGGER_MS, reduceMotion)}
@@ -791,7 +880,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
             { backgroundColor: surface, borderColor },
           ]}
         >
-              {images.length > 0 ? (
+          {images.length > 0 ? (
             <>
               <ScrollView
                 horizontal
@@ -826,7 +915,12 @@ export function PublicProductDetailScreen({ productId }: Props) {
               {images.length > 1 ? (
                 <View style={styles.dotsRow}>
                   {images.map((uri, i) => (
-                    <GalleryDot key={uri} active={i === photoIndex} tint={colors.tint} muted={mutedDot} />
+                    <GalleryDot
+                      key={uri}
+                      active={i === photoIndex}
+                      tint={colors.tint}
+                      muted={mutedDot}
+                    />
                   ))}
                 </View>
               ) : null}
@@ -851,22 +945,39 @@ export function PublicProductDetailScreen({ productId }: Props) {
             </>
           ) : (
             <View style={styles.galleryEmpty}>
-              <ProductListingThumbnail imageUrl={null} size={GALLERY_HEIGHT - 24} borderRadius={14} />
+              <ProductListingThumbnail
+                imageUrl={null}
+                size={GALLERY_HEIGHT - 24}
+                borderRadius={14}
+              />
             </View>
           )}
 
-            <View style={styles.titleRow}>
-            <ThemedText type="defaultSemiBold" style={styles.name} numberOfLines={3}>
-                {product.name}
+          <View style={styles.titleRow}>
+            <ThemedText
+              type="defaultSemiBold"
+              style={styles.name}
+              numberOfLines={3}
+            >
+              {product.name}
+            </ThemedText>
+            <View
+              style={[
+                styles.statusChip,
+                { backgroundColor: statusBadge.backgroundColor },
+              ]}
+            >
+              <ThemedText
+                style={[styles.statusChipText, { color: statusBadge.color }]}
+              >
+                {t(productStatusLabelKey(status))}
               </ThemedText>
-              <View style={[styles.statusChip, { backgroundColor: statusBadge.backgroundColor }]}> 
-                <ThemedText style={[styles.statusChipText, { color: statusBadge.color }]}>
-                  {t(productStatusLabelKey(status))}
-                </ThemedText>
-              </View>
             </View>
+          </View>
 
-          <View style={[styles.pricePanel, { backgroundColor: colors.tint + "12" }]}>
+          <View
+            style={[styles.pricePanel, { backgroundColor: colors.tint + "12" }]}
+          >
             <ThemedText style={styles.priceLabel}>MMK</ThemedText>
             <ThemedText style={[styles.price, { color: colors.tint }]}>
               {product.price.toLocaleString()}
@@ -877,7 +988,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
               </ThemedText>
             ) : null}
           </View>
-          </Animated.View>
+        </Animated.View>
 
         <Animated.View
           entering={staggerEnter(SECTION_STAGGER_MS * 2, reduceMotion)}
@@ -907,13 +1018,19 @@ export function PublicProductDetailScreen({ productId }: Props) {
               });
             }}
           >
-            <View style={[styles.avatarRing, { borderColor: colors.tint + "55" }]}>
-                <Image
-                  source={product.seller?.avatar ? { uri: product.seller.avatar } : undefined}
-                  style={[styles.avatar, { backgroundColor: colors.icon + "1f" }]}
-                />
+            <View
+              style={[styles.avatarRing, { borderColor: colors.tint + "55" }]}
+            >
+              <Image
+                source={
+                  product.seller?.avatar
+                    ? { uri: product.seller.avatar }
+                    : undefined
+                }
+                style={[styles.avatar, { backgroundColor: colors.icon + "1f" }]}
+              />
             </View>
-                <View style={styles.sellerCopy}>
+            <View style={styles.sellerCopy}>
               <ThemedText type="defaultSemiBold" style={styles.sellerName}>
                 {product.seller?.nickname ?? "—"}
               </ThemedText>
@@ -926,12 +1043,25 @@ export function PublicProductDetailScreen({ productId }: Props) {
                   count: product.seller?.totalReviews ?? 0,
                 })}
               </ThemedText>
-              <ThemedText style={[styles.sellerViewLink, { color: colors.tint }]}>
+              <ThemedText
+                style={[styles.sellerViewLink, { color: colors.tint }]}
+              >
                 {t("publicDetailViewSeller")}
               </ThemedText>
             </View>
             <MaterialIcons name="chevron-right" size={22} color={colors.icon} />
           </Pressable>
+
+          {product.seller?.referralCode?.trim() ? (
+            <ReferralCodeBlock
+              code={product.seller.referralCode.trim()}
+              title={t("publicProfileReferralTitle")}
+              hint={t("publicProfileReferralHint")}
+              tint={colors.tint}
+              borderColor={colors.icon + "33"}
+              surfaceColor={surface}
+            />
+          ) : null}
 
           <AnimatedPressable
             onPress={() => {
@@ -941,7 +1071,9 @@ export function PublicProductDetailScreen({ productId }: Props) {
             style={[styles.reviewsBtn, { backgroundColor: colors.tint }]}
           >
             <MaterialIcons name="star" size={16} color="#FFF" />
-            <ThemedText style={styles.reviewsBtnText}>{t("publicDetailSellerReviews")}</ThemedText>
+            <ThemedText style={styles.reviewsBtnText}>
+              {t("publicDetailSellerReviews")}
+            </ThemedText>
           </AnimatedPressable>
         </Animated.View>
 
@@ -960,13 +1092,20 @@ export function PublicProductDetailScreen({ productId }: Props) {
             style={({ pressed }) => [
               styles.addressHighlight,
               { borderColor: colors.tint + "30" },
-              pressed && canOpenDirectTradeMaps && styles.addressHighlightPressed,
+              pressed &&
+                canOpenDirectTradeMaps &&
+                styles.addressHighlightPressed,
             ]}
             accessibilityRole="button"
             accessibilityLabel={mapsActionLabel}
           >
             <MaterialIcons name="place" size={18} color={colors.tint} />
-            <ThemedText style={[styles.addressText, canOpenDirectTradeMaps && { color: colors.tint }]}>
+            <ThemedText
+              style={[
+                styles.addressText,
+                canOpenDirectTradeMaps && { color: colors.tint },
+              ]}
+            >
               {product.directTradeLocation ?? "—"}
             </ThemedText>
             {canOpenDirectTradeMaps ? (
@@ -988,7 +1127,11 @@ export function PublicProductDetailScreen({ productId }: Props) {
                 label={`${t("productsFieldPreferredLocationItem")} ${idx + 1}`}
                 value={`${loc.label}${loc.address ? ` (${loc.address})` : ""}`}
                 tint={colors.tint}
-                last={idx === preferred.length - 1 && !hasCoordinates && !product.preferredTradeTime}
+                last={
+                  idx === preferred.length - 1 &&
+                  !hasCoordinates &&
+                  !product.preferredTradeTime
+                }
                 onPress={canOpenLoc ? () => openMaps(locTarget) : undefined}
                 actionLabel={canOpenLoc ? mapsActionLabel : undefined}
               />
@@ -1008,7 +1151,10 @@ export function PublicProductDetailScreen({ productId }: Props) {
               icon="my-location"
               label={t("productsDetailCoordinates")}
               value={
-                formatCoordinates(product.directTradeLatitude, product.directTradeLongitude) ?? "—"
+                formatCoordinates(
+                  product.directTradeLatitude,
+                  product.directTradeLongitude,
+                ) ?? "—"
               }
               tint={colors.tint}
               last
@@ -1031,10 +1177,22 @@ export function PublicProductDetailScreen({ productId }: Props) {
             {(product.paymentMethods ?? []).map((m) => (
               <View
                 key={m}
-                style={[styles.methodChip, { borderColor: colors.tint + "40", backgroundColor: colors.tint + "10" }]}
+                style={[
+                  styles.methodChip,
+                  {
+                    borderColor: colors.tint + "40",
+                    backgroundColor: colors.tint + "10",
+                  },
+                ]}
               >
-                <MaterialIcons name="check-circle" size={15} color={colors.tint} />
-                <ThemedText style={[styles.methodChipText, { color: colors.tint }]}>
+                <MaterialIcons
+                  name="check-circle"
+                  size={15}
+                  color={colors.tint}
+                />
+                <ThemedText
+                  style={[styles.methodChipText, { color: colors.tint }]}
+                >
                   {paymentMethodLabel(m, t)}
                 </ThemedText>
               </View>
@@ -1055,7 +1213,9 @@ export function PublicProductDetailScreen({ productId }: Props) {
             icon="local-shipping"
             label={t("productsFieldDelivery")}
             value={
-              product.isDeliveryAvailable ? t("productsDeliveryOn") : t("productsDeliveryOff")
+              product.isDeliveryAvailable
+                ? t("productsDeliveryOn")
+                : t("productsDeliveryOff")
             }
             tint={colors.tint}
           />
@@ -1083,11 +1243,16 @@ export function PublicProductDetailScreen({ productId }: Props) {
           scheme={scheme}
           enterDelay={SECTION_STAGGER_MS * 6}
         >
-          <ThemedText style={styles.description}>{product.description}</ThemedText>
+          <ThemedText style={styles.description}>
+            {product.description}
+          </ThemedText>
           <DetailField
             icon="access-time"
             label={t("productsDetailCreatedAt")}
-            value={product.createdAtDisplay?.trim() || formatListingDate(product.createdAt, locale)}
+            value={
+              product.createdAtDisplay?.trim() ||
+              formatListingDate(product.createdAt, locale)
+            }
             tint={colors.tint}
           />
           <DetailField
@@ -1107,7 +1272,11 @@ export function PublicProductDetailScreen({ productId }: Props) {
       </Animated.ScrollView>
 
       <Animated.View
-        entering={reduceMotion ? undefined : FadeInDown.duration(380).springify().damping(20)}
+        entering={
+          reduceMotion
+            ? undefined
+            : FadeInDown.duration(380).springify().damping(20)
+        }
         style={[
           styles.chatBar,
           uiCardShadow(scheme, {
@@ -1140,12 +1309,9 @@ export function PublicProductDetailScreen({ productId }: Props) {
                     pathname: "/chat/room/[chatRoomId]",
                     params: {
                       chatRoomId: room.id,
-                      listingTitle:
-                        room.listingTitle?.trim() || product.name,
+                      listingTitle: room.listingTitle?.trim() || product.name,
                       listingImageUrl:
-                        room.listingImageUrl?.trim() ||
-                        images[0] ||
-                        "",
+                        room.listingImageUrl?.trim() || images[0] || "",
                       peerName:
                         room.counterpartNickname?.trim() ||
                         product.seller?.nickname ||
@@ -1174,7 +1340,10 @@ export function PublicProductDetailScreen({ productId }: Props) {
           }}
           style={[
             styles.chatButton,
-            { backgroundColor: colors.tint, opacity: openChatRoom.isPending ? 0.7 : 1 },
+            {
+              backgroundColor: colors.tint,
+              opacity: openChatRoom.isPending ? 0.7 : 1,
+            },
             chatAnimStyle,
           ]}
         >
@@ -1201,7 +1370,9 @@ export function PublicProductDetailScreen({ productId }: Props) {
         borderColor={borderColor}
       >
         <View style={styles.reviewsHeader}>
-          <ThemedText type="subtitle">{t("publicDetailSellerReviews")}</ThemedText>
+          <ThemedText type="subtitle">
+            {t("publicDetailSellerReviews")}
+          </ThemedText>
           <Pressable onPress={() => setReviewsOpen(false)} hitSlop={12}>
             <MaterialIcons name="close" size={24} color={colors.icon} />
           </Pressable>
@@ -1212,7 +1383,10 @@ export function PublicProductDetailScreen({ productId }: Props) {
             <ActivityIndicator color={colors.tint} />
           </View>
         ) : reviewsQuery.data ? (
-          <ScrollView style={styles.reviewsScroll} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.reviewsScroll}
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.reviewBreakdownWrap}>
               {[...reviewsQuery.data.starBreakdown]
                 .sort((a, b) => b.stars - a.stars)
@@ -1249,7 +1423,9 @@ export function PublicProductDetailScreen({ productId }: Props) {
                   {item.comment?.trim() || t("publicProfileNoComment")}
                 </ThemedText>
                 <ThemedText style={styles.reviewDate}>
-                  {item.createdAt ? formatListingDate(item.createdAt, locale) : "—"}
+                  {item.createdAt
+                    ? formatListingDate(item.createdAt, locale)
+                    : "—"}
                 </ThemedText>
               </Animated.View>
             ))}
@@ -1266,7 +1442,9 @@ export function PublicProductDetailScreen({ productId }: Props) {
                 {reviewsQuery.isFetching ? (
                   <ActivityIndicator color={colors.tint} size="small" />
                 ) : (
-                  <ThemedText style={[styles.loadMoreText, { color: colors.tint }]}>
+                  <ThemedText
+                    style={[styles.loadMoreText, { color: colors.tint }]}
+                  >
                     {t("publicDetailLoadMoreReviews")}
                   </ThemedText>
                 )}
@@ -1291,7 +1469,13 @@ export function PublicProductDetailScreen({ productId }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  centered: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12, padding: 24 },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+    padding: 24,
+  },
   loadingText: { opacity: 0.65 },
   content: { gap: 14, paddingTop: 0 },
   mapCard: {
@@ -1375,7 +1559,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   locationChipPressed: { backgroundColor: "rgba(0,0,0,0.65)" },
-  locationChipText: { color: "#FFF", flex: 1, fontSize: 13, lineHeight: 18, fontWeight: "600" },
+  locationChipText: {
+    color: "#FFF",
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
   locationChipAction: { opacity: 0.9 },
   heroCard: {
     marginHorizontal: 12,
@@ -1584,7 +1774,12 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   reviewBreakdownBarFill: { height: "100%", borderRadius: 4 },
-  reviewBreakdownCount: { width: 28, textAlign: "right", fontSize: 12, opacity: 0.7 },
+  reviewBreakdownCount: {
+    width: 28,
+    textAlign: "right",
+    fontSize: 12,
+    opacity: 0.7,
+  },
   reviewItem: {
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: 12,

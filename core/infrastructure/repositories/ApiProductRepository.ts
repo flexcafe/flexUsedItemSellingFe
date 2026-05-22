@@ -16,13 +16,13 @@ import type {
   ClientProductListParams,
   ProductCreateInput,
   ProductDeleteInput,
-  PublicUserProfile,
-  SellerReviewPage,
   ProductStatus,
   ProductUpdateInput,
+  PublicUserProfile,
+  SellerReviewPage,
 } from "@/core/domain/types/product";
-import type { HttpClient } from "../api/HttpClient";
 import { API_ENDPOINTS } from "../api/constants";
+import type { HttpClient } from "../api/HttpClient";
 
 function buildClientProductQuery(
   params?: ClientProductListParams,
@@ -105,7 +105,8 @@ function mapSellerReviewPage(data: unknown): SellerReviewPage {
     hasNextPage: false,
     hasPrevPage: false,
   };
-  if (data == null || typeof data !== "object" || Array.isArray(data)) return empty;
+  if (data == null || typeof data !== "object" || Array.isArray(data))
+    return empty;
   const r = data as Record<string, unknown>;
   const rawBreakdown = Array.isArray(r.starBreakdown) ? r.starBreakdown : [];
   const breakdownMap = new Map<number, number>();
@@ -115,7 +116,10 @@ function mapSellerReviewPage(data: unknown): SellerReviewPage {
     const stars = Number(item.stars);
     const count = Number(item.count);
     if (Number.isFinite(stars) && stars >= 1 && stars <= 5) {
-      breakdownMap.set(Math.round(stars), Number.isFinite(count) ? Math.max(0, Math.round(count)) : 0);
+      breakdownMap.set(
+        Math.round(stars),
+        Number.isFinite(count) ? Math.max(0, Math.round(count)) : 0,
+      );
     }
   }
   const starBreakdown = [1, 2, 3, 4, 5].map((stars) => ({
@@ -124,7 +128,9 @@ function mapSellerReviewPage(data: unknown): SellerReviewPage {
   }));
   const itemsRaw = Array.isArray(r.items) ? r.items : [];
   const items = itemsRaw
-    .filter((row) => row != null && typeof row === "object" && !Array.isArray(row))
+    .filter(
+      (row) => row != null && typeof row === "object" && !Array.isArray(row),
+    )
     .map((row) => {
       const item = row as Record<string, unknown>;
       return {
@@ -135,7 +141,8 @@ function mapSellerReviewPage(data: unknown): SellerReviewPage {
         stars: Number.isFinite(Number(item.stars))
           ? Math.max(1, Math.min(5, Math.round(Number(item.stars))))
           : 0,
-        comment: typeof item.comment === "string" ? item.comment.trim() || null : null,
+        comment:
+          typeof item.comment === "string" ? item.comment.trim() || null : null,
         reviewerNickname:
           typeof item.reviewerNickname === "string"
             ? item.reviewerNickname.trim() || null
@@ -167,7 +174,8 @@ function mapSellerReviewPage(data: unknown): SellerReviewPage {
 }
 
 function mapPublicUserProfile(data: unknown): PublicUserProfile | null {
-  if (data == null || typeof data !== "object" || Array.isArray(data)) return null;
+  if (data == null || typeof data !== "object" || Array.isArray(data))
+    return null;
   const row = data as Record<string, unknown>;
   const userId = typeof row.userId === "string" ? row.userId.trim() : "";
   if (!userId) return null;
@@ -176,13 +184,19 @@ function mapPublicUserProfile(data: unknown): PublicUserProfile | null {
       ? row.nickname.trim()
       : "Seller";
   const rankRaw =
-    typeof row.currentRank === "string" ? row.currentRank.trim().toUpperCase() : "NEWBIE";
+    typeof row.currentRank === "string"
+      ? row.currentRank.trim().toUpperCase()
+      : "NEWBIE";
   const allowedRanks = new Set(["NEWBIE", "BRONZE", "SILVER", "GOLD", "VIP"]);
-  const currentRank = (allowedRanks.has(rankRaw) ? rankRaw : "NEWBIE") as PublicUserProfile["currentRank"];
+  const currentRank = (
+    allowedRanks.has(rankRaw) ? rankRaw : "NEWBIE"
+  ) as PublicUserProfile["currentRank"];
   const avatarRaw = extractAvatarStringFromUnknown(row.avatar);
   const avatar = avatarRaw ? toAbsoluteMediaUrl(avatarRaw) : null;
   const region =
-    typeof row.region === "string" && row.region.trim() ? row.region.trim() : null;
+    typeof row.region === "string" && row.region.trim()
+      ? row.region.trim()
+      : null;
   const toNum = (value: unknown, fallback = 0) => {
     const n = Number(value);
     return Number.isFinite(n) ? n : fallback;
@@ -191,10 +205,15 @@ function mapPublicUserProfile(data: unknown): PublicUserProfile | null {
     typeof row.memberSince === "string" && row.memberSince.trim()
       ? row.memberSince.trim()
       : null;
+  const referralCode =
+    typeof row.referralCode === "string" && row.referralCode.trim()
+      ? row.referralCode.trim()
+      : null;
   return {
     userId,
     nickname,
     avatar,
+    referralCode,
     region,
     currentRank,
     averageStars: toNum(row.averageStars),
@@ -344,9 +363,12 @@ export class ApiProductRepository implements IProductRepository {
     userId: string,
     params?: PaginationParams,
   ): Promise<SellerReviewPage> {
-    const res = await this.http.get<unknown>(API_ENDPOINTS.CLIENT_USERS.REVIEWS(userId), {
-      params: buildPaginationQuery(params),
-    });
+    const res = await this.http.get<unknown>(
+      API_ENDPOINTS.CLIENT_USERS.REVIEWS(userId),
+      {
+        params: buildPaginationQuery(params),
+      },
+    );
     return mapSellerReviewPage(res);
   }
 

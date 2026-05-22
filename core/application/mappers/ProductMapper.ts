@@ -154,6 +154,10 @@ function parseSellerSummary(
       typeof r.totalReviews === "number" && Number.isFinite(r.totalReviews)
         ? r.totalReviews
         : null,
+    referralCode:
+      typeof r.referralCode === "string" && r.referralCode.trim()
+        ? r.referralCode.trim()
+        : null,
   };
 }
 

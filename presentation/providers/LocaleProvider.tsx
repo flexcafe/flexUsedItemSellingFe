@@ -310,12 +310,61 @@ const DICT: Dictionary = {
     my: "ဒေသအမည်ထည့်ပါ",
     zh: "请输入地区名称",
   },
-  referralId: { ko: "추천인 코드", my: "အကြံပြုသူ ID", zh: "推荐人代码" },
+  referralCodeLabel: {
+    ko: "추천 코드 (선택)",
+    my: "ရည်ညွှန်းကုဒ် (ရွေးချယ်နိုင်)",
+    zh: "推荐码（选填）",
+  },
   optional: { ko: "선택사항", my: "ရွေးချယ်", zh: "选填" },
   referralPlaceholder: {
-    ko: "추천인 아이디를 입력하세요",
-    my: "အကြံပြုသူအမည်ထည့်ပါ",
-    zh: "请输入推荐人 ID",
+    ko: "친구의 초대 코드를 입력하세요",
+    my: "မိတ်ဆွေ၏ ဖိတ်ခေါ်ကုဒ် ထည့်ပါ",
+    zh: "请输入好友的邀请码",
+  },
+  referralCodeInvalid: {
+    ko: "유효하지 않은 추천 코드입니다.",
+    my: "ရည်ညွှန်းကုဒ် မမှန်ပါ။",
+    zh: "邀请码无效。",
+  },
+  referralCodeCopiedTitle: {
+    ko: "복사됨",
+    my: "ကူးယူပြီး",
+    zh: "已复制",
+  },
+  referralCodeCopiedBody: {
+    ko: "초대 코드가 클립보드에 복사되었습니다.",
+    my: "ဖိတ်ခေါ်ကုဒ်ကို ကူးယူပြီးပါပြီ။",
+    zh: "邀请码已复制到剪贴板。",
+  },
+  referralCodeCopy: {
+    ko: "복사",
+    my: "ကူးယူမည်",
+    zh: "复制",
+  },
+  referralCodeShare: {
+    ko: "공유",
+    my: "မျှဝေမည်",
+    zh: "分享",
+  },
+  profileInviteCodeTitle: {
+    ko: "내 초대 코드",
+    my: "ကျွန်ုပ်၏ ဖိတ်ခေါ်ကုဒ်",
+    zh: "我的邀请码",
+  },
+  profileInviteCodeHint: {
+    ko: "친구가 가입할 때 이 코드를 입력하면 됩니다.",
+    my: "မိတ်ဆွေများသည် စာရင်းသွင်းစဉ် ဤကုဒ်ကို ထည့်ပါ။",
+    zh: "好友注册时填写此邀请码即可。",
+  },
+  publicProfileReferralTitle: {
+    ko: "이 판매자의 초대 코드",
+    my: "ဤရောင်းသူ၏ ဖိတ်ခေါ်ကုဒ်",
+    zh: "该卖家的邀请码",
+  },
+  publicProfileReferralHint: {
+    ko: "가입 시 이 코드를 추천 코드로 입력하세요.",
+    my: "စာရင်းသွင်းရာတွင် ဤကုဒ်ကို ရည်ညွှန်းကုဒ်အဖြစ် ထည့်ပါ။",
+    zh: "注册时将此码作为推荐码填写。",
   },
   facebookIdPlaceholder: {
     ko: "100012345678901",

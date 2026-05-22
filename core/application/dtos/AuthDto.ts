@@ -30,6 +30,10 @@ export interface AuthProfileDto {
   role?: string;
   isPhoneVerified?: boolean;
   isEmailVerified?: boolean;
+  /** Public invite code for friends to enter at register (`referralId` body). */
+  referralCode?: string | null;
+  /** Internal UUID of inviter — do not show or share. */
+  referredById?: string | null;
   kbzPay?: {
     status?: string | null;
     isVerified?: boolean;

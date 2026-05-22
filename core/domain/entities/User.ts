@@ -17,5 +17,7 @@ export interface AuthUser {
   kbzPayAdminNote: string | null;
   kbzPayTransactionId: string | null;
   kbzPayRequestedAt: string | null;
+  /** From GET /client/auth/me — share with friends at registration. */
+  referralCode: string | null;
   accessToken: string;
 }
