@@ -4,17 +4,9 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import Constants from "expo-constants";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import {
-  Linking,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** Clears `LanguageSwitcher` (absolute `top: ~44` + bar height) from overlapping the hero. */
@@ -31,6 +23,7 @@ type HomeHeroProps = {
   categories: Category[];
   selectedCategoryId: string | null;
   onSelectCategory: (id: string | null) => void;
+  onOpenReports: () => void;
 };
 
 export function HomeHero({
@@ -38,6 +31,7 @@ export function HomeHero({
   categories,
   selectedCategoryId,
   onSelectCategory,
+  onOpenReports,
 }: HomeHeroProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -45,18 +39,6 @@ export function HomeHero({
   const { t, categorySecondLine } = useLocale();
   const colorScheme = useColorScheme();
   const scheme = colorScheme ?? "light";
-
-  const onSuggestReport = () => {
-    const email =
-      Constants.expoConfig?.extra?.supportEmail ??
-      process.env.EXPO_PUBLIC_SUPPORT_EMAIL;
-    if (typeof email === "string" && email.includes("@")) {
-      const q = encodeURIComponent("Suggest or Report");
-      void Linking.openURL(`mailto:${email}?subject=${q}`);
-    } else {
-      router.push("/(tabs)/explore");
-    }
-  };
 
   return (
     <View
@@ -88,7 +70,7 @@ export function HomeHero({
             </Text>
           </Pressable>
           <Pressable
-            onPress={onSuggestReport}
+            onPress={onOpenReports}
             style={({ pressed }) => [
               styles.reportPill,
               pressed && styles.pillPressed,

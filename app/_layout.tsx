@@ -16,6 +16,7 @@ import type { IPreferencesRepository } from "@/core/domain/repositories/IPrefere
 import type { IAuthService } from "@/core/domain/services/IAuthService";
 import type { ICategoryService } from "@/core/domain/services/ICategoryService";
 import type { IChatService } from "@/core/domain/services/IChatService";
+import type { IClientReportService } from "@/core/domain/services/IClientReportService";
 import type { INotificationService } from "@/core/domain/services/INotificationService";
 import type { IProductService } from "@/core/domain/services/IProductService";
 import type { IProfileService } from "@/core/domain/services/IProfileService";
@@ -74,6 +75,9 @@ export default function RootLayout() {
     sliderAdService: container.resolve<ISliderAdService>("sliderAdService"),
     categoryService: container.resolve<ICategoryService>("categoryService"),
     chatService: container.resolve<IChatService>("chatService"),
+    clientReportService: container.resolve<IClientReportService>(
+      "clientReportService",
+    ),
     preferencesRepository: container.resolve<IPreferencesRepository>(
       "preferencesRepository",
     ),

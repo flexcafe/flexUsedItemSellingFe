@@ -45,6 +45,7 @@ import Animated, {
 
 import { HomeHero } from "./HomeHero";
 import { HomeRadiusFilter } from "./HomeRadiusFilter";
+import { HomeReportsSection } from "./HomeReportsSection";
 import { HomeSlider } from "./HomeSlider";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -224,6 +225,7 @@ export function HomeScreen() {
   const [selectedRadiusKm, setSelectedRadiusKm] =
     useState<ClientCatalogRadiusSelection>(null);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [reportsVisible, setReportsVisible] = useState(false);
   const searchFocus = useSharedValue(0);
 
   useEffect(() => {
@@ -337,6 +339,7 @@ export function HomeScreen() {
           categories={categories}
           selectedCategoryId={selectedCategoryId}
           onSelectCategory={setSelectedCategoryId}
+          onOpenReports={() => setReportsVisible(true)}
         />
         <View style={styles.sliderSection}>
           <HomeSlider />
@@ -355,7 +358,6 @@ export function HomeScreen() {
             }
           />
         </Animated.View>
-
         <Animated.View
           entering={filterPanelEntering}
           style={[
@@ -527,6 +529,10 @@ export function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      <HomeReportsSection
+        visible={reportsVisible}
+        onClose={() => setReportsVisible(false)}
+      />
       <Animated.FlatList
         data={products}
         keyExtractor={(item) => item.id}

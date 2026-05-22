@@ -79,6 +79,12 @@ export const API_ENDPOINTS = {
     TRANSACTION_REVIEWS: (transactionId: string) =>
       `/v1/client/chats/transactions/${transactionId}/reviews`,
   },
+  CLIENT_REPORTS: {
+    SUGGESTIONS: "/v1/client/suggestions",
+    MY_SUGGESTIONS: "/v1/client/suggestions/mine",
+    FRAUD_REPORTS: "/v1/client/fraud-reports",
+    MY_FRAUD_REPORTS: "/v1/client/fraud-reports/mine",
+  },
   PRODUCTS: {
     LIST: "/v1/products",
     BY_ID: (id: string) => `/v1/products/${id}`,

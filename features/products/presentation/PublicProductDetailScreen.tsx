@@ -695,7 +695,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
           entering={reduceMotion ? undefined : FadeIn.duration(300)}
           style={styles.centered}
         >
-          <ActivityIndicator size="large" color={colors.tint} />
+        <ActivityIndicator size="large" color={colors.tint} />
           <ThemedText style={styles.loadingText}>
             {t("productsDetailLoading")}
           </ThemedText>
@@ -727,16 +727,16 @@ export function PublicProductDetailScreen({ productId }: Props) {
   const mapsActionLabel = t("publicDetailOpenInMaps");
 
   return (
-    <ThemedView style={styles.container}>
+      <ThemedView style={styles.container}>
       {screenBackButton}
-      <Animated.ScrollView
+        <Animated.ScrollView
         entering={reduceMotion ? undefined : FadeIn.duration(240)}
         contentContainerStyle={[
           styles.content,
           { paddingTop: topContentInset, paddingBottom: 96 + insets.bottom },
         ]}
-        showsVerticalScrollIndicator={false}
-      >
+          showsVerticalScrollIndicator={false}
+        >
         <Animated.View
           entering={staggerEnter(0, reduceMotion)}
           style={[
@@ -754,7 +754,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
             { borderColor },
           ]}
         >
-          {hasCoordinates ? (
+            {hasCoordinates ? (
             <>
               <WebView
                 source={{ html: mapHtml }}
@@ -774,7 +774,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
                 />
               ) : null}
             </>
-          ) : product.mapScreenshotUrl ? (
+            ) : product.mapScreenshotUrl ? (
             <Pressable
               onPress={() => openImageViewer(product.mapScreenshotUrl ?? "")}
               accessibilityRole="imagebutton"
@@ -861,7 +861,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
               />
             ) : null}
           </Pressable>
-        </Animated.View>
+          </Animated.View>
 
         <Animated.View
           entering={staggerEnter(SECTION_STAGGER_MS, reduceMotion)}
@@ -880,7 +880,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
             { backgroundColor: surface, borderColor },
           ]}
         >
-          {images.length > 0 ? (
+              {images.length > 0 ? (
             <>
               <ScrollView
                 horizontal
@@ -953,14 +953,14 @@ export function PublicProductDetailScreen({ productId }: Props) {
             </View>
           )}
 
-          <View style={styles.titleRow}>
+            <View style={styles.titleRow}>
             <ThemedText
               type="defaultSemiBold"
               style={styles.name}
               numberOfLines={3}
             >
-              {product.name}
-            </ThemedText>
+                {product.name}
+              </ThemedText>
             <View
               style={[
                 styles.statusChip,
@@ -970,10 +970,10 @@ export function PublicProductDetailScreen({ productId }: Props) {
               <ThemedText
                 style={[styles.statusChipText, { color: statusBadge.color }]}
               >
-                {t(productStatusLabelKey(status))}
-              </ThemedText>
+                  {t(productStatusLabelKey(status))}
+                </ThemedText>
+              </View>
             </View>
-          </View>
 
           <View
             style={[styles.pricePanel, { backgroundColor: colors.tint + "12" }]}
@@ -988,7 +988,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
               </ThemedText>
             ) : null}
           </View>
-        </Animated.View>
+          </Animated.View>
 
         <Animated.View
           entering={staggerEnter(SECTION_STAGGER_MS * 2, reduceMotion)}
@@ -1021,16 +1021,16 @@ export function PublicProductDetailScreen({ productId }: Props) {
             <View
               style={[styles.avatarRing, { borderColor: colors.tint + "55" }]}
             >
-              <Image
+                <Image
                 source={
                   product.seller?.avatar
                     ? { uri: product.seller.avatar }
                     : undefined
                 }
-                style={[styles.avatar, { backgroundColor: colors.icon + "1f" }]}
-              />
+                  style={[styles.avatar, { backgroundColor: colors.icon + "1f" }]}
+                />
             </View>
-            <View style={styles.sellerCopy}>
+                <View style={styles.sellerCopy}>
               <ThemedText type="defaultSemiBold" style={styles.sellerName}>
                 {product.seller?.nickname ?? "—"}
               </ThemedText>

@@ -4,6 +4,7 @@ import type { IPreferencesRepository } from "@/core/domain/repositories/IPrefere
 import type { IAuthService } from "@/core/domain/services/IAuthService";
 import type { ICategoryService } from "@/core/domain/services/ICategoryService";
 import type { IChatService } from "@/core/domain/services/IChatService";
+import type { IClientReportService } from "@/core/domain/services/IClientReportService";
 import type { INotificationService } from "@/core/domain/services/INotificationService";
 import type { IProductService } from "@/core/domain/services/IProductService";
 import type { IProfileService } from "@/core/domain/services/IProfileService";
@@ -17,6 +18,7 @@ export interface AppServices {
   sliderAdService: ISliderAdService;
   categoryService: ICategoryService;
   chatService: IChatService;
+  clientReportService: IClientReportService;
   preferencesRepository: IPreferencesRepository;
 }
 

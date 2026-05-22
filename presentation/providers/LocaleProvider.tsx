@@ -1683,6 +1683,166 @@ const DICT: Dictionary = {
     my: "အကြံပြု/တိုင်ကြား",
     zh: "建议/举报",
   },
+  homeSuggestionReportButton: {
+    ko: "제안 / 사기 신고",
+    my: "အကြံပြုချက် / လိမ်လည်မှု တိုင်ကြားရန်",
+    zh: "建议 / 诈骗举报",
+  },
+  homeSuggestionReportTitle: {
+    ko: "제안 및 사기 신고",
+    my: "အကြံပြုချက်နှင့် လိမ်လည်မှုတိုင်ကြားချက်",
+    zh: "建议与诈骗举报",
+  },
+  homeReportsSubtitle: {
+    ko: "앱 개선 아이디어를 제안하거나 사기 거래를 신고하세요.",
+    my: "အက်ပ်တိုးတက်စေသော အကြံပြုချက် သို့မဟုတ် လိမ်လည်မှုကို တိုင်ကြားပါ။",
+    zh: "提交改进建议或举报欺诈交易。",
+  },
+  homeReportsNewSubmission: {
+    ko: "새 제출",
+    my: "အသစ် တင်သွင်းရန်",
+    zh: "新提交",
+  },
+  homeReportsYourHistory: {
+    ko: "제출 내역",
+    my: "တင်သွင်းမှု မှတ်တမ်း",
+    zh: "提交记录",
+  },
+  homeReportsEmptySuggestions: {
+    ko: "아직 제출한 제안이 없습니다.",
+    my: "အကြံပြုချက် မတင်ရသေးပါ။",
+    zh: "暂无建议记录。",
+  },
+  homeReportsEmptyFraud: {
+    ko: "아직 제출한 사기 신고가 없습니다.",
+    my: "လိမ်လည်မှု တိုင်ကြားချက် မတင်ရသေးပါ။",
+    zh: "暂无诈骗举报记录。",
+  },
+  homeReportsFraudTypeLabel: {
+    ko: "사기 유형",
+    my: "လိမ်လည်မှု အမျိုးအစား",
+    zh: "诈骗类型",
+  },
+  homeReportsPointsAwarded: {
+    ko: "+{points} 포인트",
+    my: "+{points} ပွိုင့်",
+    zh: "+{points} 积分",
+  },
+  homeSuggestionTab: {
+    ko: "제안",
+    my: "အကြံပြုချက်",
+    zh: "建议",
+  },
+  homeFraudTab: {
+    ko: "사기 신고",
+    my: "လိမ်လည်မှု တိုင်ကြားချက်",
+    zh: "诈骗举报",
+  },
+  homeSuggestionNicknamePlaceholder: {
+    ko: "닉네임",
+    my: "အမည်ပြောင်",
+    zh: "昵称",
+  },
+  homeSuggestionNamePlaceholder: {
+    ko: "이름",
+    my: "အမည်",
+    zh: "姓名",
+  },
+  homeSuggestionDetailsPlaceholder: {
+    ko: "개선 아이디어를 자세히 적어주세요.",
+    my: "တိုးတက်စေလိုသော အကြံပြုချက်ကို အသေးစိတ်ရေးပါ။",
+    zh: "请详细填写你的建议。",
+  },
+  homeSuggestionSubmit: {
+    ko: "제안 보내기",
+    my: "အကြံပြုချက် ပို့မည်",
+    zh: "提交建议",
+  },
+  homeMySuggestions: {
+    ko: "내 제안 내역",
+    my: "ကျွန်ုပ်၏ အကြံပြုချက်များ",
+    zh: "我的建议",
+  },
+  homeFraudUserNamePlaceholder: {
+    ko: "사기 사용자 이름",
+    my: "လိမ်လည်သူ အမည်",
+    zh: "诈骗者姓名",
+  },
+  homeFraudReferralCodePlaceholder: {
+    ko: "신고 대상 추천코드",
+    my: "တိုင်ကြားမည့်သူ referral code",
+    zh: "被举报人邀请码",
+  },
+  homeFraudTradeDatePlaceholder: {
+    ko: "거래일 (YYYY-MM-DD)",
+    my: "အရောင်းအဝယ်နေ့ (YYYY-MM-DD)",
+    zh: "交易日期 (YYYY-MM-DD)",
+  },
+  homeFraudTradeTimePlaceholder: {
+    ko: "거래시간 (HH:mm)",
+    my: "အရောင်းအဝယ်အချိန် (HH:mm)",
+    zh: "交易时间 (HH:mm)",
+  },
+  homeFraudTypeFakeProduct: {
+    ko: "가짜 상품",
+    my: "အတု ပစ္စည်း",
+    zh: "假货",
+  },
+  homeFraudTypeFakePayment: {
+    ko: "가짜 결제",
+    my: "အတု ငွေပေးချေမှု",
+    zh: "虚假付款",
+  },
+  homeFraudTypeHarassment: {
+    ko: "괴롭힘",
+    my: "အနှောင့်အယှက်",
+    zh: "骚扰",
+  },
+  homeFraudTypeOther: {
+    ko: "기타",
+    my: "အခြား",
+    zh: "其他",
+  },
+  homeFraudDetailsPlaceholder: {
+    ko: "피해 내용을 자세히 적어주세요.",
+    my: "ဖြစ်စဉ်အသေးစိတ်ကို ရေးပါ။",
+    zh: "请详细描述情况。",
+  },
+  homeFraudSubmit: {
+    ko: "사기 신고 제출",
+    my: "လိမ်လည်မှု တိုင်ကြားမည်",
+    zh: "提交诈骗举报",
+  },
+  homeMyFraudReports: {
+    ko: "내 사기 신고 내역",
+    my: "ကျွန်ုပ်၏ လိမ်လည်မှု တိုင်ကြားချက်များ",
+    zh: "我的诈骗举报",
+  },
+  homeReportsSubmitting: {
+    ko: "제출 중...",
+    my: "တင်သွင်းနေသည်...",
+    zh: "提交中...",
+  },
+  homeReportsSuccessTitle: {
+    ko: "완료",
+    my: "အောင်မြင်သည်",
+    zh: "成功",
+  },
+  homeSuggestionSubmitted: {
+    ko: "제안이 접수되었습니다.",
+    my: "အကြံပြုချက် လက်ခံရရှိပါသည်။",
+    zh: "建议已提交。",
+  },
+  homeFraudSubmitted: {
+    ko: "사기 신고가 접수되었습니다.",
+    my: "လိမ်လည်မှု တိုင်ကြားချက် လက်ခံရရှိပါသည်။",
+    zh: "诈骗举报已提交。",
+  },
+  homeReportsSubmitFailed: {
+    ko: "제출에 실패했습니다. 잠시 후 다시 시도하세요.",
+    my: "တင်သွင်းမှု မအောင်မြင်ပါ။ ခဏနေ၍ ပြန်ကြိုးစားပါ။",
+    zh: "提交失败，请稍后重试。",
+  },
   homeLogoutCaps: {
     ko: "Logout",
     my: "ထွက်မည်",
