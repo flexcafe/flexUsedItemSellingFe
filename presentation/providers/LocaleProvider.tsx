@@ -951,6 +951,31 @@ const DICT: Dictionary = {
     my: "တိုက်ရိုက်တွေ့ဆုံ တောင်းဆိုမှု မအောင်မြင်ပါ။",
     zh: "提交当面交易失败。",
   },
+  chatDirectTradeRequestTitle: {
+    ko: "직거래 요청",
+    my: "တိုက်ရိုက်တွေ့ဆုံရန် တောင်းဆိုချက်",
+    zh: "当面交易请求",
+  },
+  chatDirectTradeRequestDate: {
+    ko: "만남 날짜",
+    my: "တွေ့မည့်ရက်",
+    zh: "见面日期",
+  },
+  chatDirectTradeRequestTime: {
+    ko: "만남 시간",
+    my: "တွေ့မည့်အချိန်",
+    zh: "见面时间",
+  },
+  chatDirectTradeRequestLocation: {
+    ko: "만남 장소",
+    my: "တွေ့မည့်နေရာ",
+    zh: "见面地点",
+  },
+  chatDirectTradeRequestNoLocation: {
+    ko: "약속된 장소 없음",
+    my: "သတ်မှတ်ထားသော နေရာ မရှိပါ",
+    zh: "未指定地点",
+  },
   chatSafePaymentButton: {
     ko: "안전결제",
     my: "လုံခြုံငွေပေးချေမှု",
@@ -1160,6 +1185,26 @@ const DICT: Dictionary = {
     ko: "HH:mm (24시간)",
     my: "HH:mm (၂၄ နာရီ)",
     zh: "HH:mm（24小时）",
+  },
+  dateTimePickerConfirm: {
+    ko: "완료",
+    my: "ပြီးပြီ",
+    zh: "完成",
+  },
+  dateTimePickerCancel: {
+    ko: "취소",
+    my: "ပယ်ဖျက်",
+    zh: "取消",
+  },
+  dateTimePickerSelectDate: {
+    ko: "날짜 선택",
+    my: "ရက်စွဲ ရွေးချယ်ရန်",
+    zh: "选择日期",
+  },
+  dateTimePickerSelectTime: {
+    ko: "시간 선택",
+    my: "အချိန် ရွေးချယ်ရန်",
+    zh: "选择时间",
   },
   chatMeetingDateInvalid: {
     ko: "날짜 형식이 올바르지 않습니다.",

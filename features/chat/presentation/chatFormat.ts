@@ -23,6 +23,19 @@ export function messagePreview(
   if (message.type === "TEXT") {
     return message.content?.trim() || "";
   }
+  if (message.type === "DIRECT_TRADE_REQUEST") {
+    const meta = message.metadata;
+    const date =
+      meta && typeof meta.meetingDate === "string"
+        ? (meta.meetingDate as string)
+        : "";
+    const time =
+      meta && typeof meta.meetingTime === "string"
+        ? (meta.meetingTime as string)
+        : "";
+    if (date && time) return `${date} ${time}`;
+    return date || time || "직거래 요청";
+  }
   return message.content?.trim() || message.type.replaceAll("_", " ");
 }
 

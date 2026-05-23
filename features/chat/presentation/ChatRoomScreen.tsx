@@ -75,9 +75,8 @@ import {
   buildDirectTradeRequest,
   defaultMeetingDateString,
   defaultMeetingTimeString,
-  formatMeetingDateInput,
-  formatMeetingTimeInput,
 } from "./directTradeForm";
+import { DateTimeField } from "@/components/date-time-field";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const SAFE_PAYMENT_COMPLETABLE_STATUSES = new Set([
@@ -873,6 +872,12 @@ export function ChatRoomScreen({
     ({ item }: { item: ChatMessage }) => {
       const isMine = item.senderId != null && item.senderId === user?.id;
       const isSystem = item.type !== "TEXT" || item.senderId == null;
+      const isDirectTrade = item.type === "DIRECT_TRADE_REQUEST";
+
+      const tradeMeta = isDirectTrade
+        ? (item.metadata as Record<string, unknown>)
+        : null;
+
       return (
         <Animated.View
           entering={uiContentEnter(reduceMotion)}
@@ -886,6 +891,7 @@ export function ChatRoomScreen({
             style={[
               styles.bubble,
               isSystem && styles.bubbleSystem,
+              isDirectTrade && styles.bubbleDirectTrade,
               isMine
                 ? { backgroundColor: colors.tint }
                 : {
@@ -894,16 +900,27 @@ export function ChatRoomScreen({
                   },
             ]}
           >
-            {isSystem ? (
-              <ThemedText style={styles.systemType}>
-                {item.type.replaceAll("_", " ")}
-              </ThemedText>
-            ) : null}
-            <ThemedText
-              style={[styles.bubbleText, isMine && styles.bubbleTextMine]}
-            >
-              {messagePreview(item) || t("chatSystemMessage")}
-            </ThemedText>
+            {isDirectTrade ? (
+              <DirectTradeRequestCard
+                metadata={tradeMeta}
+                t={t}
+                isMine={isMine}
+                colors={colors}
+              />
+            ) : (
+              <>
+                {isSystem ? (
+                  <ThemedText style={styles.systemType}>
+                    {item.type.replaceAll("_", " ")}
+                  </ThemedText>
+                ) : null}
+                <ThemedText
+                  style={[styles.bubbleText, isMine && styles.bubbleTextMine]}
+                >
+                  {messagePreview(item) || t("chatSystemMessage")}
+                </ThemedText>
+              </>
+            )}
             <ThemedText
               style={[styles.bubbleTime, isMine && styles.bubbleTimeMine]}
             >
@@ -1402,39 +1419,18 @@ export function ChatRoomScreen({
                 <MaterialIcons name="close" size={20} color={colors.icon} />
               </Pressable>
             </View>
-            <ThemedText style={styles.pickerLabel}>
-              {t("chatMeetingDateLabel")}
-            </ThemedText>
-            <TextInput
+            <DateTimeField
+              mode="date"
               value={meetingDate}
-              onChangeText={(text) =>
-                setMeetingDate(formatMeetingDateInput(text))
-              }
-              placeholder={t("chatMeetingDatePlaceholder")}
-              placeholderTextColor={colors.icon}
-              keyboardType="number-pad"
-              maxLength={10}
-              style={[
-                styles.modalInput,
-                { color: colors.text, borderColor: colors.icon + "44" },
-              ]}
+              onChange={setMeetingDate}
+              label={t("chatMeetingDateLabel")}
+              minimumDate={new Date(2020, 0, 1)}
             />
-            <ThemedText style={styles.pickerLabel}>
-              {t("chatMeetingTimeLabel")}
-            </ThemedText>
-            <TextInput
+            <DateTimeField
+              mode="time"
               value={meetingTime}
-              onChangeText={(text) =>
-                setMeetingTime(formatMeetingTimeInput(text))
-              }
-              placeholder={t("chatMeetingTimePlaceholder")}
-              placeholderTextColor={colors.icon}
-              keyboardType="number-pad"
-              maxLength={5}
-              style={[
-                styles.modalInput,
-                { color: colors.text, borderColor: colors.icon + "44" },
-              ]}
+              onChange={setMeetingTime}
+              label={t("chatMeetingTimeLabel")}
             />
             <TextInput
               value={meetingLocation}
@@ -1936,6 +1932,89 @@ export function ChatRoomScreen({
   );
 }
 
+type DirectTradeCardProps = {
+  metadata: Record<string, unknown> | null;
+  t: (key: string) => string;
+  isMine: boolean;
+  colors: { text: string; tint: string; icon: string };
+};
+
+function DirectTradeRequestCard({
+  metadata,
+  t,
+  isMine,
+  colors: c,
+}: DirectTradeCardProps) {
+  const meetingDate =
+    metadata && typeof metadata.meetingDate === "string"
+      ? (metadata.meetingDate as string)
+      : null;
+  const meetingTime =
+    metadata && typeof metadata.meetingTime === "string"
+      ? (metadata.meetingTime as string)
+      : null;
+  const meetingLocation =
+    metadata && typeof metadata.meetingLocation === "string"
+      ? (metadata.meetingLocation as string)
+      : null;
+
+  const primaryText = isMine ? "#FFF" : c.text;
+  const mutedText = isMine ? "rgba(255,255,255,0.75)" : c.icon;
+
+  return (
+    <View style={styles.directTradeCard}>
+      <ThemedText
+        style={[styles.directTradeCardTitle, { color: primaryText }]}
+      >
+        {t("chatDirectTradeRequestTitle")}
+      </ThemedText>
+      {meetingDate || meetingTime ? (
+        <View style={styles.directTradeCardInfoRow}>
+          {meetingDate ? (
+            <View style={styles.directTradeCardInfoItem}>
+              <MaterialIcons name="event" size={14} color={primaryText} />
+              <ThemedText
+                style={[styles.directTradeCardInfoLabel, { color: mutedText }]}
+              >
+                {t("chatDirectTradeRequestDate")}
+              </ThemedText>
+              <ThemedText
+                style={[styles.directTradeCardInfoValue, { color: primaryText }]}
+              >
+                {meetingDate}
+              </ThemedText>
+            </View>
+          ) : null}
+          {meetingTime ? (
+            <View style={styles.directTradeCardInfoItem}>
+              <MaterialIcons name="schedule" size={14} color={primaryText} />
+              <ThemedText
+                style={[styles.directTradeCardInfoLabel, { color: mutedText }]}
+              >
+                {t("chatDirectTradeRequestTime")}
+              </ThemedText>
+              <ThemedText
+                style={[styles.directTradeCardInfoValue, { color: primaryText }]}
+              >
+                {meetingTime}
+              </ThemedText>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+      <View style={styles.directTradeCardLocationRow}>
+        <MaterialIcons name="location-on" size={14} color={primaryText} />
+        <ThemedText
+          style={[styles.directTradeCardInfoValue, { color: primaryText }]}
+          numberOfLines={2}
+        >
+          {meetingLocation || t("chatDirectTradeRequestNoLocation")}
+        </ThemedText>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   flex: { flex: 1 },
@@ -2137,6 +2216,13 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   bubbleSystem: { alignSelf: "center", maxWidth: "92%", opacity: 0.92 },
+  bubbleDirectTrade: {
+    alignSelf: "center",
+    maxWidth: "92%",
+    opacity: 1,
+    minWidth: 240,
+    overflow: "hidden",
+  },
   bubbleText: { fontSize: 15, lineHeight: 20 },
   bubbleTextMine: { color: "#FFF" },
   bubbleTime: { fontSize: 10, opacity: 0.65, alignSelf: "flex-end" },
@@ -2146,6 +2232,39 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     opacity: 0.75,
     textTransform: "uppercase",
+  },
+  directTradeCard: {
+    gap: 8,
+    paddingVertical: 2,
+    flexShrink: 1,
+  },
+  directTradeCardTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    opacity: 1,
+  },
+  directTradeCardInfoRow: {
+    flexDirection: "column",
+    gap: 6,
+  },
+  directTradeCardInfoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  directTradeCardInfoLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  directTradeCardInfoValue: {
+    fontSize: 13,
+    fontWeight: "500",
+    flexShrink: 1,
+  },
+  directTradeCardLocationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   historyLoader: {
     flexDirection: "row",

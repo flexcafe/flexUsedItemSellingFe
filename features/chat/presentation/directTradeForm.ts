@@ -1,4 +1,20 @@
 import type { DirectTradeRequestInput } from "@/core/domain/types/chat";
+import {
+  isValidCalendarDate,
+  isValidTime24h,
+} from "@/presentation/lib/dateTime";
+
+export type {
+  DateString,
+  TimeString,
+} from "@/presentation/lib/dateTime";
+
+export {
+  defaultDateString as defaultMeetingDateString,
+  defaultTimeString as defaultMeetingTimeString,
+  formatDateInputMask as formatMeetingDateInput,
+  formatTimeInputMask as formatMeetingTimeInput,
+} from "@/presentation/lib/dateTime";
 
 export type DirectTradeFormErrorKey =
   | "chatMeetingDateInvalid"
@@ -14,52 +30,11 @@ export type DirectTradeFormValues = {
   meetingLongitude: string;
 };
 
-export function defaultMeetingDateString(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = `${d.getMonth() + 1}`.padStart(2, "0");
-  const day = `${d.getDate()}`.padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-export function defaultMeetingTimeString(): string {
-  const d = new Date();
-  const minutes = d.getMinutes();
-  const rounded = Math.ceil(minutes / 15) * 15;
-  const hh = `${d.getHours() + (rounded >= 60 ? 1 : 0)}`.padStart(2, "0");
-  const mm = `${rounded % 60}`.padStart(2, "0");
-  return `${hh}:${mm}`;
-}
-
-/** Mask while typing → `YYYY-MM-DD`. */
-export function formatMeetingDateInput(raw: string): string {
-  const digits = raw.replace(/\D/g, "").slice(0, 8);
-  if (digits.length <= 4) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
-  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
-}
-
-/** Mask while typing → `HH:mm` (24h). */
-export function formatMeetingTimeInput(raw: string): string {
-  const digits = raw.replace(/\D/g, "").slice(0, 4);
-  if (digits.length <= 2) return digits;
-  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
-}
-
 function parseOptionalCoordinate(raw: string): number | undefined {
   const v = raw.trim().replace(",", ".");
   if (!v) return undefined;
   const n = Number(v);
   return Number.isFinite(n) ? n : Number.NaN;
-}
-
-function isValidCalendarDate(isoDate: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return false;
-  const [y, m, d] = isoDate.split("-").map(Number);
-  const dt = new Date(y, m - 1, d);
-  return (
-    dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d
-  );
 }
 
 export function buildDirectTradeRequest(
@@ -74,12 +49,7 @@ export function buildDirectTradeRequest(
     return { errorKey: "chatMeetingDateInvalid" };
   }
 
-  if (!/^\d{2}:\d{2}$/.test(meetingTime)) {
-    return { errorKey: "chatMeetingTimeInvalid" };
-  }
-
-  const [hh, mm] = meetingTime.split(":").map(Number);
-  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) {
+  if (!isValidTime24h(meetingTime)) {
     return { errorKey: "chatMeetingTimeInvalid" };
   }
 

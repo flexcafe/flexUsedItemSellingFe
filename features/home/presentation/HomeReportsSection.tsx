@@ -1,3 +1,4 @@
+import { DateTimeField } from "@/components/date-time-field";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
@@ -28,6 +29,10 @@ import {
   uiCardSurface,
   uiSectionEnter,
 } from "@/presentation/lib/uiAnimations";
+import {
+  isValidCalendarDate,
+  isValidTime24h,
+} from "@/presentation/lib/dateTime";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useMemo, useState, type ReactNode } from "react";
@@ -384,6 +389,14 @@ export function HomeReportsSection({
 
   const onSubmitFraud = async () => {
     if (!canSubmitFraud || submitFraudReport.isPending) return;
+    if (!isValidCalendarDate(tradeDate.trim())) {
+      Alert.alert(t("errorTitle"), t("chatMeetingDateInvalid"));
+      return;
+    }
+    if (!isValidTime24h(tradeTime.trim())) {
+      Alert.alert(t("errorTitle"), t("chatMeetingTimeInvalid"));
+      return;
+    }
     try {
       await submitFraudReport.mutateAsync({
         fraudUserName: fraudUserName.trim(),
@@ -635,16 +648,17 @@ export function HomeReportsSection({
                       <FormField
                         label={t("homeFraudTradeDatePlaceholder")}
                         icon="event"
-                    tint={colors.tint}
-                    surface={fieldSurface}
-                    borderColor={borderColor}
-                  >
-                        <PremiumInput
+                        tint={colors.tint}
+                        surface={fieldSurface}
+                        borderColor={borderColor}
+                      >
+                        <DateTimeField
+                          mode="date"
                           value={tradeDate}
-                          onChangeText={setTradeDate}
-                          placeholder="YYYY-MM-DD"
-                          textColor={colors.text}
-                          placeholderColor={colors.icon}
+                          onChange={setTradeDate}
+                          placeholder={t("homeFraudTradeDatePlaceholder")}
+                          embedded
+                          minimumDate={new Date(2020, 0, 1)}
                         />
                       </FormField>
                     </View>
@@ -652,16 +666,16 @@ export function HomeReportsSection({
                       <FormField
                         label={t("homeFraudTradeTimePlaceholder")}
                         icon="schedule"
-                    tint={colors.tint}
-                    surface={fieldSurface}
-                    borderColor={borderColor}
-                  >
-                        <PremiumInput
+                        tint={colors.tint}
+                        surface={fieldSurface}
+                        borderColor={borderColor}
+                      >
+                        <DateTimeField
+                          mode="time"
                           value={tradeTime}
-                          onChangeText={setTradeTime}
-                          placeholder="HH:mm"
-                          textColor={colors.text}
-                          placeholderColor={colors.icon}
+                          onChange={setTradeTime}
+                          placeholder={t("homeFraudTradeTimePlaceholder")}
+                          embedded
                         />
                       </FormField>
                     </View>
