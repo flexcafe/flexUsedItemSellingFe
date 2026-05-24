@@ -420,6 +420,22 @@ export function ChatRoomScreen({
     detail?.selectedLocationLabel,
     t,
   ]);
+  const pendingLocationChangeFromMessages = useMemo(() => {
+    for (let i = chronological.length - 1; i >= 0; i -= 1) {
+      const type = chronological[i].type;
+      if (type === "DIRECT_TRADE_LOCATION_CHANGE_REQUESTED") return true;
+      if (
+        type === "DIRECT_TRADE_LOCATION_CHANGE_ACCEPTED" ||
+        type === "DIRECT_TRADE_LOCATION_CHANGE_DENIED"
+      ) {
+        return false;
+      }
+    }
+    return false;
+  }, [chronological]);
+  const showPendingLocationChange = Boolean(
+    detail?.pendingLocationChange || pendingLocationChangeFromMessages,
+  );
   const proposedMapPin = useMemo(() => {
     if (
       !showPendingLocationChange ||
@@ -443,22 +459,6 @@ export function ChatRoomScreen({
 
   const hasAnyLivePoint = Boolean(
     myPoint || counterpartPoint || meetupMapPin || proposedMapPin,
-  );
-  const pendingLocationChangeFromMessages = useMemo(() => {
-    for (let i = chronological.length - 1; i >= 0; i -= 1) {
-      const type = chronological[i].type;
-      if (type === "DIRECT_TRADE_LOCATION_CHANGE_REQUESTED") return true;
-      if (
-        type === "DIRECT_TRADE_LOCATION_CHANGE_ACCEPTED" ||
-        type === "DIRECT_TRADE_LOCATION_CHANGE_DENIED"
-      ) {
-        return false;
-      }
-    }
-    return false;
-  }, [chronological]);
-  const showPendingLocationChange = Boolean(
-    detail?.pendingLocationChange || pendingLocationChangeFromMessages,
   );
   const hasConfirmedMeetingLocation = Boolean(detail?.meetingLocation?.trim());
   const canStartLiveGps = Boolean(
