@@ -131,13 +131,31 @@ export type LeafletLiveMarker = {
   longitude: number;
   label: string;
   color: string;
+  kind?: "default" | "proposed";
+};
+
+export type LeafletRouteLine = {
+  fromLatitude: number;
+  fromLongitude: number;
+  toLatitude: number;
+  toLongitude: number;
+  color?: string;
+};
+
+export type LeafletFocusPoint = {
+  latitude: number;
+  longitude: number;
 };
 
 /**
  * Read-only live map with multiple markers.
  * Used by chat live-location section to show both parties.
  */
-export function buildLeafletLiveViewHtml(markers: LeafletLiveMarker[]): string {
+export function buildLeafletLiveViewHtml(
+  markers: LeafletLiveMarker[],
+  routeLine?: LeafletRouteLine | null,
+  focusPoint?: LeafletFocusPoint | null,
+): string {
   const tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
   const safeMarkers = markers
     .filter(
@@ -152,8 +170,37 @@ export function buildLeafletLiveViewHtml(markers: LeafletLiveMarker[]): string {
       longitude: m.longitude,
       label: m.label,
       color: m.color,
+      kind: m.kind === "proposed" ? "proposed" : "default",
     }));
   const markersJson = JSON.stringify(safeMarkers).replace(/</g, "\\u003c");
+  const safeRoute =
+    routeLine &&
+    Number.isFinite(routeLine.fromLatitude) &&
+    Number.isFinite(routeLine.fromLongitude) &&
+    Number.isFinite(routeLine.toLatitude) &&
+    Number.isFinite(routeLine.toLongitude)
+      ? {
+          fromLatitude: routeLine.fromLatitude,
+          fromLongitude: routeLine.fromLongitude,
+          toLatitude: routeLine.toLatitude,
+          toLongitude: routeLine.toLongitude,
+          color:
+            typeof routeLine.color === "string" && routeLine.color.trim()
+              ? routeLine.color
+              : "#1565C0",
+        }
+      : null;
+  const routeJson = JSON.stringify(safeRoute).replace(/</g, "\\u003c");
+  const safeFocusPoint =
+    focusPoint &&
+    Number.isFinite(focusPoint.latitude) &&
+    Number.isFinite(focusPoint.longitude)
+      ? {
+          latitude: focusPoint.latitude,
+          longitude: focusPoint.longitude,
+        }
+      : null;
+  const focusJson = JSON.stringify(safeFocusPoint).replace(/</g, "\\u003c");
 
   return `<!doctype html>
 <html>
@@ -182,11 +229,15 @@ export function buildLeafletLiveViewHtml(markers: LeafletLiveMarker[]): string {
     <script>
       (function () {
         var markers = ${markersJson};
+        var routeLine = ${routeJson};
+        var focusPoint = ${focusJson};
         var hasMarkers = Array.isArray(markers) && markers.length > 0;
-        var center = hasMarkers
+        var center = focusPoint
+          ? [focusPoint.latitude, focusPoint.longitude]
+          : hasMarkers
           ? [markers[0].latitude, markers[0].longitude]
           : [16.8, 96.15];
-        var zoom = hasMarkers ? 15 : 6;
+        var zoom = focusPoint ? 16 : hasMarkers ? 15 : 6;
 
         var map = L.map('map', {
           zoomControl: true,
@@ -221,12 +272,13 @@ export function buildLeafletLiveViewHtml(markers: LeafletLiveMarker[]): string {
           }
           var latlng = [lat, lng];
           bounds.push(latlng);
+          var isProposed = m.kind === 'proposed';
           L.circleMarker(latlng, {
-            radius: 8,
+            radius: isProposed ? 6 : 8,
             color: '#FFFFFF',
             weight: 2,
             fillColor: m.color || '#2E7D32',
-            fillOpacity: 0.95
+            fillOpacity: isProposed ? 0.65 : 0.95
           })
             .addTo(map)
             .bindTooltip(m.label, {
@@ -237,7 +289,60 @@ export function buildLeafletLiveViewHtml(markers: LeafletLiveMarker[]): string {
             });
         });
 
-        if (bounds.length > 1) {
+        if (routeLine) {
+          var fallbackPoints = [
+            [routeLine.fromLatitude, routeLine.fromLongitude],
+            [routeLine.toLatitude, routeLine.toLongitude]
+          ];
+          bounds.push(fallbackPoints[0], fallbackPoints[1]);
+
+          var routeUrl =
+            'https://router.project-osrm.org/route/v1/driving/' +
+            routeLine.fromLongitude + ',' + routeLine.fromLatitude + ';' +
+            routeLine.toLongitude + ',' + routeLine.toLatitude +
+            '?overview=full&geometries=geojson';
+
+          fetch(routeUrl)
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+              var coords =
+                data &&
+                Array.isArray(data.routes) &&
+                data.routes[0] &&
+                data.routes[0].geometry &&
+                Array.isArray(data.routes[0].geometry.coordinates)
+                  ? data.routes[0].geometry.coordinates
+                  : null;
+              if (!coords || coords.length < 2) throw new Error('No route');
+
+              var latLngs = coords.map(function (p) {
+                return [p[1], p[0]];
+              });
+              latLngs.forEach(function (p) { bounds.push(p); });
+              L.polyline(latLngs, {
+                color: routeLine.color || '#1565C0',
+                weight: 4,
+                opacity: 0.85
+              }).addTo(map);
+              if (!focusPoint && bounds.length > 1) {
+                map.fitBounds(bounds, { padding: [26, 26], maxZoom: 16 });
+              }
+            })
+            .catch(function () {
+              // Fallback to straight line if routing service is unavailable.
+              L.polyline(fallbackPoints, {
+                color: routeLine.color || '#1565C0',
+                weight: 4,
+                opacity: 0.7,
+                dashArray: '8 8'
+              }).addTo(map);
+              if (!focusPoint && bounds.length > 1) {
+                map.fitBounds(bounds, { padding: [26, 26], maxZoom: 16 });
+              }
+            });
+        }
+
+        if (!routeLine && !focusPoint && bounds.length > 1) {
           map.fitBounds(bounds, { padding: [26, 26], maxZoom: 16 });
         }
       })();

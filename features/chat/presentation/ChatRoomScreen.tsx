@@ -26,6 +26,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
+import { DateTimeField } from "@/components/date-time-field";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { topOffsetForFloatingBackButton } from "@/constants/language-switcher-layout";
@@ -83,7 +84,6 @@ import {
   defaultMeetingDateString,
   defaultMeetingTimeString,
 } from "./directTradeForm";
-import { DateTimeField } from "@/components/date-time-field";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const SAFE_PAYMENT_COMPLETABLE_STATUSES = new Set([
@@ -116,7 +116,8 @@ function readTransactionFromMessage(
   const fallbackType =
     message.type === "DIRECT_TRADE_REQUEST"
       ? "DIRECT_TRADE"
-      : message.type.startsWith("SAFE_PAYMENT") || message.type === "PAYMENT_TRANSFERRED"
+      : message.type.startsWith("SAFE_PAYMENT") ||
+          message.type === "PAYMENT_TRANSFERRED"
         ? "SAFE_PAYMENT"
         : null;
   const type =
@@ -144,6 +145,26 @@ function readTransactionFromMessage(
         ? source.completedAt
         : null,
   };
+}
+
+function readApiErrorInfo(error: unknown): { status: number | null; message: string } {
+  let status: number | null = null;
+  let message = "";
+  if (error && typeof error === "object" && "response" in error) {
+    const response = (error as { response?: { status?: unknown; data?: unknown } })
+      .response;
+    const statusNum = Number(response?.status);
+    if (Number.isFinite(statusNum)) status = statusNum;
+    const data = response?.data;
+    if (data && typeof data === "object" && "message" in data) {
+      const raw = (data as { message?: unknown }).message;
+      if (typeof raw === "string") message = raw.trim();
+    }
+  }
+  if (!message && error instanceof Error && error.message.trim()) {
+    message = error.message.trim();
+  }
+  return { status, message };
 }
 
 type Props = {
@@ -174,7 +195,7 @@ export function ChatRoomScreen({
   const { height: windowHeight } = useWindowDimensions();
   const liveMapModalHeight = Math.min(
     LIVE_MAP_MODAL_MAX_HEIGHT,
-    Math.round(windowHeight * 0.52),
+    Math.round(windowHeight * 0.42),
   );
   const backTop = topOffsetForFloatingBackButton(insets.top);
   const queryClient = useQueryClient();
@@ -273,6 +294,10 @@ export function ChatRoomScreen({
   } | null>(null);
   const [toolsExpanded, setToolsExpanded] = useState(false);
   const [liveMapModalOpen, setLiveMapModalOpen] = useState(false);
+  const [liveMapFocusPoint, setLiveMapFocusPoint] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const listRef = useRef<FlatListType<ChatMessage>>(null);
   const messages = useMemo(() => {
     const pages = messagesQuery.data?.pages ?? [];
@@ -359,23 +384,23 @@ export function ChatRoomScreen({
   const usesSafePaymentCompletion = Boolean(safeTransaction);
   const isSafeCompletable = Boolean(
     safeTransaction &&
-      SAFE_PAYMENT_COMPLETABLE_STATUSES.has(safeTransaction.status),
+    SAFE_PAYMENT_COMPLETABLE_STATUSES.has(safeTransaction.status),
   );
   const isBuyer = Boolean(
     user?.id && roomMeta?.buyerId && user.id === roomMeta.buyerId,
   );
   const currentUserAlreadyCompleted = Boolean(
     completionTransaction &&
-      (isBuyer
-        ? completionTransaction.buyerCompleted
-        : completionTransaction.sellerCompleted),
+    (isBuyer
+      ? completionTransaction.buyerCompleted
+      : completionTransaction.sellerCompleted),
   );
   const detail = directTradeDetailQuery.data;
 
   const meetupMapPin = useMemo(() => {
     if (
-      detail?.meetingLatitude &&
-      detail?.meetingLongitude &&
+      detail?.meetingLatitude != null &&
+      detail?.meetingLongitude != null &&
       Number.isFinite(detail.meetingLatitude) &&
       Number.isFinite(detail.meetingLongitude)
     ) {
@@ -383,7 +408,9 @@ export function ChatRoomScreen({
         latitude: detail.meetingLatitude,
         longitude: detail.meetingLongitude,
         label:
-          detail.selectedLocationLabel || t("chatDirectTradeLocationLabel"),
+          detail.selectedLocationLabel ||
+          detail.meetingLocation ||
+          t("chatDirectTradeLocationLabel"),
       };
     }
     return null;
@@ -393,8 +420,30 @@ export function ChatRoomScreen({
     detail?.selectedLocationLabel,
     t,
   ]);
+  const proposedMapPin = useMemo(() => {
+    if (
+      !showPendingLocationChange ||
+      detail?.buyerRequestedLatitude == null ||
+      detail?.buyerRequestedLongitude == null ||
+      !Number.isFinite(detail.buyerRequestedLatitude) ||
+      !Number.isFinite(detail.buyerRequestedLongitude)
+    ) {
+      return null;
+    }
+    return {
+      latitude: detail.buyerRequestedLatitude,
+      longitude: detail.buyerRequestedLongitude,
+      label: "Proposed",
+    };
+  }, [
+    detail?.buyerRequestedLatitude,
+    detail?.buyerRequestedLongitude,
+    showPendingLocationChange,
+  ]);
 
-  const hasAnyLivePoint = Boolean(myPoint || counterpartPoint || meetupMapPin);
+  const hasAnyLivePoint = Boolean(
+    myPoint || counterpartPoint || meetupMapPin || proposedMapPin,
+  );
   const pendingLocationChangeFromMessages = useMemo(() => {
     for (let i = chronological.length - 1; i >= 0; i -= 1) {
       const type = chronological[i].type;
@@ -410,6 +459,13 @@ export function ChatRoomScreen({
   }, [chronological]);
   const showPendingLocationChange = Boolean(
     detail?.pendingLocationChange || pendingLocationChangeFromMessages,
+  );
+  const hasConfirmedMeetingLocation = Boolean(detail?.meetingLocation?.trim());
+  const canStartLiveGps = Boolean(
+    hasDirectTrade &&
+      !isTransactionFullyCompleted &&
+      hasConfirmedMeetingLocation &&
+      !showPendingLocationChange,
   );
   const pendingRequestedLocation = useMemo(() => {
     if (detail?.buyerRequestedLocation?.trim()) {
@@ -445,18 +501,18 @@ export function ChatRoomScreen({
   }, [chronological]);
   const canCompleteTrade = Boolean(
     completionTransaction &&
-      !currentUserAlreadyCompleted &&
-      (usesSafePaymentCompletion
-        ? isSafeCompletable
-        : completionTransaction.status !== "COMPLETED") &&
-      // For meetup flows: must have agreed meeting place and no pending change
-      (!hasDirectTrade ||
-        (detail?.meetingLocation && !showPendingLocationChange)),
+    !currentUserAlreadyCompleted &&
+    (usesSafePaymentCompletion
+      ? isSafeCompletable
+      : completionTransaction.status !== "COMPLETED") &&
+    // For meetup flows: must have agreed meeting place and no pending change
+    (!hasDirectTrade ||
+      (detail?.meetingLocation && !showPendingLocationChange)),
   );
   const waitingForCounterpartyComplete = Boolean(
     completionTransaction &&
-      completionTransaction.status !== "COMPLETED" &&
-      currentUserAlreadyCompleted,
+    completionTransaction.status !== "COMPLETED" &&
+    currentUserAlreadyCompleted,
   );
   const isTransactionFullyCompleted =
     completionTransaction?.status === "COMPLETED";
@@ -471,11 +527,7 @@ export function ChatRoomScreen({
     if (pendingLocationChangeFromMessages && chatRoomId) {
       void directTradeDetailQuery.refetch();
     }
-  }, [
-    chatRoomId,
-    directTradeDetailQuery,
-    pendingLocationChangeFromMessages,
-  ]);
+  }, [chatRoomId, directTradeDetailQuery, pendingLocationChangeFromMessages]);
 
   const liveMapHtml = useMemo(() => {
     const markers = [];
@@ -485,6 +537,15 @@ export function ChatRoomScreen({
         longitude: meetupMapPin.longitude,
         label: meetupMapPin.label,
         color: "#FF8F00",
+      });
+    }
+    if (proposedMapPin) {
+      markers.push({
+        latitude: proposedMapPin.latitude,
+        longitude: proposedMapPin.longitude,
+        label: proposedMapPin.label,
+        color: "#78909C",
+        kind: "proposed" as const,
       });
     }
     if (myPoint) {
@@ -503,8 +564,26 @@ export function ChatRoomScreen({
         color: "#E53935",
       });
     }
-    return buildLeafletLiveViewHtml(markers);
-  }, [counterpartPoint, meetupMapPin, myMarkerLabel, myPoint, peerMarkerLabel]);
+    const routeLine =
+      myPoint && meetupMapPin
+        ? {
+            fromLatitude: myPoint.latitude,
+            fromLongitude: myPoint.longitude,
+            toLatitude: meetupMapPin.latitude,
+            toLongitude: meetupMapPin.longitude,
+            color: "#1565C0",
+          }
+        : null;
+    return buildLeafletLiveViewHtml(markers, routeLine, liveMapFocusPoint);
+  }, [
+    counterpartPoint,
+    liveMapFocusPoint,
+    meetupMapPin,
+    myMarkerLabel,
+    myPoint,
+    peerMarkerLabel,
+    proposedMapPin,
+  ]);
 
   useEffect(() => {
     if (!safePaymentOpen) return;
@@ -533,7 +612,8 @@ export function ChatRoomScreen({
   }, [myShareOverride, mySharingFromMessages]);
 
   useEffect(() => {
-    if (!messageTransaction || messageTransaction.type !== "DIRECT_TRADE") return;
+    if (!messageTransaction || messageTransaction.type !== "DIRECT_TRADE")
+      return;
     setDirectTradeTransaction((prev) => {
       if (!prev || prev.id !== messageTransaction.id) return messageTransaction;
       return {
@@ -686,7 +766,10 @@ export function ChatRoomScreen({
   const onCompleteTransaction = useCallback(() => {
     const transactionId = completionTransaction?.id;
     if (!transactionId) {
-      Alert.alert(t("chatCompleteTradeTitle"), t("chatCompleteTradeUnavailable"));
+      Alert.alert(
+        t("chatCompleteTradeTitle"),
+        t("chatCompleteTradeUnavailable"),
+      );
       return;
     }
     if (usesSafePaymentCompletion && !isSafeCompletable) {
@@ -696,7 +779,10 @@ export function ChatRoomScreen({
       );
       return;
     }
-    if (currentUserAlreadyCompleted && completionTransaction?.status !== "COMPLETED") {
+    if (
+      currentUserAlreadyCompleted &&
+      completionTransaction?.status !== "COMPLETED"
+    ) {
       Alert.alert(
         t("chatCompleteTradeTitle"),
         t("chatCompleteTradePendingBoth"),
@@ -717,12 +803,20 @@ export function ChatRoomScreen({
             });
           }
           await safePaymentStatusQuery.refetch();
-          Alert.alert(t("chatCompleteTradeTitle"), t("chatCompleteTradeSuccess"));
+          Alert.alert(
+            t("chatCompleteTradeTitle"),
+            t("chatCompleteTradeSuccess"),
+          );
         },
         onError: (error) => {
-          const message = chatActionErrorMessage(error, t("chatSafePaymentLoadFailed"));
+          const message = chatActionErrorMessage(
+            error,
+            t("chatSafePaymentLoadFailed"),
+          );
           const normalized = message.toLowerCase();
-          const mapped = normalized.includes("cannot complete until admin has confirmed")
+          const mapped = normalized.includes(
+            "cannot complete until admin has confirmed",
+          )
             ? t("chatCompleteTradeWaitAdminReceived")
             : normalized.includes("safe payment was started") ||
                 normalized.includes("finish the safe payment flow")
@@ -730,10 +824,7 @@ export function ChatRoomScreen({
               : normalized.includes("already completed via safe payment")
                 ? t("chatCompleteTradeAlreadyDone")
                 : message;
-          Alert.alert(
-            t("chatCompleteTradeTitle"),
-            mapped,
-          );
+          Alert.alert(t("chatCompleteTradeTitle"), mapped);
         },
       },
     );
@@ -856,6 +947,31 @@ export function ChatRoomScreen({
             setLocationPickerOpen(false);
           },
           onError: (error) => {
+            const info = readApiErrorInfo(error);
+            const messageLower = info.message.toLowerCase();
+            if (info.status === 404) {
+              setLocationPickerOpen(false);
+              setDirectTradeOpen(true);
+              Alert.alert(
+                t("chatDirectTradeTitle"),
+                "Direct trade not started yet. Please set date and time first.",
+              );
+              return;
+            }
+            if (info.status === 403) {
+              Alert.alert(
+                t("chatDirectTradeTitle"),
+                "Only buyer can choose listing location.",
+              );
+              return;
+            }
+            if (info.status === 500 && messageLower.includes("messagetype")) {
+              Alert.alert(
+                t("chatDirectTradeTitle"),
+                "Server message-type config issue. Please contact support.",
+              );
+              return;
+            }
             Alert.alert(
               t("chatDirectTradeTitle"),
               chatActionErrorMessage(error, t("chatDirectTradeFailed")),
@@ -926,10 +1042,7 @@ export function ChatRoomScreen({
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(
-          t("chatDirectTradeTitle"),
-          t("chatMeetingCoordsInvalid"),
-        );
+        Alert.alert(t("chatDirectTradeTitle"), t("chatMeetingCoordsInvalid"));
         return;
       }
       const position = await Location.getCurrentPositionAsync({
@@ -950,17 +1063,12 @@ export function ChatRoomScreen({
 
   const onSubmitLocationChange = useCallback(() => {
     if (!chatRoomId) return;
-    if (
-      !changeRequestAddress.trim() ||
-      !changeRequestCoords
-    ) {
+    if (!changeRequestAddress.trim() || !changeRequestCoords) {
       Alert.alert(t("chatDirectTradeTitle"), t("chatMeetingCoordsInvalid"));
       return;
     }
     const meetingTimeRaw =
-      changeRequestTime.trim() ||
-      detail?.meetingTime?.trim() ||
-      "";
+      changeRequestTime.trim() || detail?.meetingTime?.trim() || "";
     requestLocationChangeMutation.mutate(
       {
         meetingTime: meetingTimeRaw,
@@ -974,6 +1082,71 @@ export function ChatRoomScreen({
           setChangeRequestOpen(false);
         },
         onError: (error) => {
+          const info = readApiErrorInfo(error);
+          const messageLower = info.message.toLowerCase();
+          if (
+            info.status === 400 &&
+            (messageLower.includes("choose listing first") ||
+              messageLower.includes("listing first"))
+          ) {
+            setChangeRequestOpen(false);
+            setLocationPickerOpen(true);
+            Alert.alert(
+              t("chatDirectTradeTitle"),
+              "Please choose a listing location first.",
+            );
+            return;
+          }
+          if (
+            info.status === 400 &&
+            (messageLower.includes("already on listing") ||
+              messageLower.includes("already listing"))
+          ) {
+            setChangeRequestOpen(false);
+            setLocationPickerOpen(true);
+            Alert.alert(
+              t("chatDirectTradeTitle"),
+              "This is already a listing location. Use listing picker instead.",
+            );
+            return;
+          }
+          if (
+            info.status === 400 &&
+            (messageLower.includes("pending change exists") ||
+              messageLower.includes("pending"))
+          ) {
+            setChangeRequestOpen(false);
+            void directTradeDetailQuery.refetch();
+            Alert.alert(
+              t("chatDirectTradeTitle"),
+              "A location change request is already pending seller response.",
+            );
+            return;
+          }
+          if (info.status === 403) {
+            setChangeRequestOpen(false);
+            Alert.alert(
+              t("chatDirectTradeTitle"),
+              "Only buyer can request location change.",
+            );
+            return;
+          }
+          if (info.status === 404) {
+            setChangeRequestOpen(false);
+            setDirectTradeOpen(true);
+            Alert.alert(
+              t("chatDirectTradeTitle"),
+              "Direct trade not started yet. Please set date and time first.",
+            );
+            return;
+          }
+          if (info.status === 500 && messageLower.includes("messagetype")) {
+            Alert.alert(
+              t("chatDirectTradeTitle"),
+              "Server message-type config issue. Please contact support.",
+            );
+            return;
+          }
           Alert.alert(
             t("chatDirectTradeTitle"),
             chatActionErrorMessage(error, t("chatDirectTradeFailed")),
@@ -1000,6 +1173,30 @@ export function ChatRoomScreen({
             void directTradeDetailQuery.refetch();
           },
           onError: (error) => {
+            const info = readApiErrorInfo(error);
+            const messageLower = info.message.toLowerCase();
+            if (info.status === 403) {
+              Alert.alert(
+                t("chatDirectTradeTitle"),
+                "Only seller can accept or deny location change.",
+              );
+              return;
+            }
+            if (info.status === 404) {
+              setDirectTradeOpen(true);
+              Alert.alert(
+                t("chatDirectTradeTitle"),
+                "Direct trade not started yet. Please set date and time first.",
+              );
+              return;
+            }
+            if (info.status === 500 && messageLower.includes("messagetype")) {
+              Alert.alert(
+                t("chatDirectTradeTitle"),
+                "Server message-type config issue. Please contact support.",
+              );
+              return;
+            }
             Alert.alert(
               t("chatDirectTradeTitle"),
               chatActionErrorMessage(error, t("chatDirectTradeFailed")),
@@ -1087,9 +1284,15 @@ export function ChatRoomScreen({
   );
 
   const onStartLocationShare = useCallback(() => {
-    if (!hasDirectTrade || isTransactionFullyCompleted) return;
+    if (!canStartLiveGps) {
+      Alert.alert(
+        t("chatDirectTradeTitle"),
+        "Set an agreed meetup place first and wait until no pending location change.",
+      );
+      return;
+    }
     void shareCoords("start");
-  }, [hasDirectTrade, isTransactionFullyCompleted, shareCoords]);
+  }, [canStartLiveGps, shareCoords, t]);
 
   const onUpdateLocationShare = useCallback(() => {
     if (!hasDirectTrade || isTransactionFullyCompleted) return;
@@ -1112,7 +1315,13 @@ export function ChatRoomScreen({
         );
       },
     });
-  }, [chatRoomId, hasDirectTrade, isTransactionFullyCompleted, stopLocationMutation, t]);
+  }, [
+    chatRoomId,
+    hasDirectTrade,
+    isTransactionFullyCompleted,
+    stopLocationMutation,
+    t,
+  ]);
 
   useEffect(() => {
     if (
@@ -1337,15 +1546,25 @@ export function ChatRoomScreen({
           ]}
         >
           <View style={styles.pendingLocationBannerHeader}>
-            <MaterialIcons name="edit-location-alt" size={20} color={colors.tint} />
-            <ThemedText type="defaultSemiBold" style={{ color: colors.tint, fontSize: 15 }}>
+            <MaterialIcons
+              name="edit-location-alt"
+              size={20}
+              color={colors.tint}
+            />
+            <ThemedText
+              type="defaultSemiBold"
+              style={{ color: colors.tint, fontSize: 15 }}
+            >
               {t("chatDirectTradePendingChange")}
             </ThemedText>
           </View>
           {pendingRequestedLocation ? (
             <View style={styles.pendingLocationBannerAddress}>
               <MaterialIcons name="place" size={16} color={colors.icon} />
-              <ThemedText numberOfLines={2} style={{ flex: 1, fontSize: 13, opacity: 0.85 }}>
+              <ThemedText
+                numberOfLines={2}
+                style={{ flex: 1, fontSize: 13, opacity: 0.85 }}
+              >
                 {pendingRequestedLocation}
               </ThemedText>
             </View>
@@ -1495,7 +1714,9 @@ export function ChatRoomScreen({
                     <Pressable
                       onPress={onStartLocationShare}
                       disabled={
-                        isFetchingCoords || startLocationMutation.isPending
+                        !canStartLiveGps ||
+                        isFetchingCoords ||
+                        startLocationMutation.isPending
                       }
                       style={({ pressed }) => [
                         styles.toolChip,
@@ -1503,6 +1724,7 @@ export function ChatRoomScreen({
                         {
                           borderColor: colors.tint + "55",
                           opacity:
+                            !canStartLiveGps ||
                             isFetchingCoords || startLocationMutation.isPending
                               ? 0.55
                               : pressed
@@ -1616,7 +1838,10 @@ export function ChatRoomScreen({
                         >
                           <View style={styles.mapPreviewTextCol}>
                             <ThemedText
-                              style={[styles.liveLocationTitle, { color: colors.tint }]}
+                              style={[
+                                styles.liveLocationTitle,
+                                { color: colors.tint },
+                              ]}
                             >
                               {detail.selectedLocationLabel ||
                                 t("chatDirectTradeLocationLabel")}
@@ -1639,7 +1864,11 @@ export function ChatRoomScreen({
                                 },
                               ]}
                             >
-                              <MaterialIcons name="edit" size={16} color="#FFF" />
+                              <MaterialIcons
+                                name="edit"
+                                size={16}
+                                color="#FFF"
+                              />
                               <ThemedText style={styles.mapOpenBtnText}>
                                 {t("chatDirectTradeChangeLocation")}
                               </ThemedText>
@@ -1718,6 +1947,7 @@ export function ChatRoomScreen({
                     </View>
                     <Pressable
                       onPress={() => {
+                        setLiveMapFocusPoint(null);
                         setLiveMapModalOpen(true);
                         setToolsExpanded(false);
                       }}
@@ -1956,7 +2186,7 @@ export function ChatRoomScreen({
             ]}
           >
             <View style={styles.modalHeader}>
-              <ThemedText type="defaultSemiBold">
+              <ThemedText type="defaultSemiBold" style={styles.mapModalTitle}>
                 {t("chatLiveLocationMap")}
               </ThemedText>
               <Pressable
@@ -1978,16 +2208,95 @@ export function ChatRoomScreen({
                     originWhitelist={["*"]}
                   />
                 </View>
-                <ThemedText style={styles.liveLocationLine}>
-                  {myMarkerLabel}: {myLocationStatus}
-                </ThemedText>
-                <ThemedText style={styles.liveLocationLine}>
-                  {peerMarkerLabel}: {peerLocationStatus}
-                </ThemedText>
-                {meetupMapPin ? (
-                  <ThemedText style={styles.liveLocationLine}>
-                    {t("chatDirectTradeLocationLabel")}: {meetupMapPin.label}
+                <View style={styles.mapStatusGrid}>
+                  <View style={[styles.mapStatusChip, { borderColor: "#1E88E544" }]}>
+                    <View
+                      style={[
+                        styles.liveLegendDot,
+                        styles.mapStatusDot,
+                        { backgroundColor: "#1E88E5" },
+                      ]}
+                    />
+                    <ThemedText style={styles.mapStatusLabel}>
+                      {myMarkerLabel}
+                    </ThemedText>
+                    <ThemedText
+                      style={styles.mapStatusValue}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {myLocationStatus}
+                    </ThemedText>
+                  </View>
+                  <View style={[styles.mapStatusChip, { borderColor: "#E5393544" }]}>
+                    <View
+                      style={[
+                        styles.liveLegendDot,
+                        styles.mapStatusDot,
+                        { backgroundColor: "#E53935" },
+                      ]}
+                    />
+                    <ThemedText style={styles.mapStatusLabel}>
+                      {peerMarkerLabel}
+                    </ThemedText>
+                    <ThemedText
+                      style={styles.mapStatusValue}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {peerLocationStatus}
+                    </ThemedText>
+                  </View>
+                </View>
+                <Pressable
+                  onPress={() => {
+                    if (!myPoint) {
+                      Alert.alert(
+                        t("chatDirectTradeTitle"),
+                        "Your live location is not available yet.",
+                      );
+                      return;
+                    }
+                    setLiveMapFocusPoint({
+                      latitude: myPoint.latitude,
+                      longitude: myPoint.longitude,
+                    });
+                  }}
+                  style={({ pressed }) => [
+                    styles.locationChangeBtn,
+                    {
+                      borderColor: colors.tint,
+                      alignSelf: "stretch",
+                      justifyContent: "center",
+                      marginTop: 6,
+                      opacity: pressed ? 0.88 : 1,
+                    },
+                  ]}
+                >
+                  <MaterialIcons name="my-location" size={16} color={colors.tint} />
+                  <ThemedText
+                    style={[styles.locationChangeBtnText, { color: colors.tint }]}
+                  >
+                    Show my place
                   </ThemedText>
+                </Pressable>
+                {meetupMapPin ? (
+                  <View style={styles.mapMeetupPill}>
+                    <View
+                      style={[
+                        styles.liveLegendDot,
+                        styles.mapStatusDot,
+                        { backgroundColor: "#FF8F00" },
+                      ]}
+                    />
+                    <ThemedText
+                      style={styles.mapMeetupText}
+                      numberOfLines={2}
+                      ellipsizeMode="tail"
+                    >
+                      {t("chatDirectTradeLocationLabel")}: {meetupMapPin.label}
+                    </ThemedText>
+                  </View>
                 ) : null}
                 <View style={styles.liveLegendRow}>
                   {meetupMapPin ? (
@@ -1998,7 +2307,11 @@ export function ChatRoomScreen({
                           { backgroundColor: "#FF8F00" },
                         ]}
                       />
-                      <ThemedText style={styles.liveLegendText}>
+                      <ThemedText
+                        style={styles.liveLegendText}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
                         {meetupMapPin.label}
                       </ThemedText>
                     </View>
@@ -2010,7 +2323,11 @@ export function ChatRoomScreen({
                         { backgroundColor: "#1E88E5" },
                       ]}
                     />
-                    <ThemedText style={styles.liveLegendText}>
+                    <ThemedText
+                      style={styles.liveLegendText}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
                       {myMarkerLabel}
                     </ThemedText>
                   </View>
@@ -2021,7 +2338,11 @@ export function ChatRoomScreen({
                         { backgroundColor: "#E53935" },
                       ]}
                     />
-                    <ThemedText style={styles.liveLegendText}>
+                    <ThemedText
+                      style={styles.liveLegendText}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
                       {peerMarkerLabel}
                     </ThemedText>
                   </View>
@@ -2128,10 +2449,7 @@ export function ChatRoomScreen({
                   );
                   setChangeRequestOpen(true);
                 }}
-                style={[
-                  styles.locationChangeBtn,
-                  { borderColor: colors.tint },
-                ]}
+                style={[styles.locationChangeBtn, { borderColor: colors.tint }]}
               >
                 <MaterialIcons
                   name="edit-location-alt"
@@ -2382,7 +2700,9 @@ export function ChatRoomScreen({
                           <MaterialIcons
                             name={value <= reviewStars ? "star" : "star-border"}
                             size={26}
-                            color={value <= reviewStars ? "#F5B400" : colors.icon}
+                            color={
+                              value <= reviewStars ? "#F5B400" : colors.icon
+                            }
                           />
                         </Pressable>
                       ))}
@@ -2405,7 +2725,9 @@ export function ChatRoomScreen({
                     />
                     <Pressable
                       onPress={onSubmitReview}
-                      disabled={submitReviewMutation.isPending || reviewSubmitted}
+                      disabled={
+                        submitReviewMutation.isPending || reviewSubmitted
+                      }
                       style={[
                         styles.modalSaveBtn,
                         {
@@ -2785,9 +3107,7 @@ function DirectTradeRequestCard({
 
   return (
     <View style={styles.directTradeCard}>
-      <ThemedText
-        style={[styles.directTradeCardTitle, { color: primaryText }]}
-      >
+      <ThemedText style={[styles.directTradeCardTitle, { color: primaryText }]}>
         {t("chatDirectTradeRequestTitle")}
       </ThemedText>
       {meetingDate || meetingTime ? (
@@ -2801,7 +3121,10 @@ function DirectTradeRequestCard({
                 {t("chatDirectTradeRequestDate")}
               </ThemedText>
               <ThemedText
-                style={[styles.directTradeCardInfoValue, { color: primaryText }]}
+                style={[
+                  styles.directTradeCardInfoValue,
+                  { color: primaryText },
+                ]}
               >
                 {meetingDate}
               </ThemedText>
@@ -2816,7 +3139,10 @@ function DirectTradeRequestCard({
                 {t("chatDirectTradeRequestTime")}
               </ThemedText>
               <ThemedText
-                style={[styles.directTradeCardInfoValue, { color: primaryText }]}
+                style={[
+                  styles.directTradeCardInfoValue,
+                  { color: primaryText },
+                ]}
               >
                 {meetingTime}
               </ThemedText>
@@ -3011,11 +3337,17 @@ const styles = StyleSheet.create({
   },
   mapModalCard: {
     width: "100%",
-    maxHeight: "88%",
+    maxHeight: "82%",
     borderWidth: 1,
-    borderRadius: 16,
-    padding: 14,
-    gap: 10,
+    borderRadius: 18,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 10,
+    gap: 6,
+  },
+  mapModalTitle: {
+    fontSize: 14,
+    letterSpacing: 0.2,
   },
   mapEmptyState: {
     alignItems: "center",
@@ -3030,19 +3362,85 @@ const styles = StyleSheet.create({
   liveLocationTitle: { fontSize: 13, fontWeight: "700" },
   liveMapWrap: {
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
     overflow: "hidden",
   },
   liveMapView: { width: "100%" },
   liveLocationLine: { fontSize: 12, opacity: 0.85 },
+  mapStatusGrid: {
+    flexDirection: "row",
+    gap: 4,
+    minWidth: 0,
+  },
+  mapStatusChip: {
+    flex: 1,
+    minWidth: 0,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 7,
+    paddingVertical: 5,
+    gap: 1,
+    backgroundColor: "rgba(255,255,255,0.03)",
+  },
+  mapStatusDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+  },
+  mapStatusLabel: {
+    fontSize: 9,
+    opacity: 0.72,
+  },
+  mapStatusValue: {
+    minWidth: 0,
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  mapMeetupPill: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#FF8F0055",
+    backgroundColor: "#FF8F0015",
+    paddingHorizontal: 7,
+    paddingVertical: 5,
+    alignSelf: "stretch",
+    minWidth: 0,
+    maxWidth: "100%",
+  },
+  mapMeetupText: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#FF8F00",
+  },
   liveLegendRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginTop: 2,
+    gap: 6,
+    marginTop: 0,
+    flexWrap: "wrap",
+    minWidth: 0,
   },
-  liveLegendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
-  liveLegendDot: { width: 10, height: 10, borderRadius: 5 },
-  liveLegendText: { fontSize: 12, opacity: 0.85 },
+  liveLegendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    minWidth: 0,
+    maxWidth: "100%",
+    flexShrink: 1,
+  },
+  liveLegendDot: { width: 8, height: 8, borderRadius: 4 },
+  liveLegendText: {
+    fontSize: 10,
+    opacity: 0.85,
+    maxWidth: 140,
+    flexShrink: 1,
+  },
   locationStamp: {
     fontSize: 11,
     opacity: 0.65,
