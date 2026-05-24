@@ -5,6 +5,7 @@ import type { Product } from "@/core/domain/entities/Product";
 import type {
   ClientProductCatalogPage,
   ClientProductListParams,
+  MyProductListParams,
   ProductDeleteInput,
   ProductCreateInput,
   ProductStatus,
@@ -24,7 +25,7 @@ export class ProductService implements IProductService {
     return this.repo.getClientList(params);
   }
 
-  getMyList(params?: PaginationParams): Promise<ClientProductCatalogPage> {
+  getMyList(params?: MyProductListParams): Promise<ClientProductCatalogPage> {
     return this.repo.getMyList(params);
   }
 

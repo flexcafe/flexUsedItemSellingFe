@@ -297,7 +297,11 @@ export function ProductListScreen() {
         }
       : undefined;
 
-  const productsQuery = useProducts({ limit: 20 });
+  const [statusFilter, setStatusFilter] = useState<ProductStatus | null>(null);
+  const productsQuery = useProducts({
+    limit: 20,
+    status: statusFilter ?? undefined,
+  });
   const categoriesQuery = useCategories();
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
@@ -1162,6 +1166,8 @@ export function ProductListScreen() {
         onView={(p) => setDetailId(p.id)}
         onEdit={openEdit}
         onArchive={onArchive}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
       />
       </Animated.View>
 

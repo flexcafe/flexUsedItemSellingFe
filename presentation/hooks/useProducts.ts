@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { PaginationParams } from "@/core/domain/types";
 import type {
+  MyProductListParams,
   ProductDeleteInput,
   ProductCreateInput,
   ProductUpdateInput,
@@ -11,14 +11,15 @@ import { useServices } from "../providers/ServicesProvider";
 const PRODUCTS_KEY = ["products"] as const;
 const MY_PRODUCTS_KEY = [...PRODUCTS_KEY, "my"] as const;
 
-export function useProducts(params?: PaginationParams) {
+export function useProducts(params?: MyProductListParams) {
   const { productService } = useServices();
   const limit = params?.limit ?? 20;
+  const status = params?.status ?? null;
   return useInfiniteQuery({
-    queryKey: [...MY_PRODUCTS_KEY, limit],
+    queryKey: [...MY_PRODUCTS_KEY, limit, status],
     initialPageParam: params?.page ?? 1,
     queryFn: ({ pageParam }) =>
-      productService.getMyList({ page: pageParam as number, limit }),
+      productService.getMyList({ page: pageParam as number, limit, status: params?.status }),
     getNextPageParam: (lastPage) =>
       lastPage.hasNextPage ? lastPage.page + 1 : undefined,
   });

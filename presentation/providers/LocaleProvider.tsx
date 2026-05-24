@@ -1301,6 +1301,16 @@ const DICT: Dictionary = {
     my: "သုံးသပ်ချက်ကို တင်ပြပြီးပါပြီ။",
     zh: "评价已提交。",
   },
+  chatReviewCompleteFirst: {
+    ko: "Complete the transaction first.",
+    my: "Complete the transaction first.",
+    zh: "Complete the transaction first.",
+  },
+  chatReviewUnlockedHelper: {
+    ko: "You can review now; the other side can review after they complete.",
+    my: "You can review now; the other side can review after they complete.",
+    zh: "You can review now; the other side can review after they complete.",
+  },
   chatMeetingDateLabel: {
     ko: "만남 날짜",
     my: "တွေ့ဆုံမည့် ရက်စွဲ",
@@ -2289,6 +2299,11 @@ const DICT: Dictionary = {
     ko: "다시 시도",
     my: "ပြန်ကြိုးစားမည်",
     zh: "重试",
+  },
+  productsFilterAll: {
+    ko: "All",
+    my: "All",
+    zh: "All",
   },
   productsEmpty: {
     ko: "등록된 상품이 없습니다.",

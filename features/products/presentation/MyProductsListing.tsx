@@ -3,6 +3,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import type { Product } from "@/core/domain/entities/Product";
+import type { ProductStatus } from "@/core/domain/types/product";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   uiFadeEnter,
@@ -40,6 +41,8 @@ export type MyProductsListingProps = {
   onView: (product: Product) => void;
   onEdit: (product: Product) => void;
   onArchive: (product: Product) => void;
+  statusFilter: ProductStatus | null;
+  onStatusFilterChange: (status: ProductStatus | null) => void;
 };
 
 function ListingSkeleton({
@@ -89,6 +92,8 @@ export const MyProductsListing = memo(function MyProductsListing({
   onView,
   onEdit,
   onArchive,
+  statusFilter,
+  onStatusFilterChange,
 }: MyProductsListingProps) {
   const { t, tf } = useLocale();
   const colorScheme = useColorScheme();
@@ -129,6 +134,48 @@ export const MyProductsListing = memo(function MyProductsListing({
           horizontalPadding={0}
           style={styles.createButton}
         />
+        <View style={styles.filterTabsRow}>
+          <Pressable
+            onPress={() => onStatusFilterChange(null)}
+            style={[
+              styles.filterTab,
+              statusFilter == null
+                ? { backgroundColor: colors.tint, borderColor: colors.tint }
+                : { borderColor: colors.icon + "33" },
+            ]}
+          >
+            <ThemedText
+              style={[
+                styles.filterTabText,
+                statusFilter == null
+                  ? styles.filterTabTextActive
+                  : { color: colors.text },
+              ]}
+            >
+              {t("productsFilterAll")}
+            </ThemedText>
+          </Pressable>
+          <Pressable
+            onPress={() => onStatusFilterChange("SOLD")}
+            style={[
+              styles.filterTab,
+              statusFilter === "SOLD"
+                ? { backgroundColor: colors.tint, borderColor: colors.tint }
+                : { borderColor: colors.icon + "33" },
+            ]}
+          >
+            <ThemedText
+              style={[
+                styles.filterTabText,
+                statusFilter === "SOLD"
+                  ? styles.filterTabTextActive
+                  : { color: colors.text },
+              ]}
+            >
+              {t("productsStatusSold")}
+            </ThemedText>
+          </Pressable>
+        </View>
 
         {isError ? (
           <Animated.View
@@ -149,7 +196,20 @@ export const MyProductsListing = memo(function MyProductsListing({
         ) : null}
       </Animated.View>
     ),
-    [colors.tint, countLabel, isError, isLoading, onCreatePress, onRetry, reduceMotion, t],
+    [
+      colors.icon,
+      colors.text,
+      colors.tint,
+      countLabel,
+      isError,
+      isLoading,
+      onCreatePress,
+      onRetry,
+      onStatusFilterChange,
+      reduceMotion,
+      statusFilter,
+      t,
+    ],
   );
 
   const renderItem = useCallback(
@@ -282,6 +342,24 @@ const styles = StyleSheet.create({
   },
   createButton: {
     marginBottom: 4,
+  },
+  filterTabsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 4,
+  },
+  filterTab: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  filterTabText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  filterTabTextActive: {
+    color: "#FFFFFF",
   },
   errorBanner: {
     flexDirection: "row",

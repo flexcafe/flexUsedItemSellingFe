@@ -576,6 +576,16 @@ export function ChatRoomScreen({
     completionTransaction.status !== "COMPLETED" &&
     currentUserAlreadyCompleted,
   );
+  const canShowReviewSection = Boolean(
+    completionTransaction &&
+      (currentUserAlreadyCompleted ||
+        completionTransaction.status === "COMPLETED"),
+  );
+  const canReview = Boolean(
+    completionTransaction &&
+      ((isBuyer && completionTransaction.buyerCompleted) ||
+        (!isBuyer && completionTransaction.sellerCompleted)),
+  );
   const isTransactionFullyCompleted =
     completionTransaction?.status === "COMPLETED";
 
@@ -908,6 +918,10 @@ export function ChatRoomScreen({
       Alert.alert(t("chatReviewTitle"), t("chatCompleteTradeUnavailable"));
       return;
     }
+    if (!canReview) {
+      Alert.alert(t("chatReviewTitle"), t("chatReviewCompleteFirst"));
+      return;
+    }
     if (!Number.isFinite(reviewStars) || reviewStars < 1 || reviewStars > 5) {
       Alert.alert(t("chatReviewTitle"), t("chatReviewValidation"));
       return;
@@ -926,6 +940,12 @@ export function ChatRoomScreen({
           Alert.alert(t("chatReviewTitle"), t("chatReviewSuccess"));
         },
         onError: (error) => {
+          const status = (error as { response?: { status?: number } } | undefined)
+            ?.response?.status;
+          if (status === 400) {
+            Alert.alert(t("chatReviewTitle"), t("chatReviewCompleteFirst"));
+            return;
+          }
           Alert.alert(
             t("chatReviewTitle"),
             chatActionErrorMessage(error, t("chatSafePaymentLoadFailed")),
@@ -934,6 +954,7 @@ export function ChatRoomScreen({
       },
     );
   }, [
+    canReview,
     completionTransaction?.id,
     reviewComment,
     reviewStars,
@@ -2696,11 +2717,17 @@ export function ChatRoomScreen({
                       </ThemedText>
                     )}
                   </Pressable>
-                ) : completionTransaction.status === "COMPLETED" ? (
+                ) : canShowReviewSection ? (
                   <>
                     <ThemedText style={styles.pickerLabel}>
                       {t("chatReviewHint")}
                     </ThemedText>
+                    {currentUserAlreadyCompleted &&
+                    completionTransaction.status !== "COMPLETED" ? (
+                      <ThemedText style={styles.safeMutedText}>
+                        {t("chatReviewUnlockedHelper")}
+                      </ThemedText>
+                    ) : null}
                     <ThemedText style={styles.pickerLabel}>
                       {t("chatReviewStarsLabel")}
                     </ThemedText>

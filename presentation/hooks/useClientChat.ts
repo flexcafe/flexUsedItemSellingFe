@@ -373,6 +373,9 @@ export function useCompleteTransaction(chatRoomId: string | null) {
       void qc.invalidateQueries({
         queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"],
       });
+      void qc.invalidateQueries({
+        queryKey: ["products", "my"],
+      });
     },
   });
 }

@@ -3,6 +3,7 @@ import type { PaginationParams } from "@/core/domain/types";
 import type {
   ClientProductCatalogPage,
   ClientProductListParams,
+  MyProductListParams,
   ProductCreateInput,
   ProductDeleteInput,
   ProductStatus,
@@ -14,7 +15,7 @@ import type {
 export interface IProductRepository {
   getAll(params?: PaginationParams): Promise<Product[]>;
   getClientList(params?: ClientProductListParams): Promise<ClientProductCatalogPage>;
-  getMyList(params?: PaginationParams): Promise<ClientProductCatalogPage>;
+  getMyList(params?: MyProductListParams): Promise<ClientProductCatalogPage>;
   getMyById(id: string): Promise<Product | null>;
   getById(id: string): Promise<Product | null>;
   getSellerReviews(

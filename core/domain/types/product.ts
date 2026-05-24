@@ -87,6 +87,10 @@ export interface ClientProductCatalogPage {
 /** `GET /v1/client/products/my` — seller's own listings page. */
 export type MyProductListPage = ClientProductCatalogPage;
 
+export interface MyProductListParams extends PaginationParams {
+  status?: ProductStatus;
+}
+
 export interface SellerReviewItem {
   id: string;
   stars: number;

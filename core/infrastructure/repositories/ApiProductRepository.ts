@@ -14,6 +14,7 @@ import type { PaginationParams } from "@/core/domain/types";
 import type {
   ClientProductCatalogPage,
   ClientProductListParams,
+  MyProductListParams,
   ProductCreateInput,
   ProductDeleteInput,
   ProductStatus,
@@ -60,6 +61,18 @@ function buildPaginationQuery(
   const rawLimit = params?.limit ?? 20;
   const limit = Math.min(50, Math.max(1, rawLimit));
   return { page, limit };
+}
+
+function buildMyProductQuery(
+  params?: MyProductListParams,
+): Record<string, string | number> {
+  const base = buildPaginationQuery(params);
+  const query: Record<string, string | number> = {
+    page: base.page,
+    limit: base.limit,
+  };
+  if (params?.status) query.status = params.status;
+  return query;
 }
 
 function asProductOrNull(raw: unknown): Product | null {
@@ -326,12 +339,12 @@ export class ApiProductRepository implements IProductRepository {
   }
 
   async getMyList(
-    params?: PaginationParams,
+    params?: MyProductListParams,
   ): Promise<ClientProductCatalogPage> {
     const res = await this.http.get<unknown>(
       API_ENDPOINTS.CLIENT_PRODUCTS.MY_LIST,
       {
-        params: buildPaginationQuery(params),
+        params: buildMyProductQuery(params),
       },
     );
     return mapClientProductCatalogPage(res);
