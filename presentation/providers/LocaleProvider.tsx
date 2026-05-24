@@ -976,6 +976,96 @@ const DICT: Dictionary = {
     my: "သတ်မှတ်ထားသော နေရာ မရှိပါ",
     zh: "未指定地点",
   },
+  chatDirectTradePickLocation: {
+    ko: "만남 장소 선택",
+    my: "တွေ့ဆုံရန် နေရာ ရွေးချယ်ပါ",
+    zh: "选择见面地点",
+  },
+  chatDirectTradeNoLocations: {
+    ko: "등록된 만남 장소가 없습니다.",
+    my: "တွေ့ဆုံရန် နေရာ မရှိပါ။",
+    zh: "暂无登记的见面地点。",
+  },
+  chatDirectTradeRequestOtherPlace: {
+    ko: "다른 장소 제안하기",
+    my: "အခြားနေရာ အဆိုပြုရန်",
+    zh: "提议其他地点",
+  },
+  chatDirectTradeRequestChangeSubmit: {
+    ko: "장소 변경 요청",
+    my: "နေရာပြောင်းရန် တောင်းဆိုမည်",
+    zh: "请求更改地点",
+  },
+  chatUseCurrentLocation: {
+    ko: "현지 위치 사용",
+    my: "လက်ရှိတည်နေရာ သုံးမည်",
+    zh: "使用当前位置",
+  },
+  chatGpsError: {
+    ko: "위치를 가져올 수 없습니다. 다시 시도해 주세요.",
+    my: "တည်နေရာ ရယူ၍မရပါ။ ထပ်စမ်းပါ။",
+    zh: "无法获取位置，请重试。",
+  },
+  chatDirectTradeChangeLocation: {
+    ko: "장소 변경",
+    my: "နေရာ ပြောင်းရန်",
+    zh: "更改地点",
+  },
+  chatDirectTradeLocationLabel: {
+    ko: "약속 장소",
+    my: "တွေ့ဆုံမည့် နေရာ",
+    zh: "约定地点",
+  },
+  chatDirectTradeAwaitingLocation: {
+    ko: "구매자가 장소를 선택할 때까지 기다리는 중...",
+    my: "ဝယ်သူ နေရာရွေးရန် စောင့်ဆိုင်းနေသည်...",
+    zh: "等待买家选择地点...",
+  },
+  chatDirectTradeAwaitingDetails: {
+    ko: "직거래 정보를 불러오는 중...",
+    my: "တိုက်ရိုက်တွေ့ဆုံ အချက်အလက် ရယူနေသည်...",
+    zh: "正在加载当面交易信息...",
+  },
+  chatDirectTradePendingChange: {
+    ko: "장소 변경 요청 있음",
+    my: "နေရာပြောင်းရန် တောင်းဆိုမှု ရှိသည်",
+    zh: "有地点更改请求",
+  },
+  chatDirectTradePendingSeller: {
+    ko: "판매자의 응답을 기다리는 중...",
+    my: "ရောင်းသူ၏ အကြောင်းပြန်ချက်ကို စောင့်ဆိုင်းနေသည်...",
+    zh: "等待卖家回复...",
+  },
+  chatDirectTradeLocationRequestPending: {
+    ko: "장소 변경 요청이 판매자 확인을 기다리는 중입니다.",
+    my: "နေရာပြောင်းရန် တောင်းဆိုမှု ရောင်းသူ အတည်ပြုချက်ကို စောင့်နေသည်။",
+    zh: "地点更改请求待卖家确认。",
+  },
+  chatDirectTradeAccept: {
+    ko: "수락",
+    my: "လက်ခံမည်",
+    zh: "接受",
+  },
+  chatDirectTradeDeny: {
+    ko: "거절",
+    my: "ငြင်းပယ်မည်",
+    zh: "拒绝",
+  },
+  chatDirectTradeLocationAccepted: {
+    ko: "만남 장소가 확정되었습니다",
+    my: "တွေ့ဆုံရန် နေရာ သတ်မှတ်ပြီးပါပြီ",
+    zh: "见面地点已确认",
+  },
+  chatDirectTradeLocationDenied: {
+    ko: "장소 변경이 거절되었습니다",
+    my: "နေရာပြောင်းလဲမှု ငြင်းပယ်ခံရပါသည်",
+    zh: "地点更改已被拒绝",
+  },
+  chatDirectTradeLocationChangeRequested: {
+    ko: "장소 변경이 요청되었습니다",
+    my: "နေရာပြောင်းရန် တောင်းဆိုထားပါသည်",
+    zh: "已请求更改地点",
+  },
   chatSafePaymentButton: {
     ko: "안전결제",
     my: "လုံခြုံငွေပေးချေမှု",
@@ -1065,6 +1155,11 @@ const DICT: Dictionary = {
     ko: "이름, 전화번호, 금액, 거래 ID를 모두 입력해주세요.",
     my: "အမည်၊ ဖုန်း၊ ငွေပမာဏနှင့် လုပ်ဆောင်မှု ID ကို အပြည့်အစုံ ဖြည့်ပါ။",
     zh: "请完整填写姓名、手机号、金额和交易号。",
+  },
+  chatSafePaymentAmountMismatch: {
+    ko: "결제 금액이 거래 금액과 일치하지 않습니다. 정확한 금액을 입력해주세요.",
+    my: "ငွေပမာဏသည် ကုန်သွယ်မှုပမာဏနှင့် မကိုက်ညီပါ။ မှန်ကန်သောပမာဏကို ထည့်ပါ။",
+    zh: "支付金额与交易金额不匹配，请输入正确的金额。",
   },
   chatSafePaymentSubmitSuccess: {
     ko: "결제 정보를 제출했습니다. 관리자 확인을 기다려주세요.",

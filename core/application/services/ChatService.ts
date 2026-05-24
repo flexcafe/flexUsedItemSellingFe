@@ -2,13 +2,17 @@ import type { ChatMessage, ChatRoom } from "@/core/domain/entities/Chat";
 import type { IChatRepository } from "@/core/domain/repositories/IChatRepository";
 import type { IChatService } from "@/core/domain/services/IChatService";
 import type {
+  AcceptLocationInput,
   CursorPage,
   CursorPaginationParams,
+  DirectTradeDetail,
   DirectTradeRequestInput,
   DirectTradeTransaction,
   LocationShareInput,
   LocationShareStartResult,
   OpenChatRoomInput,
+  RequestLocationChangeInput,
+  RespondLocationChangeInput,
   SafePaymentStatus,
   SafePaymentSubmitInput,
   SendChatMessageInput,
@@ -51,6 +55,31 @@ export class ChatService implements IChatService {
     input: DirectTradeRequestInput,
   ): Promise<DirectTradeTransaction> {
     return this.repo.requestDirectTrade(chatRoomId, input);
+  }
+
+  getDirectTradeDetail(chatRoomId: string): Promise<DirectTradeDetail> {
+    return this.repo.getDirectTradeDetail(chatRoomId);
+  }
+
+  acceptLocation(
+    chatRoomId: string,
+    input: AcceptLocationInput,
+  ): Promise<boolean> {
+    return this.repo.acceptLocation(chatRoomId, input);
+  }
+
+  requestLocationChange(
+    chatRoomId: string,
+    input: RequestLocationChangeInput,
+  ): Promise<boolean> {
+    return this.repo.requestLocationChange(chatRoomId, input);
+  }
+
+  respondLocationChange(
+    chatRoomId: string,
+    input: RespondLocationChangeInput,
+  ): Promise<boolean> {
+    return this.repo.respondLocationChange(chatRoomId, input);
   }
 
   startLocationShare(

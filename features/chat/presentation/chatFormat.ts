@@ -36,6 +36,18 @@ export function messagePreview(
     if (date && time) return `${date} ${time}`;
     return date || time || "직거래 요청";
   }
+  if (
+    message.type === "DIRECT_TRADE_LOCATION_ACCEPTED" ||
+    message.type === "DIRECT_TRADE_LOCATION_CHANGE_ACCEPTED"
+  ) {
+    return "장소 확정됨";
+  }
+  if (message.type === "DIRECT_TRADE_LOCATION_CHANGE_REQUESTED") {
+    return "장소 변경 요청";
+  }
+  if (message.type === "DIRECT_TRADE_LOCATION_CHANGE_DENIED") {
+    return "장소 변경 거절";
+  }
   return message.content?.trim() || message.type.replaceAll("_", " ");
 }
 

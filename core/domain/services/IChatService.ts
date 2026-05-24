@@ -1,12 +1,16 @@
 import type { ChatMessage, ChatRoom } from "@/core/domain/entities/Chat";
 import type {
+  AcceptLocationInput,
   CursorPage,
   CursorPaginationParams,
+  DirectTradeDetail,
   DirectTradeRequestInput,
   DirectTradeTransaction,
   LocationShareInput,
   LocationShareStartResult,
   OpenChatRoomInput,
+  RequestLocationChangeInput,
+  RespondLocationChangeInput,
   SafePaymentStatus,
   SafePaymentSubmitInput,
   SendChatMessageInput,
@@ -31,6 +35,21 @@ export interface IChatService {
     chatRoomId: string,
     input: DirectTradeRequestInput,
   ): Promise<DirectTradeTransaction>;
+  getDirectTradeDetail(
+    chatRoomId: string,
+  ): Promise<DirectTradeDetail>;
+  acceptLocation(
+    chatRoomId: string,
+    input: AcceptLocationInput,
+  ): Promise<boolean>;
+  requestLocationChange(
+    chatRoomId: string,
+    input: RequestLocationChangeInput,
+  ): Promise<boolean>;
+  respondLocationChange(
+    chatRoomId: string,
+    input: RespondLocationChangeInput,
+  ): Promise<boolean>;
   startLocationShare(
     chatRoomId: string,
     input: LocationShareInput,

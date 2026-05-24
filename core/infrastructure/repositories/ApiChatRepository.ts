@@ -1,13 +1,18 @@
 import type { ChatMessage, ChatRoom } from "@/core/domain/entities/Chat";
 import type { IChatRepository } from "@/core/domain/repositories/IChatRepository";
 import type {
+  AcceptLocationInput,
   CursorPage,
   CursorPaginationParams,
+  DirectTradeDetail,
   DirectTradeRequestInput,
   DirectTradeTransaction,
+  ListingLocation,
   LocationShareInput,
   LocationShareStartResult,
   OpenChatRoomInput,
+  RequestLocationChangeInput,
+  RespondLocationChangeInput,
   SafePaymentStatus,
   SafePaymentSubmitInput,
   SendChatMessageInput,
@@ -34,6 +39,12 @@ function toNonEmptyString(value: unknown): string | null {
 
 function toBoolean(value: unknown, fallback = false): boolean {
   if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1") return true;
+    if (normalized === "false" || normalized === "0") return false;
+  }
   return fallback;
 }
 
@@ -281,6 +292,63 @@ function mapDirectTradeTransaction(
   };
 }
 
+function mapListingLocation(value: unknown): ListingLocation | null {
+  const row = asRecord(value);
+  if (!row) return null;
+  const label = toNonEmptyString(row.label);
+  const address = toNonEmptyString(row.address);
+  if (!label || !address) return null;
+  return {
+    label,
+    address,
+    latitude: toFiniteNumber(row.latitude, 0),
+    longitude: toFiniteNumber(row.longitude, 0),
+  };
+}
+
+function mapDirectTradeDetail(value: unknown): DirectTradeDetail | null {
+  const row = asRecord(value);
+  if (!row) return null;
+  const transactionId = toNonEmptyString(row.transactionId ?? row.id);
+  if (!transactionId) return null;
+  const rawListingLocations = Array.isArray(row.listingLocations)
+    ? row.listingLocations
+    : [];
+  const listingLocations: ListingLocation[] = rawListingLocations
+    .map(mapListingLocation)
+    .filter((loc): loc is ListingLocation => loc != null);
+  return {
+    transactionId,
+    meetingDate: toNonEmptyString(row.meetingDate),
+    meetingTime: toNonEmptyString(row.meetingTime),
+    meetingLocation: toNonEmptyString(row.meetingLocation),
+    meetingLatitude: Number.isFinite(Number(row.meetingLatitude))
+      ? Number(row.meetingLatitude)
+      : null,
+    meetingLongitude: Number.isFinite(Number(row.meetingLongitude))
+      ? Number(row.meetingLongitude)
+      : null,
+    selectedLocationLabel: toNonEmptyString(row.selectedLocationLabel),
+    pendingLocationChange: toBoolean(
+      row.pendingLocationChange ??
+        row.isPendingLocationChange ??
+        row.hasPendingLocationChange,
+    ),
+    buyerRequestedLocation: toNonEmptyString(
+      row.buyerRequestedLocation ??
+        row.requestedMeetingLocation ??
+        row.pendingMeetingLocation,
+    ),
+    buyerRequestedLatitude: Number.isFinite(Number(row.buyerRequestedLatitude))
+      ? Number(row.buyerRequestedLatitude)
+      : null,
+    buyerRequestedLongitude: Number.isFinite(Number(row.buyerRequestedLongitude))
+      ? Number(row.buyerRequestedLongitude)
+      : null,
+    listingLocations,
+  };
+}
+
 function readLocationStart(value: unknown): LocationShareStartResult {
   const row = asRecord(value);
   if (!row) return { alreadyActive: false };
@@ -444,6 +512,55 @@ export class ApiChatRepository implements IChatRepository {
     const trade = mapDirectTradeTransaction(data);
     if (!trade) throw new Error("Direct trade response is invalid");
     return trade;
+  }
+
+  async getDirectTradeDetail(
+    chatRoomId: string,
+  ): Promise<DirectTradeDetail> {
+    const data = await this.http.get<unknown>(
+      API_ENDPOINTS.CLIENT_CHATS.DIRECT_TRADE(chatRoomId),
+    );
+    const detail = mapDirectTradeDetail(data);
+    if (!detail) throw new Error("Direct trade detail response is invalid");
+    return detail;
+  }
+
+  async acceptLocation(
+    chatRoomId: string,
+    input: AcceptLocationInput,
+  ): Promise<boolean> {
+    const data = await this.http.post<unknown>(
+      API_ENDPOINTS.CLIENT_CHATS.DIRECT_TRADE_ACCEPT_LOCATION(chatRoomId),
+      { locationLabel: input.locationLabel },
+    );
+    return readBooleanPayload(data);
+  }
+
+  async requestLocationChange(
+    chatRoomId: string,
+    input: RequestLocationChangeInput,
+  ): Promise<boolean> {
+    const data = await this.http.post<unknown>(
+      API_ENDPOINTS.CLIENT_CHATS.DIRECT_TRADE_REQUEST_CHANGE(chatRoomId),
+      {
+        meetingTime: input.meetingTime,
+        meetingLocation: input.meetingLocation,
+        meetingLatitude: input.meetingLatitude,
+        meetingLongitude: input.meetingLongitude,
+      },
+    );
+    return readBooleanPayload(data);
+  }
+
+  async respondLocationChange(
+    chatRoomId: string,
+    input: RespondLocationChangeInput,
+  ): Promise<boolean> {
+    const data = await this.http.post<unknown>(
+      API_ENDPOINTS.CLIENT_CHATS.DIRECT_TRADE_RESPOND_CHANGE(chatRoomId),
+      { accepted: input.accepted },
+    );
+    return readBooleanPayload(data);
   }
 
   async startLocationShare(

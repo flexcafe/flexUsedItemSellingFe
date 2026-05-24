@@ -18,24 +18,12 @@ export {
 
 export type DirectTradeFormErrorKey =
   | "chatMeetingDateInvalid"
-  | "chatMeetingTimeInvalid"
-  | "chatMeetingCoordsPairRequired"
-  | "chatMeetingCoordsInvalid";
+  | "chatMeetingTimeInvalid";
 
 export type DirectTradeFormValues = {
   meetingDate: string;
   meetingTime: string;
-  meetingLocation: string;
-  meetingLatitude: string;
-  meetingLongitude: string;
 };
-
-function parseOptionalCoordinate(raw: string): number | undefined {
-  const v = raw.trim().replace(",", ".");
-  if (!v) return undefined;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : Number.NaN;
-}
 
 export function buildDirectTradeRequest(
   values: DirectTradeFormValues,
@@ -53,45 +41,10 @@ export function buildDirectTradeRequest(
     return { errorKey: "chatMeetingTimeInvalid" };
   }
 
-  const latRaw = values.meetingLatitude.trim();
-  const lngRaw = values.meetingLongitude.trim();
-  const hasLat = latRaw.length > 0;
-  const hasLng = lngRaw.length > 0;
-
-  if (hasLat !== hasLng) {
-    return { errorKey: "chatMeetingCoordsPairRequired" };
-  }
-
-  let meetingLatitude: number | undefined;
-  let meetingLongitude: number | undefined;
-
-  if (hasLat && hasLng) {
-    const lat = parseOptionalCoordinate(latRaw);
-    const lng = parseOptionalCoordinate(lngRaw);
-    if (
-      !Number.isFinite(lat) ||
-      !Number.isFinite(lng) ||
-      lat! < -90 ||
-      lat! > 90 ||
-      lng! < -180 ||
-      lng! > 180
-    ) {
-      return { errorKey: "chatMeetingCoordsInvalid" };
-    }
-    meetingLatitude = lat;
-    meetingLongitude = lng;
-  }
-
-  const location = values.meetingLocation.trim();
-
   return {
     payload: {
       meetingDate,
       meetingTime,
-      ...(location ? { meetingLocation: location } : {}),
-      ...(meetingLatitude != null && meetingLongitude != null
-        ? { meetingLatitude, meetingLongitude }
-        : {}),
     },
   };
 }

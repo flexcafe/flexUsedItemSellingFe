@@ -29,6 +29,43 @@ export interface DirectTradeRequestInput {
   meetingLongitude?: number;
 }
 
+export interface ListingLocation {
+  label: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+}
+
+export interface DirectTradeDetail {
+  transactionId: string;
+  meetingDate: string | null;
+  meetingTime: string | null;
+  meetingLocation: string | null;
+  meetingLatitude: number | null;
+  meetingLongitude: number | null;
+  selectedLocationLabel: string | null;
+  pendingLocationChange: boolean;
+  buyerRequestedLocation: string | null;
+  buyerRequestedLatitude: number | null;
+  buyerRequestedLongitude: number | null;
+  listingLocations: ListingLocation[];
+}
+
+export interface AcceptLocationInput {
+  locationLabel: string;
+}
+
+export interface RequestLocationChangeInput {
+  meetingTime: string;
+  meetingLocation: string;
+  meetingLatitude: number;
+  meetingLongitude: number;
+}
+
+export interface RespondLocationChangeInput {
+  accepted: boolean;
+}
+
 export interface DirectTradeTransaction {
   id: string;
   chatRoomId: string;

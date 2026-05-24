@@ -1,10 +1,13 @@
 import type { ChatMessage, ChatRoom } from "@/core/domain/entities/Chat";
 import type {
+  AcceptLocationInput,
   CursorPage,
   CursorPaginationParams,
   DirectTradeRequestInput,
   LocationShareInput,
   OpenChatRoomInput,
+  RequestLocationChangeInput,
+  RespondLocationChangeInput,
   SafePaymentSubmitInput,
   SendChatMessageInput,
   TransactionCompleteInput,
@@ -177,6 +180,76 @@ export function useRequestDirectTrade(chatRoomId: string | null) {
       });
       void qc.invalidateQueries({
         queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"],
+      });
+    },
+  });
+}
+
+export function useDirectTradeDetail(chatRoomId: string | null) {
+  const { chatService } = useServices();
+  return useQuery({
+    queryKey: [...CLIENT_CHAT_QUERY_KEY, "directTrade", chatRoomId],
+    enabled: Boolean(chatRoomId),
+    retry: false,
+    queryFn: async () => {
+      try {
+        return await chatService.getDirectTradeDetail(chatRoomId!);
+      } catch (error) {
+        const status = (error as { response?: { status?: number } } | undefined)
+          ?.response?.status;
+        if (status === 404) return null;
+        throw error;
+      }
+    },
+  });
+}
+
+export function useAcceptLocation(chatRoomId: string | null) {
+  const { chatService } = useServices();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AcceptLocationInput) =>
+      chatService.acceptLocation(chatRoomId!, input),
+    onSuccess: () => {
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "directTrade", chatRoomId],
+      });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId],
+      });
+    },
+  });
+}
+
+export function useRequestLocationChange(chatRoomId: string | null) {
+  const { chatService } = useServices();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RequestLocationChangeInput) =>
+      chatService.requestLocationChange(chatRoomId!, input),
+    onSuccess: () => {
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "directTrade", chatRoomId],
+      });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId],
+      });
+    },
+  });
+}
+
+export function useRespondLocationChange(chatRoomId: string | null) {
+  const { chatService } = useServices();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RespondLocationChangeInput) =>
+      chatService.respondLocationChange(chatRoomId!, input),
+    onSuccess: () => {
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "directTrade", chatRoomId],
+      });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId],
       });
     },
   });

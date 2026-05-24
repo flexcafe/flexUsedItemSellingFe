@@ -65,6 +65,12 @@ export const API_ENDPOINTS = {
     MARK_READ: (chatRoomId: string) => `/v1/client/chats/${chatRoomId}/read`,
     DIRECT_TRADE: (chatRoomId: string) =>
       `/v1/client/chats/${chatRoomId}/direct-trade`,
+    DIRECT_TRADE_ACCEPT_LOCATION: (chatRoomId: string) =>
+      `/v1/client/chats/${chatRoomId}/direct-trade/accept-location`,
+    DIRECT_TRADE_REQUEST_CHANGE: (chatRoomId: string) =>
+      `/v1/client/chats/${chatRoomId}/direct-trade/request-location-change`,
+    DIRECT_TRADE_RESPOND_CHANGE: (chatRoomId: string) =>
+      `/v1/client/chats/${chatRoomId}/direct-trade/respond-location-change`,
     LOCATION_START: (chatRoomId: string) =>
       `/v1/client/chats/${chatRoomId}/location/start`,
     LOCATION_UPDATE: (chatRoomId: string) =>
