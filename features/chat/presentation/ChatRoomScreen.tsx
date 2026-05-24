@@ -937,6 +937,7 @@ export function ChatRoomScreen({
       {
         onSuccess: () => {
           setReviewSubmitted(true);
+          setCompletionOpen(false);
           Alert.alert(t("chatReviewTitle"), t("chatReviewSuccess"));
         },
         onError: (error) => {
@@ -2662,13 +2663,20 @@ export function ChatRoomScreen({
               },
             ]}
           >
-            <View style={styles.modalHeader}>
-              <ThemedText type="defaultSemiBold">
+            <View style={[styles.modalHeader, styles.completionModalHeader]}>
+              <ThemedText
+                type="defaultSemiBold"
+                numberOfLines={1}
+                style={styles.completionModalTitle}
+              >
                 {t("chatCompleteTradeTitle")}
               </ThemedText>
               <Pressable
                 onPress={() => setCompletionOpen(false)}
-                style={styles.modalCloseBtn}
+                style={[
+                  styles.modalCloseBtn,
+                  styles.completionModalCloseBtnAbsolute,
+                ]}
               >
                 <MaterialIcons name="close" size={20} color={colors.icon} />
               </Pressable>
@@ -3646,6 +3654,18 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
+  },
+  completionModalTitle: {
+    paddingRight: 44,
+  },
+  completionModalHeader: {
+    position: "relative",
+  },
+  completionModalCloseBtnAbsolute: {
+    position: "absolute",
+    right: 0,
+    top: "50%",
+    transform: [{ translateY: -15 }],
   },
   modalInput: {
     borderWidth: 1,
