@@ -167,6 +167,68 @@ function readApiErrorInfo(error: unknown): { status: number | null; message: str
   return { status, message };
 }
 
+type DirectTradeErrorAction =
+  | "schedule"
+  | "acceptLocation"
+  | "requestLocationChange"
+  | "respondLocationChange"
+  | "startGps";
+
+type DirectTradeErrorKey =
+  | "chatDirectTradeOpsMessageTypeIssue"
+  | "chatDirectTradeGpsRequiresAgreed"
+  | "chatDirectTradeNeedStartFirst"
+  | "chatDirectTradeBuyerOnly"
+  | "chatDirectTradeSellerOnly"
+  | "chatDirectTradeChooseListingFirst"
+  | "chatDirectTradeAlreadyListingUsePicker"
+  | "chatDirectTradePendingChangeExists";
+
+function directTradeErrorKey(
+  action: DirectTradeErrorAction,
+  error: unknown,
+): DirectTradeErrorKey | null {
+  const info = readApiErrorInfo(error);
+  const messageLower = info.message.toLowerCase();
+
+  if (info.status === 500 && messageLower.includes("messagetype")) {
+    return "chatDirectTradeOpsMessageTypeIssue";
+  }
+
+  if (action === "startGps") {
+    return "chatDirectTradeGpsRequiresAgreed";
+  }
+
+  if (info.status === 404) {
+    return "chatDirectTradeNeedStartFirst";
+  }
+
+  if (info.status === 403) {
+    if (action === "respondLocationChange") return "chatDirectTradeSellerOnly";
+    return "chatDirectTradeBuyerOnly";
+  }
+
+  if (action === "requestLocationChange" && info.status === 400) {
+    if (
+      messageLower.includes("choose listing first") ||
+      messageLower.includes("listing first")
+    ) {
+      return "chatDirectTradeChooseListingFirst";
+    }
+    if (
+      messageLower.includes("already on listing") ||
+      messageLower.includes("already listing")
+    ) {
+      return "chatDirectTradeAlreadyListingUsePicker";
+    }
+    if (messageLower.includes("pending change exists") || messageLower.includes("pending")) {
+      return "chatDirectTradePendingChangeExists";
+    }
+  }
+
+  return null;
+}
+
 type Props = {
   chatRoomId: string;
   listingTitle?: string;
@@ -914,15 +976,20 @@ export function ChatRoomScreen({
       onSuccess: (transaction) => {
         setDirectTradeTransaction(transaction);
         setDirectTradeOpen(false);
+        // Clear stale meetup-place detail immediately after restart.
+        queryClient.removeQueries({
+          queryKey: [...CLIENT_CHAT_QUERY_KEY, "directTrade", chatRoomId],
+          exact: true,
+        });
         void directTradeDetailQuery.refetch();
         Alert.alert(t("chatDirectTradeTitle"), t("chatDirectTradeSaved"));
       },
       onError: (error) => {
-        const message =
-          error instanceof Error && error.message.trim()
-            ? error.message
-            : t("chatDirectTradeFailed");
-        Alert.alert(t("chatDirectTradeTitle"), message);
+        const key = directTradeErrorKey("schedule", error);
+        Alert.alert(
+          t("chatDirectTradeTitle"),
+          key ? t(key) : chatActionErrorMessage(error, t("chatDirectTradeFailed")),
+        );
       },
     });
   }, [
@@ -931,6 +998,7 @@ export function ChatRoomScreen({
     directTradeDetailQuery,
     meetingDate,
     meetingTime,
+    queryClient,
     t,
   ]);
 
@@ -948,28 +1016,18 @@ export function ChatRoomScreen({
           },
           onError: (error) => {
             const info = readApiErrorInfo(error);
-            const messageLower = info.message.toLowerCase();
             if (info.status === 404) {
               setLocationPickerOpen(false);
               setDirectTradeOpen(true);
               Alert.alert(
                 t("chatDirectTradeTitle"),
-                "Direct trade not started yet. Please set date and time first.",
+                t("chatDirectTradeNeedStartFirst"),
               );
               return;
             }
-            if (info.status === 403) {
-              Alert.alert(
-                t("chatDirectTradeTitle"),
-                "Only buyer can choose listing location.",
-              );
-              return;
-            }
-            if (info.status === 500 && messageLower.includes("messagetype")) {
-              Alert.alert(
-                t("chatDirectTradeTitle"),
-                "Server message-type config issue. Please contact support.",
-              );
+            const key = directTradeErrorKey("acceptLocation", error);
+            if (key) {
+              Alert.alert(t("chatDirectTradeTitle"), t(key));
               return;
             }
             Alert.alert(
@@ -1083,68 +1141,34 @@ export function ChatRoomScreen({
         },
         onError: (error) => {
           const info = readApiErrorInfo(error);
-          const messageLower = info.message.toLowerCase();
-          if (
-            info.status === 400 &&
-            (messageLower.includes("choose listing first") ||
-              messageLower.includes("listing first"))
-          ) {
+          const key = directTradeErrorKey("requestLocationChange", error);
+          if (key === "chatDirectTradeChooseListingFirst") {
             setChangeRequestOpen(false);
             setLocationPickerOpen(true);
-            Alert.alert(
-              t("chatDirectTradeTitle"),
-              "Please choose a listing location first.",
-            );
+            Alert.alert(t("chatDirectTradeTitle"), t(key));
             return;
           }
-          if (
-            info.status === 400 &&
-            (messageLower.includes("already on listing") ||
-              messageLower.includes("already listing"))
-          ) {
+          if (key === "chatDirectTradeAlreadyListingUsePicker") {
             setChangeRequestOpen(false);
             setLocationPickerOpen(true);
-            Alert.alert(
-              t("chatDirectTradeTitle"),
-              "This is already a listing location. Use listing picker instead.",
-            );
+            Alert.alert(t("chatDirectTradeTitle"), t(key));
             return;
           }
-          if (
-            info.status === 400 &&
-            (messageLower.includes("pending change exists") ||
-              messageLower.includes("pending"))
-          ) {
+          if (key === "chatDirectTradePendingChangeExists") {
             setChangeRequestOpen(false);
             void directTradeDetailQuery.refetch();
-            Alert.alert(
-              t("chatDirectTradeTitle"),
-              "A location change request is already pending seller response.",
-            );
-            return;
-          }
-          if (info.status === 403) {
-            setChangeRequestOpen(false);
-            Alert.alert(
-              t("chatDirectTradeTitle"),
-              "Only buyer can request location change.",
-            );
+            Alert.alert(t("chatDirectTradeTitle"), t(key));
             return;
           }
           if (info.status === 404) {
             setChangeRequestOpen(false);
             setDirectTradeOpen(true);
-            Alert.alert(
-              t("chatDirectTradeTitle"),
-              "Direct trade not started yet. Please set date and time first.",
-            );
+            Alert.alert(t("chatDirectTradeTitle"), t("chatDirectTradeNeedStartFirst"));
             return;
           }
-          if (info.status === 500 && messageLower.includes("messagetype")) {
-            Alert.alert(
-              t("chatDirectTradeTitle"),
-              "Server message-type config issue. Please contact support.",
-            );
+          if (key) {
+            setChangeRequestOpen(false);
+            Alert.alert(t("chatDirectTradeTitle"), t(key));
             return;
           }
           Alert.alert(
@@ -1174,27 +1198,17 @@ export function ChatRoomScreen({
           },
           onError: (error) => {
             const info = readApiErrorInfo(error);
-            const messageLower = info.message.toLowerCase();
-            if (info.status === 403) {
-              Alert.alert(
-                t("chatDirectTradeTitle"),
-                "Only seller can accept or deny location change.",
-              );
-              return;
-            }
             if (info.status === 404) {
               setDirectTradeOpen(true);
               Alert.alert(
                 t("chatDirectTradeTitle"),
-                "Direct trade not started yet. Please set date and time first.",
+                t("chatDirectTradeNeedStartFirst"),
               );
               return;
             }
-            if (info.status === 500 && messageLower.includes("messagetype")) {
-              Alert.alert(
-                t("chatDirectTradeTitle"),
-                "Server message-type config issue. Please contact support.",
-              );
+            const key = directTradeErrorKey("respondLocationChange", error);
+            if (key) {
+              Alert.alert(t("chatDirectTradeTitle"), t(key));
               return;
             }
             Alert.alert(
@@ -1287,7 +1301,7 @@ export function ChatRoomScreen({
     if (!canStartLiveGps) {
       Alert.alert(
         t("chatDirectTradeTitle"),
-        "Set an agreed meetup place first and wait until no pending location change.",
+        t("chatDirectTradeGpsRequiresAgreed"),
       );
       return;
     }
@@ -3097,10 +3111,6 @@ function DirectTradeRequestCard({
     metadata && typeof metadata.meetingTime === "string"
       ? (metadata.meetingTime as string)
       : null;
-  const meetingLocation =
-    metadata && typeof metadata.meetingLocation === "string"
-      ? (metadata.meetingLocation as string)
-      : null;
 
   const primaryText = isMine ? "#FFF" : c.text;
   const mutedText = isMine ? "rgba(255,255,255,0.75)" : c.icon;
@@ -3150,15 +3160,6 @@ function DirectTradeRequestCard({
           ) : null}
         </View>
       ) : null}
-      <View style={styles.directTradeCardLocationRow}>
-        <MaterialIcons name="location-on" size={14} color={primaryText} />
-        <ThemedText
-          style={[styles.directTradeCardInfoValue, { color: primaryText }]}
-          numberOfLines={2}
-        >
-          {meetingLocation || t("chatDirectTradeRequestNoLocation")}
-        </ThemedText>
-      </View>
     </View>
   );
 }
