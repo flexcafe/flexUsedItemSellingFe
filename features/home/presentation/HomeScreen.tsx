@@ -48,8 +48,6 @@ import { HomeRadiusFilter } from "./HomeRadiusFilter";
 import { HomeReportsSection } from "./HomeReportsSection";
 import { HomeSlider } from "./HomeSlider";
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
 const PRODUCT_IMAGE_SIZE = 80;
 
 function flattenCategories(tree: Category[] | undefined): Category[] {
@@ -115,10 +113,11 @@ const ProductCard = memo(function ProductCard({
       layout={uiLayoutTransition}
       style={cardAnimStyle}
     >
-      <AnimatedPressable
+      <Pressable
         onPress={() => onPress(item.id)}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
+        hitSlop={8}
         style={[
           styles.productCard,
           uiCardShadow(scheme, {
@@ -170,7 +169,7 @@ const ProductCard = memo(function ProductCard({
             {item.price.toLocaleString()} MMK
           </ThemedText>
         </View>
-      </AnimatedPressable>
+      </Pressable>
     </Animated.View>
   );
 });
