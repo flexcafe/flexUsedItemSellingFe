@@ -1002,19 +1002,19 @@ const DICT: Dictionary = {
     zh: "卖家已选择其他买家。您仍可聊天，但无法发起交易相关操作。若本聊天应为进行中的交易，请联系卖家。",
   },
   chatActiveDealSellerProductNote: {
-    ko: "Seller can choose buyers from My Listing Detail. You can also select this buyer here.",
-    my: "Seller can choose buyers from My Listing Detail. You can also select this buyer here.",
-    zh: "Seller can choose buyers from My Listing Detail. You can also select this buyer here.",
+    ko: "판매자는 내 판매글 상세에서 구매자를 선택할 수 있어요. 여기서도 이 구매자를 선택할 수 있습니다.",
+    my: "ရောင်းသူသည် မိမိ၏ ရောင်းချမှုစာမျက်နှာ အသေးစိတ်တွင် ဝယ်သူကို ရွေးချယ်နိုင်ပါသည်။ ဤနေရာတွင်လည်း ဤဝယ်သူကို ရွေးချယ်နိုင်ပါသည်။",
+    zh: "卖家可在“我的商品详情”中选择买家，你也可以在这里选择该买家。",
   },
   chatActiveDealBuyerProductNote: {
-    ko: "The seller chooses the active buyer from their product detail section.",
-    my: "The seller chooses the active buyer from their product detail section.",
-    zh: "The seller chooses the active buyer from their product detail section.",
+    ko: "판매자가 상품 상세 화면에서 진행 중인 구매자를 선택합니다.",
+    my: "ရောင်းသူသည် ပစ္စည်းအသေးစိတ် မျက်နှာပြင်မှ လက်ရှိ ဝယ်သူကို ရွေးချယ်ပါသည်။",
+    zh: "卖家会在商品详情页选择当前进行中的买家。",
   },
   chatActiveDealSelectThisBuyer: {
-    ko: "Select this buyer",
-    my: "Select this buyer",
-    zh: "Select this buyer",
+    ko: "이 구매자 선택",
+    my: "ဤဝယ်သူကို ရွေးချယ်မည်",
+    zh: "选择该买家",
   },
   chatActiveDealDismiss: {
     ko: "OK",
@@ -1292,44 +1292,44 @@ const DICT: Dictionary = {
     zh: "该交易已通过担保支付完成。",
   },
   chatCancelTradeTitle: {
-    ko: "Cancel transaction",
-    my: "Cancel transaction",
-    zh: "Cancel transaction",
+    ko: "거래 취소",
+    my: "အရောင်းအဝယ် ပယ်ဖျက်",
+    zh: "取消交易",
   },
   chatCancelTradeAction: {
-    ko: "Cancel transaction",
-    my: "Cancel transaction",
-    zh: "Cancel transaction",
+    ko: "거래 취소",
+    my: "အရောင်းအဝယ် ပယ်ဖျက်",
+    zh: "取消交易",
   },
   chatCancelTradeConfirm: {
-    ko: "Cancel this transaction? 20 points will be deducted from your account. If safe payment is already initiated, cancellation is not allowed.",
-    my: "Cancel this transaction? 20 points will be deducted from your account. If safe payment is already initiated, cancellation is not allowed.",
-    zh: "Cancel this transaction? 20 points will be deducted from your account. If safe payment is already initiated, cancellation is not allowed.",
+    ko: "이 거래를 취소할까요? 계정에서 20포인트가 차감됩니다. 안전결제가 이미 시작된 경우 취소할 수 없습니다.",
+    my: "ဤအရောင်းအဝယ်ကို ပယ်ဖျက်မလား။ သင့်အကောင့်မှ ပွိုင့် 20 လျှော့မည်။ လုံခြုံငွေပေးချေမှု စတင်ပြီးပါက ပယ်ဖျက်၍မရပါ။",
+    zh: "要取消该交易吗？将从账户扣除 20 积分。若担保支付已发起，则不允许取消。",
   },
   chatCancelTradeSuccess: {
-    ko: "Transaction cancelled. 20 points were deducted for cancellation.",
-    my: "Transaction cancelled. 20 points were deducted for cancellation.",
-    zh: "Transaction cancelled. 20 points were deducted for cancellation.",
+    ko: "거래가 취소되었습니다. 취소 수수료로 20포인트가 차감되었습니다.",
+    my: "အရောင်းအဝယ်ကို ပယ်ဖျက်ပြီးပါပြီ။ ပယ်ဖျက်မှုအတွက် ပွိုင့် 20 လျှော့ယူခဲ့သည်။",
+    zh: "交易已取消，已扣除 20 积分作为取消费用。",
   },
   chatCancelTradePenaltyNote: {
-    ko: "Cancelled. 20 points deducted for cancellation.",
-    my: "Cancelled. 20 points deducted for cancellation.",
-    zh: "Cancelled. 20 points deducted for cancellation.",
+    ko: "취소됨. 취소 수수료로 20포인트 차감.",
+    my: "ပယ်ဖျက်ပြီး။ ပယ်ဖျက်မှုအတွက် ပွိုင့် 20 လျှော့ယူထားသည်။",
+    zh: "已取消，已扣除 20 积分作为取消费用。",
   },
   chatCancelTradeBlocked: {
-    ko: "This transaction is already completed or refunded and cannot be cancelled.",
-    my: "This transaction is already completed or refunded and cannot be cancelled.",
-    zh: "This transaction is already completed or refunded and cannot be cancelled.",
+    ko: "이 거래는 이미 완료되었거나 환불되어 취소할 수 없습니다.",
+    my: "ဤအရောင်းအဝယ်သည် ပြီးစီးပြီး သို့မဟုတ် ပြန်အမ်းပြီးဖြစ်သဖြင့် ပယ်ဖျက်၍မရပါ။",
+    zh: "该交易已完成或已退款，无法取消。",
   },
   chatCancelTradeSafePaymentBlocked: {
-    ko: "Safe payment cannot be cancelled after payment submission.",
-    my: "Safe payment cannot be cancelled after payment submission.",
-    zh: "Safe payment cannot be cancelled after payment submission.",
+    ko: "결제 제출 후에는 안전결제를 취소할 수 없습니다.",
+    my: "ငွေပေးချေမှု တင်ပြီးနောက် လုံခြုံငွေပေးချေမှုကို ပယ်ဖျက်၍မရပါ။",
+    zh: "提交付款后无法取消担保支付。",
   },
   chatCancelTradeFailed: {
-    ko: "Could not cancel this transaction. Please try again.",
-    my: "Could not cancel this transaction. Please try again.",
-    zh: "Could not cancel this transaction. Please try again.",
+    ko: "거래를 취소하지 못했습니다. 다시 시도해 주세요.",
+    my: "အရောင်းအဝယ်ကို ပယ်ဖျက်၍မရပါ။ ထပ်မံကြိုးစားပါ။",
+    zh: "无法取消该交易，请重试。",
   },
   chatReviewTitle: {
     ko: "거래 리뷰",
@@ -1372,14 +1372,14 @@ const DICT: Dictionary = {
     zh: "评价已提交。",
   },
   chatReviewCompleteFirst: {
-    ko: "Complete the transaction first.",
-    my: "Complete the transaction first.",
-    zh: "Complete the transaction first.",
+    ko: "먼저 거래를 완료해 주세요.",
+    my: "ဦးစွာ အရောင်းအဝယ်ကို ပြီးစီးအောင် လုပ်ပါ။",
+    zh: "请先完成交易。",
   },
   chatReviewUnlockedHelper: {
-    ko: "You can review now; the other side can review after they complete.",
-    my: "You can review now; the other side can review after they complete.",
-    zh: "You can review now; the other side can review after they complete.",
+    ko: "지금 리뷰를 남길 수 있어요. 상대방은 거래를 완료한 뒤 리뷰를 남길 수 있습니다.",
+    my: "ယခု သုံးသပ်ချက်ရေးနိုင်ပါပြီ။ တစ်ဖက်သူက အရောင်းအဝယ် ပြီးစီးပြီးမှ သုံးသပ်ချက်ရေးနိုင်ပါသည်။",
+    zh: "你现在可以评价；对方在完成交易后才能评价。",
   },
   chatMeetingDateLabel: {
     ko: "만남 날짜",
@@ -3445,3 +3445,4 @@ export function useLocale(): LocaleContextValue {
   if (!ctx) throw new Error("useLocale must be used within a LocaleProvider");
   return ctx;
 }
+

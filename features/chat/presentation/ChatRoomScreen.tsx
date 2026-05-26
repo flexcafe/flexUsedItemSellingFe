@@ -56,7 +56,7 @@ import {
   useSubmitTransactionReview,
   useUpdateLocationShare,
 } from "@/presentation/hooks/useClientChat";
-import { useSetActiveDeal } from "@/presentation/hooks/useProducts";
+import { useProduct, useSetActiveDeal } from "@/presentation/hooks/useProducts";
 import {
   buildLeafletLiveViewHtml,
   buildLeafletPickerHtml,
@@ -326,6 +326,12 @@ export function ChatRoomScreen({
     return items.find((room) => room.id === chatRoomId) ?? null;
   }, [chatRoomId, inboxRoomsQuery.data, queryClient]);
   const currentUserId = user?.id ?? null;
+  const sellerListingId = roomMeta?.listingId ?? null;
+  const sellerListingQuery = useProduct(
+    currentUserId && roomMeta?.sellerId === currentUserId
+      ? sellerListingId
+      : null,
+  );
   const resolvedListingTitle =
     listingTitle?.trim() ||
     roomMeta?.listingTitle?.trim() ||
@@ -356,10 +362,6 @@ export function ChatRoomScreen({
   const acceptLocationMutation = useAcceptLocation(chatRoomId);
   const requestLocationChangeMutation = useRequestLocationChange(chatRoomId);
   const respondLocationChangeMutation = useRespondLocationChange(chatRoomId);
-  const safePaymentStatusQuery = useSafePaymentStatus(
-    chatRoomId,
-    safePaymentOpen || completionOpen,
-  );
   const requestSafePaymentMutation = useRequestSafePayment(chatRoomId);
   const submitSafePaymentMutation = useSubmitSafePayment(chatRoomId);
   const completeTransactionMutation = useCompleteTransaction(chatRoomId);
@@ -409,11 +411,18 @@ export function ChatRoomScreen({
   } | null>(null);
   const [toolsExpanded, setToolsExpanded] = useState(false);
   const [activeDealBlocked, setActiveDealBlocked] = useState(false);
+  const [localActiveDealChatRoomId, setLocalActiveDealChatRoomId] = useState<
+    string | null
+  >(null);
   const [liveMapModalOpen, setLiveMapModalOpen] = useState(false);
   const [liveMapFocusPoint, setLiveMapFocusPoint] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
+  const safePaymentStatusQuery = useSafePaymentStatus(
+    chatRoomId,
+    safePaymentOpen || completionOpen,
+  );
   const listRef = useRef<FlatListType<ChatMessage>>(null);
   const messages = useMemo(() => {
     const pages = messagesQuery.data?.pages ?? [];
@@ -487,14 +496,19 @@ export function ChatRoomScreen({
     }
     return null;
   }, [chronological]);
-  const cashTransaction =
-    directTradeTransaction ??
-    (messageTransaction?.type === "DIRECT_TRADE" ? messageTransaction : null);
+  const cashMessageTransaction =
+    messageTransaction?.type === "DIRECT_TRADE" ? messageTransaction : null;
+  const cashTransaction = directTradeTransaction ?? cashMessageTransaction;
   const hasDirectTrade = Boolean(cashTransaction);
   const toolsSubtitle = hasDirectTrade
     ? compactStatus
     : t("chatTradeToolsSubtitleNoDirectTrade");
   const safeTransaction = safePaymentStatus?.transaction ?? null;
+  const sellerActiveDealChatRoomId =
+    localActiveDealChatRoomId ??
+    sellerListingQuery.data?.activeDealChatRoomId ??
+    null;
+  const isThisChatSellerActiveDeal = sellerActiveDealChatRoomId === chatRoomId;
   const baseCompletionTransaction = safeTransaction ?? cashTransaction;
   const completionTransaction =
     cancelledTransaction &&
@@ -521,7 +535,6 @@ export function ChatRoomScreen({
       : completionTransaction.sellerCompleted),
   );
   const detail = directTradeDetailQuery.data;
-
   const meetupMapPin = useMemo(() => {
     if (
       detail?.meetingLatitude != null &&
@@ -675,6 +688,13 @@ export function ChatRoomScreen({
   const canCancelTransaction = Boolean(
     completionTransaction && !isTransactionCancelBlocked,
   );
+  const canShowCompletionTool = Boolean(
+    chatRoomId &&
+      (completionTransaction ||
+        hasDirectTrade ||
+        detail?.transactionId ||
+        isThisChatSellerActiveDeal),
+  );
   const markActiveDealBlocked = useCallback(() => {
     setActiveDealBlocked(true);
     setToolsExpanded(true);
@@ -688,6 +708,8 @@ export function ChatRoomScreen({
       {
         onSuccess: async () => {
           setActiveDealBlocked(false);
+          setLocalActiveDealChatRoomId(chatRoomId);
+          await sellerListingQuery.refetch();
           await directTradeDetailQuery.refetch();
           Alert.alert(
             t("productsActiveDealTitle"),
@@ -706,6 +728,7 @@ export function ChatRoomScreen({
     chatRoomId,
     directTradeDetailQuery,
     roomMeta?.listingId,
+    sellerListingQuery,
     setActiveDealMutation,
     t,
   ]);
@@ -1130,10 +1153,7 @@ export function ChatRoomScreen({
   const onCancelTransaction = useCallback(() => {
     const transactionId = completionTransaction?.id;
     if (!transactionId) {
-      Alert.alert(
-        t("chatCancelTradeTitle"),
-        t("chatCompleteTradeUnavailable"),
-      );
+      Alert.alert(t("chatCancelTradeTitle"), t("chatCompleteTradeUnavailable"));
       return;
     }
     if (isTransactionCancelBlocked) {
@@ -2194,36 +2214,38 @@ export function ChatRoomScreen({
                 </Pressable>
               </View>
 
-              <Pressable
-                onPress={openCompletionModal}
-                disabled={!chatRoomId}
-                style={({ pressed }) => [
-                  styles.toolChip,
-                  styles.toolChipFull,
-                  {
-                    borderColor: chatRoomId ? colors.tint : colors.icon + "55",
-                    backgroundColor: chatRoomId
-                      ? colors.tint + "12"
-                      : colors.icon + "10",
-                    opacity: !chatRoomId ? 0.55 : pressed ? 0.88 : 1,
-                  },
-                ]}
-              >
-                <MaterialIcons
-                  name="task-alt"
-                  size={17}
-                  color={chatRoomId ? colors.tint : colors.icon}
-                />
-                <ThemedText
-                  style={[
-                    styles.toolChipText,
-                    { color: chatRoomId ? colors.tint : colors.icon },
+              {canShowCompletionTool ? (
+                <Pressable
+                  onPress={openCompletionModal}
+                  disabled={!chatRoomId}
+                  style={({ pressed }) => [
+                    styles.toolChip,
+                    styles.toolChipFull,
+                    {
+                      borderColor: chatRoomId ? colors.tint : colors.icon + "55",
+                      backgroundColor: chatRoomId
+                        ? colors.tint + "12"
+                        : colors.icon + "10",
+                      opacity: !chatRoomId ? 0.55 : pressed ? 0.88 : 1,
+                    },
                   ]}
-                  numberOfLines={1}
                 >
-                  {t("chatCompleteTradeButton")}
-                </ThemedText>
-              </Pressable>
+                  <MaterialIcons
+                    name="task-alt"
+                    size={17}
+                    color={chatRoomId ? colors.tint : colors.icon}
+                  />
+                  <ThemedText
+                    style={[
+                      styles.toolChipText,
+                      { color: chatRoomId ? colors.tint : colors.icon },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {t("chatCompleteTradeButton")}
+                  </ThemedText>
+                </Pressable>
+              ) : null}
 
               {hasDirectTrade ? (
                 <>
