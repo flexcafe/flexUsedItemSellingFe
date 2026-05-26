@@ -84,6 +84,7 @@ const ChatInboxRow = memo(function ChatInboxRow({
     item,
     t("chatNoMessagesYet"),
     t("chatTapToStart"),
+    t,
   );
   const unread = displayUnreadCount(item, currentUserId);
   const time = formatChatTimestamp(

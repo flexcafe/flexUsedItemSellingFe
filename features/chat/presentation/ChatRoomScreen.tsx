@@ -12,6 +12,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   TextInput,
   useWindowDimensions,
@@ -1917,7 +1918,7 @@ export function ChatRoomScreen({
                 <ThemedText
                   style={[styles.bubbleText, isMine && styles.bubbleTextMine]}
                 >
-                  {messagePreview(item) || t("chatSystemMessage")}
+                  {messagePreview(item, t) || t("chatSystemMessage")}
                 </ThemedText>
               </>
             )}
@@ -2143,7 +2144,13 @@ export function ChatRoomScreen({
             layout={uiLayoutTransition}
             style={styles.toolsExpandedBody}
           >
-            <View style={styles.toolsActionGrid}>
+            <ScrollView
+              nestedScrollEnabled
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              style={styles.toolsScroll}
+              contentContainerStyle={styles.toolsActionGrid}
+            >
               <View style={styles.toolChipPairRow}>
                 <Pressable
                   onPress={openDirectTradeModal}
@@ -2545,7 +2552,7 @@ export function ChatRoomScreen({
                   {t("chatLocationRequiresDirectTrade")}
                 </ThemedText>
               )}
-            </View>
+            </ScrollView>
           </Animated.View>
         ) : null}
       </Animated.View>
@@ -3253,6 +3260,24 @@ export function ChatRoomScreen({
                 <ThemedText style={styles.safeMutedText}>
                   {t("chatCompleteTradeHint")}
                 </ThemedText>
+                <View
+                  style={[
+                    styles.transactionModalGuide,
+                    {
+                      borderColor: colors.tint + "33",
+                      backgroundColor: colors.tint + "0F",
+                    },
+                  ]}
+                >
+                  <MaterialIcons
+                    name="info-outline"
+                    size={16}
+                    color={colors.tint}
+                  />
+                  <ThemedText style={styles.transactionModalGuideText}>
+                    {t("chatCompleteTradeModalGuide")}
+                  </ThemedText>
+                </View>
                 {isTransactionCancelled ? (
                   <ThemedText style={styles.cancelPenaltyText}>
                     {t("chatCancelTradePenaltyNote")}
@@ -3930,8 +3955,12 @@ const styles = StyleSheet.create({
   toolsTitle: { fontSize: 13, fontWeight: "700" },
   toolsSubtitle: { fontSize: 12, opacity: 0.75 },
   toolsExpandedBody: { gap: 10 },
+  toolsScroll: {
+    maxHeight: 260,
+  },
   toolsActionGrid: {
     gap: 8,
+    paddingBottom: 2,
   },
   toolChipPairRow: {
     flexDirection: "row",
@@ -4337,6 +4366,21 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: "700",
     color: "#DC2626",
+  },
+  transactionModalGuide: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  transactionModalGuideText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+    opacity: 0.82,
   },
   modalSaveBtnText: { color: "#FFF", fontWeight: "700" },
   locationOptionRow: {

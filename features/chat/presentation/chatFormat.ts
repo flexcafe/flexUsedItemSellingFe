@@ -1,5 +1,10 @@
 import type { ChatMessage, ChatRoom } from "@/core/domain/entities/Chat";
 
+export type ChatMessagePreviewT = (
+  key: string,
+  params?: Record<string, unknown>,
+) => string;
+
 export function formatChatTimestamp(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
@@ -18,6 +23,7 @@ export function formatChatTimestamp(iso: string): string {
 
 export function messagePreview(
   message: ChatMessage | null | undefined,
+  t?: ChatMessagePreviewT,
 ): string {
   if (!message) return "";
   if (message.type === "TEXT") {
@@ -34,19 +40,41 @@ export function messagePreview(
         ? (meta.meetingTime as string)
         : "";
     if (date && time) return `${date} ${time}`;
-    return date || time || "직거래 요청";
+    return (
+      date ||
+      time ||
+      (t ? t("chatSystemDirectTradeRequested") : "직거래 요청")
+    );
   }
   if (
     message.type === "DIRECT_TRADE_LOCATION_ACCEPTED" ||
     message.type === "DIRECT_TRADE_LOCATION_CHANGE_ACCEPTED"
   ) {
-    return "장소 확정됨";
+    return t ? t("chatSystemDirectTradeLocationAccepted") : "장소 확정됨";
   }
   if (message.type === "DIRECT_TRADE_LOCATION_CHANGE_REQUESTED") {
-    return "장소 변경 요청";
+    return t ? t("chatSystemDirectTradeLocationChangeRequested") : "장소 변경 요청";
   }
   if (message.type === "DIRECT_TRADE_LOCATION_CHANGE_DENIED") {
-    return "장소 변경 거절";
+    return t ? t("chatSystemDirectTradeLocationChangeDenied") : "장소 변경 거절";
+  }
+  if (message.type === "SAFE_PAYMENT_REQUESTED") {
+    return t ? t("chatSystemSafePaymentRequested") : "SAFE PAYMENT REQUESTED";
+  }
+  if (message.type === "SAFE_PAYMENT_INSTRUCTION_SENT") {
+    return t ? t("chatSystemSafePaymentInstructionSent") : "SAFE PAYMENT INSTRUCTION SENT";
+  }
+  if (message.type === "SAFE_PAYMENT_INITIATED") {
+    return t ? t("chatSystemSafePaymentInitiated") : "SAFE PAYMENT INITIATED";
+  }
+  if (message.type === "SAFE_PAYMENT_VERIFIED") {
+    return t ? t("chatSystemSafePaymentVerified") : "SAFE PAYMENT VERIFIED";
+  }
+  if (message.type === "PAYMENT_TRANSFERRED") {
+    return t ? t("chatSystemSafePaymentTransferred") : "PAYMENT TRANSFERRED";
+  }
+  if (message.type === "TRANSACTION_COMPLETED") {
+    return t ? t("chatSystemTransactionCompleted") : "TRANSACTION COMPLETED";
   }
   return message.content?.trim() || message.type.replaceAll("_", " ");
 }
@@ -100,9 +128,10 @@ export function inboxPreviewText(
   room: ChatRoom,
   noMessagesLabel: string,
   tapToStartLabel: string,
+  t?: ChatMessagePreviewT,
 ): string {
   if (!roomHasRealMessage(room)) return tapToStartLabel;
-  const preview = messagePreview(room.lastMessage);
+  const preview = messagePreview(room.lastMessage, t);
   return preview || noMessagesLabel;
 }
 

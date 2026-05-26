@@ -906,6 +906,56 @@ const DICT: Dictionary = {
     my: "စနစ်မက်ဆေ့ချ်",
     zh: "系统消息",
   },
+  chatSystemDirectTradeRequested: {
+    ko: "직거래 요청",
+    my: "တိုက်ရိုက်တွေ့ဆုံ တောင်းဆိုချက်",
+    zh: "当面交易请求",
+  },
+  chatSystemDirectTradeLocationAccepted: {
+    ko: "만남 장소 확정",
+    my: "တွေ့ဆုံမည့် နေရာ အတည်ပြုပြီး",
+    zh: "见面地点已确认",
+  },
+  chatSystemDirectTradeLocationChangeRequested: {
+    ko: "장소 변경 요청",
+    my: "နေရာပြောင်းရန် တောင်းဆိုချက်",
+    zh: "请求更改地点",
+  },
+  chatSystemDirectTradeLocationChangeDenied: {
+    ko: "장소 변경 거절",
+    my: "နေရာပြောင်းရန် ငြင်းပယ်",
+    zh: "已拒绝更改地点",
+  },
+  chatSystemSafePaymentRequested: {
+    ko: "안전결제 요청",
+    my: "လုံခြုံငွေပေးချေမှု တောင်းဆိုမှု",
+    zh: "担保支付请求",
+  },
+  chatSystemSafePaymentInstructionSent: {
+    ko: "결제 안내 발송",
+    my: "ငွေပေးချေမှု ညွှန်ကြားချက် ပို့ပြီး",
+    zh: "已发送付款指引",
+  },
+  chatSystemSafePaymentInitiated: {
+    ko: "안전결제 진행 시작",
+    my: "လုံခြုံငွေပေးချေမှု စတင်ပြီး",
+    zh: "担保支付已开始",
+  },
+  chatSystemSafePaymentVerified: {
+    ko: "결제 확인됨",
+    my: "ငွေပေးချေမှု အတည်ပြုပြီး",
+    zh: "付款已确认",
+  },
+  chatSystemSafePaymentTransferred: {
+    ko: "대금 이체 완료",
+    my: "ငွေလွှဲပြီးပါပြီ",
+    zh: "已完成转账",
+  },
+  chatSystemTransactionCompleted: {
+    ko: "거래 완료",
+    my: "အရောင်းအဝယ် ပြီးစီးပြီး",
+    zh: "交易已完成",
+  },
   chatTradeTools: {
     ko: "거래 도구",
     my: "ကုန်သွယ်မှုကိရိယာ",
@@ -1237,9 +1287,9 @@ const DICT: Dictionary = {
     zh: "支付信息已提交，请等待管理员确认。",
   },
   chatCompleteTradeButton: {
-    ko: "거래 완료/리뷰",
-    my: "အရောင်းအဝယ်ပြီးစီး/သုံးသပ်ချက်",
-    zh: "完成交易/评价",
+    ko: "완료/취소/리뷰",
+    my: "ပြီးစီး/ပယ်ဖျက်/သုံးသပ်ချက်",
+    zh: "完成/取消/评价",
   },
   chatCompleteTradeTitle: {
     ko: "거래 완료 확인",
@@ -1256,7 +1306,11 @@ const DICT: Dictionary = {
     my: "နှစ်ဖက်စလုံး ပြီးစီးကြောင်း အတည်ပြုပါက အခြေအနေ COMPLETED သို့ ရောက်မည်။",
     zh: "买卖双方都确认后，交易状态会变为 COMPLETED。",
   },
-  chatCompleteTradeAction: {
+  chatCompleteTradeModalGuide: {
+    ko: "이 화면에서 거래를 완료하거나 취소할 수 있습니다. 취소 시 20포인트가 차감됩니다. 안전결제가 이미 시작된 경우 취소할 수 없습니다.",
+    my: "ဤမျက်နှာပြင်တွင် အရောင်းအဝယ်ကို ပြီးစီးအောင်လုပ်ခြင်း သို့မဟုတ် ပယ်ဖျက်နိုင်ပါသည်။ ပယ်ဖျက်ပါက ပွိုင့် 20 လျှော့ယူမည်။ လုံခြုံငွေပေးချေမှု စတင်ပြီးပါက ပယ်ဖျက်၍မရပါ။",
+    zh: "在此页面可完成或取消交易。取消将扣除 20 积分。若担保支付已开始，则不允许取消。",
+  },  chatCompleteTradeAction: {
     ko: "거래 완료 표시",
     my: "အရောင်းအဝယ် ပြီးစီးကြောင်း မှတ်သားမည်",
     zh: "标记交易完成",
@@ -3445,4 +3499,5 @@ export function useLocale(): LocaleContextValue {
   if (!ctx) throw new Error("useLocale must be used within a LocaleProvider");
   return ctx;
 }
+
 
