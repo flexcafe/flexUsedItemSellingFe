@@ -991,6 +991,36 @@ const DICT: Dictionary = {
     my: "ဦးစွာ တွေ့ဆုံမည့် နေရာကို သဘောတူပြီးမှ သုံးပါ (နေရာပြောင်းတောင်းဆိုမှု မဆိုင်းငံ့ရသေးရ)။",
     zh: "请先约定见面地点，且不能有进行中的地点更改请求。",
   },
+  chatActiveDealBlockedTitle: {
+    ko: "진행 거래 미선택",
+    my: "လက်ရှိ ချုပ်ဆိုမှု မဟုတ်",
+    zh: "非进行中交易",
+  },
+  chatActiveDealBlockedMessage: {
+    ko: "판매자가 다른 구매자를 선택했습니다. 채팅은 계속할 수 있지만 거래 관련 기능은 사용할 수 없습니다. 이 채팅이 진행 중인 거래여야 한다면 판매자에게 문의하세요.",
+    my: "ရောင်းသူက အခြား ဝယ်သူတစ်ဦးကို ရွေးချယ်ထားပါသည်။ ချတ်ဆက်လက်လုပ်နိုင်သော်လုံး ချုပ်ဆိုမှု လုပ်ဆောင်ချက်များ မစတင်နိုင်ပါ။ ဤချတ်သည် လက်ရှိ ချုပ်ဆိုမှု ဖြစ်သင့်လျှင် ရောင်းသူကို ဆက်သွယ်ပါ။",
+    zh: "卖家已选择其他买家。您仍可聊天，但无法发起交易相关操作。若本聊天应为进行中的交易，请联系卖家。",
+  },
+  chatActiveDealSellerProductNote: {
+    ko: "Seller can choose buyers from My Listing Detail. You can also select this buyer here.",
+    my: "Seller can choose buyers from My Listing Detail. You can also select this buyer here.",
+    zh: "Seller can choose buyers from My Listing Detail. You can also select this buyer here.",
+  },
+  chatActiveDealBuyerProductNote: {
+    ko: "The seller chooses the active buyer from their product detail section.",
+    my: "The seller chooses the active buyer from their product detail section.",
+    zh: "The seller chooses the active buyer from their product detail section.",
+  },
+  chatActiveDealSelectThisBuyer: {
+    ko: "Select this buyer",
+    my: "Select this buyer",
+    zh: "Select this buyer",
+  },
+  chatActiveDealDismiss: {
+    ko: "OK",
+    my: "OK",
+    zh: "OK",
+  },
   chatDirectTradeRequestTitle: {
     ko: "직거래 요청",
     my: "တိုက်ရိုက်တွေ့ဆုံရန် တောင်းဆိုချက်",
@@ -1260,6 +1290,46 @@ const DICT: Dictionary = {
     ko: "이 거래는 이미 안전결제로 완료되었습니다.",
     my: "ဤအရောင်းအဝယ်သည် လုံခြုံငွေပေးချေမှုဖြင့် ပြီးစီးပြီးဖြစ်သည်။",
     zh: "该交易已通过担保支付完成。",
+  },
+  chatCancelTradeTitle: {
+    ko: "Cancel transaction",
+    my: "Cancel transaction",
+    zh: "Cancel transaction",
+  },
+  chatCancelTradeAction: {
+    ko: "Cancel transaction",
+    my: "Cancel transaction",
+    zh: "Cancel transaction",
+  },
+  chatCancelTradeConfirm: {
+    ko: "Cancel this transaction? 20 points will be deducted from your account. If safe payment is already initiated, cancellation is not allowed.",
+    my: "Cancel this transaction? 20 points will be deducted from your account. If safe payment is already initiated, cancellation is not allowed.",
+    zh: "Cancel this transaction? 20 points will be deducted from your account. If safe payment is already initiated, cancellation is not allowed.",
+  },
+  chatCancelTradeSuccess: {
+    ko: "Transaction cancelled. 20 points were deducted for cancellation.",
+    my: "Transaction cancelled. 20 points were deducted for cancellation.",
+    zh: "Transaction cancelled. 20 points were deducted for cancellation.",
+  },
+  chatCancelTradePenaltyNote: {
+    ko: "Cancelled. 20 points deducted for cancellation.",
+    my: "Cancelled. 20 points deducted for cancellation.",
+    zh: "Cancelled. 20 points deducted for cancellation.",
+  },
+  chatCancelTradeBlocked: {
+    ko: "This transaction is already completed or refunded and cannot be cancelled.",
+    my: "This transaction is already completed or refunded and cannot be cancelled.",
+    zh: "This transaction is already completed or refunded and cannot be cancelled.",
+  },
+  chatCancelTradeSafePaymentBlocked: {
+    ko: "Safe payment cannot be cancelled after payment submission.",
+    my: "Safe payment cannot be cancelled after payment submission.",
+    zh: "Safe payment cannot be cancelled after payment submission.",
+  },
+  chatCancelTradeFailed: {
+    ko: "Could not cancel this transaction. Please try again.",
+    my: "Could not cancel this transaction. Please try again.",
+    zh: "Could not cancel this transaction. Please try again.",
   },
   chatReviewTitle: {
     ko: "거래 리뷰",
@@ -1830,6 +1900,27 @@ const DICT: Dictionary = {
     ko: "안전결제가 판매자에게 송금 처리되었습니다. 참조: {{transferRef}}",
     my: "လုံခြုံငွေပေးချေမှုကို ရောင်းသူထံ လွှဲပြောင်းပြီးဟု မှတ်သားပြီးပါပြီ။ ကိုးကား: {{transferRef}}",
     zh: "担保支付已标记为已向卖家转账。参考：{{transferRef}}",
+  },
+
+  "noti.chat.events.CHAT_TRANSACTION_CANCELLED_SELF_PENALTY.title": {
+    ko: "Transaction cancelled",
+    my: "Transaction cancelled",
+    zh: "Transaction cancelled",
+  },
+  "noti.chat.events.CHAT_TRANSACTION_CANCELLED_SELF_PENALTY.body": {
+    ko: "{{deductedPoints}} points were deducted for cancellation. Balance after: {{balanceAfter}}.",
+    my: "{{deductedPoints}} points were deducted for cancellation. Balance after: {{balanceAfter}}.",
+    zh: "{{deductedPoints}} points were deducted for cancellation. Balance after: {{balanceAfter}}.",
+  },
+  "noti.chat.events.CHAT_TRANSACTION_CANCELLED_COUNTERPARTY.title": {
+    ko: "Transaction cancelled",
+    my: "Transaction cancelled",
+    zh: "Transaction cancelled",
+  },
+  "noti.chat.events.CHAT_TRANSACTION_CANCELLED_COUNTERPARTY.body": {
+    ko: "The other party cancelled this transaction. Cancelled by: {{cancelledByUserId}}.",
+    my: "The other party cancelled this transaction. Cancelled by: {{cancelledByUserId}}.",
+    zh: "The other party cancelled this transaction. Cancelled by: {{cancelledByUserId}}.",
   },
 
   "noti.suggestion.events.SUGGESTION_SUBMITTED_CLIENT.title": {
@@ -2599,6 +2690,51 @@ const DICT: Dictionary = {
     ko: "KBZ Pay",
     my: "KBZ Pay",
     zh: "KBZ Pay",
+  },
+  productsActiveDealTitle: {
+    ko: "진행 중인 거래",
+    my: "လက်ရှိ ချုပ်ဆိုမှု",
+    zh: "进行中的交易",
+  },
+  productsActiveDealHint: {
+    ko: "이 상품에서 직거래 또는 안전결제를 시작할 수 있는 구매자 채팅을 선택하세요.",
+    my: "ဤပစ္စည်းအတွက် တိုက်ရိုက်တွေ့ဆုံ သို့မဟုတ် လုံခြုံငွေပေးချေမှု စတင်နိုင်သော ဝယ်သူ ချတ်ကို ရွေးချယ်ပါ။",
+    zh: "选择可为此商品发起当面交易或担保支付的买家聊天。",
+  },
+  productsActiveDealEmpty: {
+    ko: "이 상품에 대한 구매자 채팅이 아직 없습니다.",
+    my: "ဤပစ္စည်းအတွက် ဝယ်သူ ချတ်များ မရှိသေးပါ။",
+    zh: "该商品暂无买家聊天。",
+  },
+  productsActiveDealSet: {
+    ko: "선택",
+    my: "ရွေးချယ်မည်",
+    zh: "选择",
+  },
+  productsActiveDealClear: {
+    ko: "해제",
+    my: "ဖယ်ရှားမည်",
+    zh: "清除",
+  },
+  productsActiveDealSelected: {
+    ko: "선택된 진행 거래",
+    my: "ရွေးချယ်ထားသော လက်ရှိ ချုပ်ဆိုမှု",
+    zh: "已选进行中的交易",
+  },
+  productsActiveDealNotSelected: {
+    ko: "선택 안 됨",
+    my: "မရွေးချယ်ရသေးပါ",
+    zh: "未选择",
+  },
+  productsActiveDealUpdated: {
+    ko: "진행 중인 거래가 업데이트되었습니다.",
+    my: "လက်ရှိ ချုပ်ဆိုမှုကို ပြင်ဆင်ပြီးပါပြီ။",
+    zh: "进行中的交易已更新。",
+  },
+  productsActiveDealFailed: {
+    ko: "진행 중인 거래를 업데이트하지 못했습니다. 다시 시도해 주세요.",
+    my: "လက်ရှိ ချုပ်ဆိုမှုကို ပြင်ဆင်၍မရပါ။ ထပ်မံကြိုးစားပါ။",
+    zh: "无法更新进行中的交易，请重试。",
   },
   productsDetailEditListing: {
     ko: "수정",

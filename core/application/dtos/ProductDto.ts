@@ -18,6 +18,7 @@ export interface ProductDto {
   images?: unknown;
   preferredLocations?: unknown;
   seller?: unknown;
+  activeDealChatRoomId?: string | null;
   sellerId?: string | null;
   categoryId?: string | null;
   categoryName?: string | null;

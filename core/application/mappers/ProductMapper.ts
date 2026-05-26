@@ -27,6 +27,7 @@ export interface ProductApiResponse {
   deliveryFeePayer?: unknown;
   preferredLocations?: unknown;
   sellerId?: string | null;
+  activeDealChatRoomId?: string | null;
   viewCount?: number | null;
   isAvailable?: boolean | null;
   createdAt?: string | null;
@@ -224,6 +225,7 @@ export function toProduct(dto: ProductApiResponse): Product {
     images: imageUrls.length > 0 ? imageUrls : toStringArray(dto.images),
     preferredLocations: parsePreferredLocations(dto.preferredLocations),
     seller: parseSellerSummary(dto.seller),
+    activeDealChatRoomId: toStringOrNull(dto.activeDealChatRoomId),
     viewCount:
       typeof dto.viewCount === "number" && Number.isFinite(dto.viewCount)
         ? dto.viewCount
@@ -331,6 +333,7 @@ export function toProductDto(product: Partial<Product>): ProductDto {
     images: product.images ?? [],
     preferredLocations: product.preferredLocations ?? [],
     sellerId: product.sellerId ?? null,
+    activeDealChatRoomId: product.activeDealChatRoomId ?? null,
     viewCount: product.viewCount ?? null,
     createdAt: product.createdAt ?? null,
     updatedAt: product.updatedAt ?? null,

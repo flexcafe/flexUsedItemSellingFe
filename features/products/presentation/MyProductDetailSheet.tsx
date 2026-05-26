@@ -3,7 +3,8 @@ import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import type { Product } from "@/core/domain/entities/Product";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useProduct } from "@/presentation/hooks/useProducts";
+import { useChatRooms } from "@/presentation/hooks/useClientChat";
+import { useProduct, useSetActiveDeal } from "@/presentation/hooks/useProducts";
 import { uiSectionEnter } from "@/presentation/lib/uiAnimations";
 import { buildLeafletStaticViewHtml } from "@/presentation/lib/leafletPickerHtml";
 import {
@@ -17,6 +18,7 @@ import { Image } from "expo-image";
 import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -220,6 +222,8 @@ export const MyProductDetailSheet = memo(function MyProductDetailSheet({
   const colors = Colors[scheme];
   const { width } = useWindowDimensions();
   const detailQuery = useProduct(visible ? productId : null);
+  const chatRoomsQuery = useChatRooms({ take: 50 });
+  const setActiveDealMutation = useSetActiveDeal();
   const [photoIndex, setPhotoIndex] = useState(0);
   const reduceMotion = useReducedMotion();
   const sheetProgress = useSharedValue(0);
@@ -232,6 +236,12 @@ export const MyProductDetailSheet = memo(function MyProductDetailSheet({
     () => (product ? parsePreferredLocations(product.preferredLocations) : []),
     [product],
   );
+  const dealRooms = useMemo(() => {
+    const rooms = chatRoomsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+    if (!product?.id) return [];
+    return rooms.filter((room) => room.listingId === product.id);
+  }, [chatRoomsQuery.data, product?.id]);
+  const activeDealChatRoomId = product?.activeDealChatRoomId ?? null;
 
   const gallerySlideWidth = width - 32;
   const mapHtml = useMemo(() => {
@@ -258,6 +268,30 @@ export const MyProductDetailSheet = memo(function MyProductDetailSheet({
       setPhotoIndex(Math.min(Math.max(idx, 0), Math.max(images.length - 1, 0)));
     },
     [gallerySlideWidth, images.length],
+  );
+
+  const onSetActiveDeal = useCallback(
+    (chatRoomId: string | null) => {
+      if (!product?.id || setActiveDealMutation.isPending) return;
+      setActiveDealMutation.mutate(
+        { productId: product.id, chatRoomId },
+        {
+          onSuccess: () => {
+            Alert.alert(
+              t("productsActiveDealTitle"),
+              t("productsActiveDealUpdated"),
+            );
+          },
+          onError: () => {
+            Alert.alert(
+              t("productsActiveDealTitle"),
+              t("productsActiveDealFailed"),
+            );
+          },
+        },
+      );
+    },
+    [product?.id, setActiveDealMutation, t],
   );
 
   useEffect(() => {
@@ -611,12 +645,106 @@ export const MyProductDetailSheet = memo(function MyProductDetailSheet({
                 </SectionCard>
 
                 <SectionCard
+                  title={t("productsActiveDealTitle")}
+                  icon="lock"
+                  tint={colors.tint}
+                  surface={surface}
+                  borderColor={borderColor}
+                  enterDelay={SECTION_STAGGER_MS * 5}
+                >
+                  <ThemedText style={styles.activeDealHint}>
+                    {t("productsActiveDealHint")}
+                  </ThemedText>
+                  {chatRoomsQuery.isLoading ? (
+                    <View style={styles.activeDealLoading}>
+                      <ActivityIndicator size="small" color={colors.tint} />
+                      <ThemedText style={styles.activeDealHint}>
+                        {t("productsDetailLoading")}
+                      </ThemedText>
+                    </View>
+                  ) : dealRooms.length === 0 ? (
+                    <ThemedText style={styles.activeDealEmpty}>
+                      {t("productsActiveDealEmpty")}
+                    </ThemedText>
+                  ) : (
+                    <View style={styles.activeDealList}>
+                      {dealRooms.map((room) => {
+                        const selected = activeDealChatRoomId === room.id;
+                        const buyerLabel =
+                          room.counterpartNickname?.trim() ||
+                          room.counterpartUserId?.slice(0, 8) ||
+                          room.buyerId.slice(0, 8);
+                        return (
+                          <View
+                            key={room.id}
+                            style={[
+                              styles.activeDealRow,
+                              {
+                                borderColor: selected
+                                  ? colors.tint + "60"
+                                  : colors.icon + "22",
+                                backgroundColor: selected
+                                  ? colors.tint + "10"
+                                  : colors.background,
+                              },
+                            ]}
+                          >
+                            <View style={styles.activeDealCopy}>
+                              <ThemedText
+                                style={styles.activeDealBuyer}
+                                numberOfLines={1}
+                              >
+                                {buyerLabel}
+                              </ThemedText>
+                              <ThemedText style={styles.activeDealState}>
+                                {selected
+                                  ? t("productsActiveDealSelected")
+                                  : t("productsActiveDealNotSelected")}
+                              </ThemedText>
+                            </View>
+                            <Pressable
+                              onPress={() => onSetActiveDeal(selected ? null : room.id)}
+                              disabled={setActiveDealMutation.isPending}
+                              style={({ pressed }) => [
+                                styles.activeDealButton,
+                                {
+                                  backgroundColor: selected
+                                    ? colors.icon + "12"
+                                    : colors.tint,
+                                  opacity:
+                                    setActiveDealMutation.isPending
+                                      ? 0.55
+                                      : pressed
+                                        ? 0.88
+                                        : 1,
+                                },
+                              ]}
+                            >
+                              <ThemedText
+                                style={[
+                                  styles.activeDealButtonText,
+                                  { color: selected ? colors.icon : "#FFFFFF" },
+                                ]}
+                              >
+                                {selected
+                                  ? t("productsActiveDealClear")
+                                  : t("productsActiveDealSet")}
+                              </ThemedText>
+                            </Pressable>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  )}
+                </SectionCard>
+
+                <SectionCard
                   title={t("productsDetailSectionDelivery")}
                   icon="local-shipping"
                   tint={colors.tint}
                   surface={surface}
                   borderColor={borderColor}
-                  enterDelay={SECTION_STAGGER_MS * 5}
+                  enterDelay={SECTION_STAGGER_MS * 6}
                 >
                   <View style={styles.chipRow}>
                     <TagChip
@@ -650,7 +778,7 @@ export const MyProductDetailSheet = memo(function MyProductDetailSheet({
                     tint={colors.tint}
                     surface={surface}
                     borderColor={borderColor}
-                    enterDelay={SECTION_STAGGER_MS * 6}
+                    enterDelay={SECTION_STAGGER_MS * 7}
                   >
                     {preferred.map((loc, i) => (
                       <View
@@ -1016,6 +1144,57 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 130,
     borderRadius: 12,
+  },
+  activeDealHint: {
+    fontSize: 12,
+    lineHeight: 18,
+    opacity: 0.62,
+  },
+  activeDealLoading: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  activeDealEmpty: {
+    fontSize: 13,
+    opacity: 0.62,
+  },
+  activeDealList: {
+    gap: 8,
+  },
+  activeDealRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 10,
+  },
+  activeDealCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  activeDealBuyer: {
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  activeDealState: {
+    fontSize: 11,
+    opacity: 0.58,
+    fontWeight: "700",
+  },
+  activeDealButton: {
+    minWidth: 72,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  activeDealButtonText: {
+    fontSize: 12,
+    fontWeight: "800",
   },
   prefCard: {
     borderWidth: 1,

@@ -16,6 +16,7 @@ import type {
   SafePaymentStatus,
   SafePaymentSubmitInput,
   SendChatMessageInput,
+  TransactionCancelInput,
   TransactionCompleteInput,
   TransactionReview,
   TransactionReviewInput,
@@ -119,6 +120,12 @@ export class ChatService implements IChatService {
     input: TransactionCompleteInput,
   ): Promise<DirectTradeTransaction> {
     return this.repo.completeTransaction(input);
+  }
+
+  cancelTransaction(
+    input: TransactionCancelInput,
+  ): Promise<DirectTradeTransaction> {
+    return this.repo.cancelTransaction(input);
   }
 
   submitTransactionReview(

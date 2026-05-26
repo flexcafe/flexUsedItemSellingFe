@@ -170,6 +170,31 @@ function localizeChatNotification(
           transferRef: toSafeString(md.transferRef),
         }),
       };
+    case "CHAT_TRANSACTION_CANCELLED_SELF_PENALTY":
+      return {
+        title: tf(
+          "noti.chat.events.CHAT_TRANSACTION_CANCELLED_SELF_PENALTY.title",
+        ),
+        body: tf(
+          "noti.chat.events.CHAT_TRANSACTION_CANCELLED_SELF_PENALTY.body",
+          {
+            deductedPoints: toDisplay(md.deductedPoints),
+            balanceAfter: toDisplay(md.balanceAfter),
+          },
+        ),
+      };
+    case "CHAT_TRANSACTION_CANCELLED_COUNTERPARTY":
+      return {
+        title: tf(
+          "noti.chat.events.CHAT_TRANSACTION_CANCELLED_COUNTERPARTY.title",
+        ),
+        body: tf(
+          "noti.chat.events.CHAT_TRANSACTION_CANCELLED_COUNTERPARTY.body",
+          {
+            cancelledByUserId: toSafeString(md.cancelledByUserId),
+          },
+        ),
+      };
     default:
       return null;
   }

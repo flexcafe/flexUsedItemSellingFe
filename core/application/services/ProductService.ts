@@ -68,6 +68,10 @@ export class ProductService implements IProductService {
     return this.repo.updateStatus(id, status);
   }
 
+  setMyActiveDeal(id: string, chatRoomId: string | null): Promise<boolean> {
+    return this.repo.setMyActiveDeal(id, chatRoomId);
+  }
+
   delete(id: string): Promise<void> {
     return this.repo.delete(id);
   }

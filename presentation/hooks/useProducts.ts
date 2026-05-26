@@ -73,3 +73,24 @@ export function useDeleteProduct() {
     },
   });
 }
+
+export function useSetActiveDeal() {
+  const qc = useQueryClient();
+  const { productService } = useServices();
+  return useMutation({
+    mutationFn: ({
+      productId,
+      chatRoomId,
+    }: {
+      productId: string;
+      chatRoomId: string | null;
+    }) => productService.setMyActiveDeal(productId, chatRoomId),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: MY_PRODUCTS_KEY });
+      qc.invalidateQueries({
+        queryKey: [...MY_PRODUCTS_KEY, "detail", variables.productId],
+      });
+      qc.invalidateQueries({ queryKey: ["client", "chat", "rooms"] });
+    },
+  });
+}

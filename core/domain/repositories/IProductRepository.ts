@@ -28,6 +28,7 @@ export interface IProductRepository {
   update(id: string, data: ProductUpdateInput): Promise<Product>;
   updateMy(id: string, data: ProductUpdateInput): Promise<Product>;
   updateStatus(id: string, status: ProductStatus): Promise<Product>;
+  setMyActiveDeal(id: string, chatRoomId: string | null): Promise<boolean>;
   delete(id: string): Promise<void>;
   deleteMy(id: string, data: ProductDeleteInput): Promise<boolean>;
 }

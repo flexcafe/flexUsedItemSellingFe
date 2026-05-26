@@ -10,6 +10,7 @@ import type {
   RespondLocationChangeInput,
   SafePaymentSubmitInput,
   SendChatMessageInput,
+  TransactionCancelInput,
   TransactionCompleteInput,
   TransactionReviewInput,
 } from "@/core/domain/types/chat";
@@ -375,6 +376,35 @@ export function useCompleteTransaction(chatRoomId: string | null) {
       });
       void qc.invalidateQueries({
         queryKey: ["products", "my"],
+      });
+    },
+  });
+}
+
+export function useCancelTransaction(chatRoomId: string | null) {
+  const { chatService } = useServices();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: TransactionCancelInput) =>
+      chatService.cancelTransaction(input),
+    onSuccess: () => {
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "messages", chatRoomId],
+      });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "safePayment", chatRoomId],
+      });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "directTrade", chatRoomId],
+      });
+      void qc.invalidateQueries({
+        queryKey: [...CLIENT_CHAT_QUERY_KEY, "rooms"],
+      });
+      void qc.invalidateQueries({
+        queryKey: ["products"],
+      });
+      void qc.invalidateQueries({
+        queryKey: ["client", "products"],
       });
     },
   });

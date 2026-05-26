@@ -428,6 +428,14 @@ export class ApiProductRepository implements IProductRepository {
     return this.updateMy(id, { status });
   }
 
+  async setMyActiveDeal(id: string, chatRoomId: string | null): Promise<boolean> {
+    await this.http.post<unknown>(
+      API_ENDPOINTS.CLIENT_PRODUCTS.MY_ACTIVE_DEAL(id),
+      { chatRoomId },
+    );
+    return true;
+  }
+
   async delete(id: string): Promise<void> {
     await this.http.delete(API_ENDPOINTS.PRODUCTS.DELETE(id));
   }

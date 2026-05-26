@@ -114,6 +114,10 @@ export interface TransactionCompleteInput {
   transactionId: string;
 }
 
+export interface TransactionCancelInput {
+  transactionId: string;
+}
+
 export interface TransactionReviewInput {
   stars: number;
   comment?: string;

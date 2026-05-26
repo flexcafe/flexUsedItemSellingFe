@@ -50,6 +50,8 @@ export const API_ENDPOINTS = {
     BY_ID: (productId: string) => `/v1/client/products/${productId}`,
     MY_LIST: "/v1/client/products/my",
     MY_BY_ID: (productId: string) => `/v1/client/products/my/${productId}`,
+    MY_ACTIVE_DEAL: (productId: string) =>
+      `/v1/client/products/my/${productId}/active-deal`,
     CREATE: "/v1/client/products",
     UPDATE: (productId: string) => `/v1/client/products/${productId}`,
     DELETE: (productId: string) => `/v1/client/products/${productId}`,
@@ -84,6 +86,7 @@ export const API_ENDPOINTS = {
     SAFE_PAYMENT_SUBMIT: (chatRoomId: string) =>
       `/v1/client/chats/${chatRoomId}/safe-payment/submit`,
     TRANSACTION_COMPLETE: "/v1/client/chats/transactions/complete",
+    TRANSACTION_CANCEL: "/v1/client/chats/transactions/cancel",
     TRANSACTION_REVIEWS: (transactionId: string) =>
       `/v1/client/chats/transactions/${transactionId}/reviews`,
   },

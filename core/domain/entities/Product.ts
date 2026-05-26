@@ -43,6 +43,7 @@ export interface Product {
   images?: string[];
   preferredLocations?: ProductPreferredLocation[];
   seller?: ProductSellerSummary | null;
+  activeDealChatRoomId?: string | null;
   viewCount?: number;
   imageUrl?: string | null;
   isAvailable: boolean;

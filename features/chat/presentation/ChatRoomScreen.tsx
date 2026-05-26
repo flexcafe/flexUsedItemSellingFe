@@ -38,6 +38,7 @@ import {
   CLIENT_CHAT_QUERY_KEY,
   DEFAULT_CHAT_TAKE,
   useAcceptLocation,
+  useCancelTransaction,
   useChatMessages,
   useChatRooms,
   useCompleteTransaction,
@@ -55,6 +56,7 @@ import {
   useSubmitTransactionReview,
   useUpdateLocationShare,
 } from "@/presentation/hooks/useClientChat";
+import { useSetActiveDeal } from "@/presentation/hooks/useProducts";
 import {
   buildLeafletLiveViewHtml,
   buildLeafletPickerHtml,
@@ -91,6 +93,27 @@ const SAFE_PAYMENT_COMPLETABLE_STATUSES = new Set([
   "BUYER_COMPLETED",
   "SELLER_COMPLETED",
 ]);
+const TRANSACTION_CANCEL_BLOCKED_STATUSES = new Set([
+  "BUYER_COMPLETED",
+  "CANCELLED",
+  "COMPLETED",
+  "REFUNDED",
+  "SELLER_COMPLETED",
+]);
+const SAFE_PAYMENT_CANCEL_ALLOWED_STATUSES = new Set([
+  "SAFE_PAYMENT_AWAITING_INSTRUCTION",
+  "SAFE_PAYMENT_INSTRUCTION_SENT",
+]);
+
+function isSafePaymentCancelBlockedMessage(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("safe payment") ||
+    normalized.includes("payment submission") ||
+    normalized.includes("payment already") ||
+    normalized.includes("already initiated")
+  );
+}
 
 function readTransactionFromMessage(
   message: ChatMessage,
@@ -147,12 +170,16 @@ function readTransactionFromMessage(
   };
 }
 
-function readApiErrorInfo(error: unknown): { status: number | null; message: string } {
+function readApiErrorInfo(error: unknown): {
+  status: number | null;
+  message: string;
+} {
   let status: number | null = null;
   let message = "";
   if (error && typeof error === "object" && "response" in error) {
-    const response = (error as { response?: { status?: unknown; data?: unknown } })
-      .response;
+    const response = (
+      error as { response?: { status?: unknown; data?: unknown } }
+    ).response;
     const statusNum = Number(response?.status);
     if (Number.isFinite(statusNum)) status = statusNum;
     const data = response?.data;
@@ -167,12 +194,31 @@ function readApiErrorInfo(error: unknown): { status: number | null; message: str
   return { status, message };
 }
 
+function isActiveDealError(error: unknown): boolean {
+  const info = readApiErrorInfo(error);
+  if (![400, 403, 409].includes(info.status ?? 0)) return false;
+  const message = info.message.toLowerCase();
+  return (
+    message.includes("active deal") ||
+    message.includes("another buyer") ||
+    message.includes("selected another buyer")
+  );
+}
+
 type DirectTradeErrorAction =
   | "schedule"
   | "acceptLocation"
   | "requestLocationChange"
   | "respondLocationChange"
   | "startGps";
+
+type ActiveDealAction =
+  | "directTradeStart"
+  | "directTradeDetail"
+  | "acceptLocation"
+  | "requestLocationChange"
+  | "respondLocationChange"
+  | "safePaymentRequest";
 
 type DirectTradeErrorKey =
   | "chatDirectTradeOpsMessageTypeIssue"
@@ -221,7 +267,10 @@ function directTradeErrorKey(
     ) {
       return "chatDirectTradeAlreadyListingUsePicker";
     }
-    if (messageLower.includes("pending change exists") || messageLower.includes("pending")) {
+    if (
+      messageLower.includes("pending change exists") ||
+      messageLower.includes("pending")
+    ) {
       return "chatDirectTradePendingChangeExists";
     }
   }
@@ -314,15 +363,19 @@ export function ChatRoomScreen({
   const requestSafePaymentMutation = useRequestSafePayment(chatRoomId);
   const submitSafePaymentMutation = useSubmitSafePayment(chatRoomId);
   const completeTransactionMutation = useCompleteTransaction(chatRoomId);
+  const cancelTransactionMutation = useCancelTransaction(chatRoomId);
   const submitReviewMutation = useSubmitTransactionReview(chatRoomId);
   const startLocationMutation = useStartLocationShare(chatRoomId);
   const updateLocationMutation = useUpdateLocationShare(chatRoomId);
   const stopLocationMutation = useStopLocationShare(chatRoomId);
+  const setActiveDealMutation = useSetActiveDeal();
   const [draft, setDraft] = useState("");
   const [directTradeOpen, setDirectTradeOpen] = useState(false);
   const [meetingDate, setMeetingDate] = useState(defaultMeetingDateString);
   const [meetingTime, setMeetingTime] = useState(defaultMeetingTimeString);
   const [directTradeTransaction, setDirectTradeTransaction] =
+    useState<DirectTradeTransaction | null>(null);
+  const [cancelledTransaction, setCancelledTransaction] =
     useState<DirectTradeTransaction | null>(null);
   // Location picker state
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
@@ -355,6 +408,7 @@ export function ChatRoomScreen({
     updatedAt: string;
   } | null>(null);
   const [toolsExpanded, setToolsExpanded] = useState(false);
+  const [activeDealBlocked, setActiveDealBlocked] = useState(false);
   const [liveMapModalOpen, setLiveMapModalOpen] = useState(false);
   const [liveMapFocusPoint, setLiveMapFocusPoint] = useState<{
     latitude: number;
@@ -441,7 +495,13 @@ export function ChatRoomScreen({
     ? compactStatus
     : t("chatTradeToolsSubtitleNoDirectTrade");
   const safeTransaction = safePaymentStatus?.transaction ?? null;
-  const completionTransaction = safeTransaction ?? cashTransaction;
+  const baseCompletionTransaction = safeTransaction ?? cashTransaction;
+  const completionTransaction =
+    cancelledTransaction &&
+    (!baseCompletionTransaction ||
+      cancelledTransaction.id === baseCompletionTransaction.id)
+      ? cancelledTransaction
+      : baseCompletionTransaction;
   const activeTransaction = completionTransaction;
   const usesSafePaymentCompletion = Boolean(safeTransaction);
   const isSafeCompletable = Boolean(
@@ -450,6 +510,9 @@ export function ChatRoomScreen({
   );
   const isBuyer = Boolean(
     user?.id && roomMeta?.buyerId && user.id === roomMeta.buyerId,
+  );
+  const canSelectActiveDealFromChat = Boolean(
+    roomMeta?.listingId && !isBuyer,
   );
   const currentUserAlreadyCompleted = Boolean(
     completionTransaction &&
@@ -522,12 +585,30 @@ export function ChatRoomScreen({
   const hasAnyLivePoint = Boolean(
     myPoint || counterpartPoint || meetupMapPin || proposedMapPin,
   );
+  const transactionStatusUpper =
+    completionTransaction?.status?.toUpperCase() ?? "";
+  const isTransactionFullyCompleted =
+    transactionStatusUpper === "COMPLETED";
+  const isTransactionCancelled = transactionStatusUpper === "CANCELLED";
+  const isTransactionCancelledOrRefunded =
+    transactionStatusUpper === "CANCELLED" ||
+    transactionStatusUpper === "REFUNDED";
+  const isTransactionCancelBlocked =
+    TRANSACTION_CANCEL_BLOCKED_STATUSES.has(transactionStatusUpper) ||
+    (usesSafePaymentCompletion &&
+      !SAFE_PAYMENT_CANCEL_ALLOWED_STATUSES.has(transactionStatusUpper));
+  const isSafePaymentCancelBlocked =
+    usesSafePaymentCompletion &&
+    !SAFE_PAYMENT_CANCEL_ALLOWED_STATUSES.has(transactionStatusUpper) &&
+    !TRANSACTION_CANCEL_BLOCKED_STATUSES.has(transactionStatusUpper);
   const hasConfirmedMeetingLocation = Boolean(detail?.meetingLocation?.trim());
   const canStartLiveGps = Boolean(
     hasDirectTrade &&
-      !isTransactionFullyCompleted &&
-      hasConfirmedMeetingLocation &&
-      !showPendingLocationChange,
+    !isTransactionCancelledOrRefunded &&
+    !isTransactionFullyCompleted &&
+    hasConfirmedMeetingLocation &&
+    !activeDealBlocked &&
+    !showPendingLocationChange,
   );
   const pendingRequestedLocation = useMemo(() => {
     if (detail?.buyerRequestedLocation?.trim()) {
@@ -564,12 +645,15 @@ export function ChatRoomScreen({
   const canCompleteTrade = Boolean(
     completionTransaction &&
     !currentUserAlreadyCompleted &&
+    !isTransactionCancelBlocked &&
     (usesSafePaymentCompletion
       ? isSafeCompletable
       : completionTransaction.status !== "COMPLETED") &&
     // For meetup flows: must have agreed meeting place and no pending change
     (!hasDirectTrade ||
-      (detail?.meetingLocation && !showPendingLocationChange)),
+      (detail?.meetingLocation &&
+        !showPendingLocationChange &&
+        !isTransactionCancelledOrRefunded)),
   );
   const waitingForCounterpartyComplete = Boolean(
     completionTransaction &&
@@ -578,22 +662,124 @@ export function ChatRoomScreen({
   );
   const canShowReviewSection = Boolean(
     completionTransaction &&
+      !isTransactionCancelledOrRefunded &&
       (currentUserAlreadyCompleted ||
         completionTransaction.status === "COMPLETED"),
   );
   const canReview = Boolean(
     completionTransaction &&
+      !isTransactionCancelledOrRefunded &&
       ((isBuyer && completionTransaction.buyerCompleted) ||
         (!isBuyer && completionTransaction.sellerCompleted)),
   );
-  const isTransactionFullyCompleted =
-    completionTransaction?.status === "COMPLETED";
+  const canCancelTransaction = Boolean(
+    completionTransaction && !isTransactionCancelBlocked,
+  );
+  const markActiveDealBlocked = useCallback(() => {
+    setActiveDealBlocked(true);
+    setToolsExpanded(true);
+  }, []);
+
+  const onSelectActiveDealFromChat = useCallback(() => {
+    const productId = roomMeta?.listingId;
+    if (!productId || setActiveDealMutation.isPending) return;
+    setActiveDealMutation.mutate(
+      { productId, chatRoomId },
+      {
+        onSuccess: async () => {
+          setActiveDealBlocked(false);
+          await directTradeDetailQuery.refetch();
+          Alert.alert(
+            t("productsActiveDealTitle"),
+            t("productsActiveDealUpdated"),
+          );
+        },
+        onError: () => {
+          Alert.alert(
+            t("productsActiveDealTitle"),
+            t("productsActiveDealFailed"),
+          );
+        },
+      },
+    );
+  }, [
+    chatRoomId,
+    directTradeDetailQuery,
+    roomMeta?.listingId,
+    setActiveDealMutation,
+    t,
+  ]);
+
+  const showActiveDealBlockedAlert = useCallback(
+    (title: string) => {
+      const message = `${t("chatActiveDealBlockedMessage")}\n\n${
+        canSelectActiveDealFromChat
+          ? t("chatActiveDealSellerProductNote")
+          : t("chatActiveDealBuyerProductNote")
+      }`;
+      if (canSelectActiveDealFromChat) {
+        Alert.alert(title, message, [
+          {
+            text: t("chatActiveDealSelectThisBuyer"),
+            onPress: onSelectActiveDealFromChat,
+          },
+          { text: t("chatActiveDealDismiss"), style: "cancel" },
+        ]);
+        return;
+      }
+      Alert.alert(title, message);
+    },
+    [canSelectActiveDealFromChat, onSelectActiveDealFromChat, t],
+  );
+
+  const shouldTreatAsActiveDealBlock = useCallback(
+    (action: ActiveDealAction, error: unknown) => {
+      if (isActiveDealError(error)) return true;
+      const info = readApiErrorInfo(error);
+      const status = info.status;
+      if (action === "safePaymentRequest" && status === 409) return true;
+      if (action === "directTradeStart" && status === 400) return true;
+      if (action === "directTradeDetail" && status === 403) return true;
+      if (
+        (action === "acceptLocation" || action === "requestLocationChange") &&
+        status === 403 &&
+        isBuyer
+      ) {
+        return true;
+      }
+      if (action === "respondLocationChange" && status === 403 && !isBuyer) {
+        return true;
+      }
+      return false;
+    },
+    [isBuyer],
+  );
 
   useEffect(() => {
     if (!isBuyer && showPendingLocationChange) {
       setToolsExpanded(true);
     }
   }, [isBuyer, showPendingLocationChange]);
+
+  useEffect(() => {
+    if (directTradeDetailQuery.isSuccess) {
+      setActiveDealBlocked(false);
+      return;
+    }
+    if (
+      shouldTreatAsActiveDealBlock(
+        "directTradeDetail",
+        directTradeDetailQuery.error,
+      )
+    ) {
+      markActiveDealBlocked();
+    }
+  }, [
+    directTradeDetailQuery.error,
+    directTradeDetailQuery.isSuccess,
+    markActiveDealBlocked,
+    shouldTreatAsActiveDealBlock,
+  ]);
 
   useEffect(() => {
     if (pendingLocationChangeFromMessages && chatRoomId) {
@@ -686,6 +872,7 @@ export function ChatRoomScreen({
   useEffect(() => {
     if (!messageTransaction || messageTransaction.type !== "DIRECT_TRADE")
       return;
+    if (cancelledTransaction?.id === messageTransaction.id) return;
     setDirectTradeTransaction((prev) => {
       if (!prev || prev.id !== messageTransaction.id) return messageTransaction;
       return {
@@ -698,7 +885,7 @@ export function ChatRoomScreen({
         completedAt: messageTransaction.completedAt ?? prev.completedAt,
       };
     });
-  }, [messageTransaction]);
+  }, [cancelledTransaction?.id, messageTransaction]);
 
   const latestMessageId = messages[0]?.id ?? null;
   useEffect(() => {
@@ -722,15 +909,28 @@ export function ChatRoomScreen({
   }, [chatRoomId, draft, sendMessage]);
 
   const openDirectTradeModal = useCallback(() => {
+    if (activeDealBlocked) {
+      showActiveDealBlockedAlert(t("chatDirectTradeTitle"));
+      return;
+    }
     setMeetingDate(defaultMeetingDateString());
     setMeetingTime(defaultMeetingTimeString());
     setDirectTradeOpen(true);
-  }, []);
+  }, [activeDealBlocked, showActiveDealBlockedAlert, t]);
 
   const openSafePaymentModal = useCallback(() => {
+    if (activeDealBlocked) {
+      showActiveDealBlockedAlert(t("chatSafePaymentTitle"));
+      return;
+    }
     setSafePaymentOpen(true);
     void safePaymentStatusQuery.refetch();
-  }, [safePaymentStatusQuery]);
+  }, [
+    activeDealBlocked,
+    safePaymentStatusQuery,
+    showActiveDealBlockedAlert,
+    t,
+  ]);
 
   const openCompletionModal = useCallback(() => {
     setCompletionOpen(true);
@@ -742,12 +942,18 @@ export function ChatRoomScreen({
 
   const onRequestSafePayment = useCallback(() => {
     if (!chatRoomId) return;
+    if (activeDealBlocked) {
+      showActiveDealBlockedAlert(t("chatSafePaymentTitle"));
+      return;
+    }
     if (!isBuyer) {
       Alert.alert(t("chatSafePaymentTitle"), t("chatSafePaymentBuyerOnly"));
       return;
     }
     requestSafePaymentMutation.mutate(undefined, {
       onSuccess: async () => {
+        setActiveDealBlocked(false);
+        setCancelledTransaction(null);
         await safePaymentStatusQuery.refetch();
         Alert.alert(
           t("chatSafePaymentTitle"),
@@ -755,6 +961,11 @@ export function ChatRoomScreen({
         );
       },
       onError: (error) => {
+        if (shouldTreatAsActiveDealBlock("safePaymentRequest", error)) {
+          markActiveDealBlocked();
+          Alert.alert(t("chatSafePaymentTitle"), t("chatActiveDealBlockedMessage"));
+          return;
+        }
         Alert.alert(
           t("chatSafePaymentTitle"),
           chatActionErrorMessage(error, t("chatSafePaymentLoadFailed")),
@@ -763,9 +974,13 @@ export function ChatRoomScreen({
     });
   }, [
     chatRoomId,
+    activeDealBlocked,
     isBuyer,
+    markActiveDealBlocked,
     requestSafePaymentMutation,
     safePaymentStatusQuery,
+    showActiveDealBlockedAlert,
+    shouldTreatAsActiveDealBlock,
     t,
   ]);
 
@@ -912,6 +1127,83 @@ export function ChatRoomScreen({
     usesSafePaymentCompletion,
   ]);
 
+  const onCancelTransaction = useCallback(() => {
+    const transactionId = completionTransaction?.id;
+    if (!transactionId) {
+      Alert.alert(
+        t("chatCancelTradeTitle"),
+        t("chatCompleteTradeUnavailable"),
+      );
+      return;
+    }
+    if (isTransactionCancelBlocked) {
+      Alert.alert(
+        t("chatCancelTradeTitle"),
+        t(
+          isSafePaymentCancelBlocked
+            ? "chatCancelTradeSafePaymentBlocked"
+            : "chatCancelTradeBlocked",
+        ),
+      );
+      return;
+    }
+    Alert.alert(t("chatCancelTradeTitle"), t("chatCancelTradeConfirm"), [
+      { text: t("chatActiveDealDismiss"), style: "cancel" },
+      {
+        text: t("chatCancelTradeAction"),
+        style: "destructive",
+        onPress: () => {
+          cancelTransactionMutation.mutate(
+            { transactionId },
+            {
+              onSuccess: async (updated) => {
+                setCancelledTransaction(updated);
+                if (updated.type === "DIRECT_TRADE") {
+                  setDirectTradeTransaction(updated);
+                }
+                setMyShareOverride(false);
+                setLocalLiveLocation(null);
+                await safePaymentStatusQuery.refetch();
+                Alert.alert(
+                  t("chatCancelTradeTitle"),
+                  t("chatCancelTradeSuccess"),
+                );
+              },
+              onError: (error) => {
+                const info = readApiErrorInfo(error);
+                if (info.status === 400) {
+                  const safePaymentBlocked =
+                    isSafePaymentCancelBlocked ||
+                    isSafePaymentCancelBlockedMessage(info.message);
+                  Alert.alert(
+                    t("chatCancelTradeTitle"),
+                    t(
+                      safePaymentBlocked
+                        ? "chatCancelTradeSafePaymentBlocked"
+                        : "chatCancelTradeBlocked",
+                    ),
+                  );
+                  return;
+                }
+                Alert.alert(
+                  t("chatCancelTradeTitle"),
+                  chatActionErrorMessage(error, t("chatCancelTradeFailed")),
+                );
+              },
+            },
+          );
+        },
+      },
+    ]);
+  }, [
+    cancelTransactionMutation,
+    completionTransaction?.id,
+    isTransactionCancelBlocked,
+    isSafePaymentCancelBlocked,
+    safePaymentStatusQuery,
+    t,
+  ]);
+
   const onSubmitReview = useCallback(() => {
     const transactionId = completionTransaction?.id;
     if (!transactionId) {
@@ -941,8 +1233,9 @@ export function ChatRoomScreen({
           Alert.alert(t("chatReviewTitle"), t("chatReviewSuccess"));
         },
         onError: (error) => {
-          const status = (error as { response?: { status?: number } } | undefined)
-            ?.response?.status;
+          const status = (
+            error as { response?: { status?: number } } | undefined
+          )?.response?.status;
           if (status === 400) {
             Alert.alert(t("chatReviewTitle"), t("chatReviewCompleteFirst"));
             return;
@@ -983,6 +1276,10 @@ export function ChatRoomScreen({
 
   const onSubmitDirectTrade = useCallback(() => {
     if (!chatRoomId) return;
+    if (activeDealBlocked) {
+      showActiveDealBlockedAlert(t("chatDirectTradeTitle"));
+      return;
+    }
 
     const built = buildDirectTradeRequest({
       meetingDate,
@@ -996,6 +1293,8 @@ export function ChatRoomScreen({
 
     directTradeMutation.mutate(built.payload, {
       onSuccess: (transaction) => {
+        setActiveDealBlocked(false);
+        setCancelledTransaction(null);
         setDirectTradeTransaction(transaction);
         setDirectTradeOpen(false);
         // Clear stale meetup-place detail immediately after restart.
@@ -1007,20 +1306,31 @@ export function ChatRoomScreen({
         Alert.alert(t("chatDirectTradeTitle"), t("chatDirectTradeSaved"));
       },
       onError: (error) => {
+        if (shouldTreatAsActiveDealBlock("directTradeStart", error)) {
+          markActiveDealBlocked();
+          Alert.alert(t("chatDirectTradeTitle"), t("chatActiveDealBlockedMessage"));
+          return;
+        }
         const key = directTradeErrorKey("schedule", error);
         Alert.alert(
           t("chatDirectTradeTitle"),
-          key ? t(key) : chatActionErrorMessage(error, t("chatDirectTradeFailed")),
+          key
+            ? t(key)
+            : chatActionErrorMessage(error, t("chatDirectTradeFailed")),
         );
       },
     });
   }, [
     chatRoomId,
+    activeDealBlocked,
     directTradeMutation,
     directTradeDetailQuery,
+    markActiveDealBlocked,
     meetingDate,
     meetingTime,
     queryClient,
+    showActiveDealBlockedAlert,
+    shouldTreatAsActiveDealBlock,
     t,
   ]);
 
@@ -1029,14 +1339,28 @@ export function ChatRoomScreen({
   const onAcceptLocation = useCallback(
     (locationLabel: string) => {
       if (!chatRoomId) return;
+      if (isTransactionCancelledOrRefunded) {
+        Alert.alert(t("chatDirectTradeTitle"), t("chatCancelTradeBlocked"));
+        return;
+      }
+      if (activeDealBlocked) {
+        showActiveDealBlockedAlert(t("chatDirectTradeTitle"));
+        return;
+      }
       acceptLocationMutation.mutate(
         { locationLabel },
         {
           onSuccess: () => {
+            setActiveDealBlocked(false);
             void directTradeDetailQuery.refetch();
             setLocationPickerOpen(false);
           },
           onError: (error) => {
+            if (shouldTreatAsActiveDealBlock("acceptLocation", error)) {
+              markActiveDealBlocked();
+              Alert.alert(t("chatDirectTradeTitle"), t("chatActiveDealBlockedMessage"));
+              return;
+            }
             const info = readApiErrorInfo(error);
             if (info.status === 404) {
               setLocationPickerOpen(false);
@@ -1060,7 +1384,17 @@ export function ChatRoomScreen({
         },
       );
     },
-    [acceptLocationMutation, chatRoomId, directTradeDetailQuery, t],
+    [
+      acceptLocationMutation,
+      activeDealBlocked,
+      chatRoomId,
+      directTradeDetailQuery,
+      isTransactionCancelledOrRefunded,
+      markActiveDealBlocked,
+      showActiveDealBlockedAlert,
+      shouldTreatAsActiveDealBlock,
+      t,
+    ],
   );
 
   const runReverseGeocodeChangeRequest = useCallback(
@@ -1143,6 +1477,14 @@ export function ChatRoomScreen({
 
   const onSubmitLocationChange = useCallback(() => {
     if (!chatRoomId) return;
+    if (isTransactionCancelledOrRefunded) {
+      Alert.alert(t("chatDirectTradeTitle"), t("chatCancelTradeBlocked"));
+      return;
+    }
+    if (activeDealBlocked) {
+      showActiveDealBlockedAlert(t("chatDirectTradeTitle"));
+      return;
+    }
     if (!changeRequestAddress.trim() || !changeRequestCoords) {
       Alert.alert(t("chatDirectTradeTitle"), t("chatMeetingCoordsInvalid"));
       return;
@@ -1158,10 +1500,17 @@ export function ChatRoomScreen({
       },
       {
         onSuccess: () => {
+          setActiveDealBlocked(false);
           void directTradeDetailQuery.refetch();
           setChangeRequestOpen(false);
         },
         onError: (error) => {
+          if (shouldTreatAsActiveDealBlock("requestLocationChange", error)) {
+            markActiveDealBlocked();
+            setChangeRequestOpen(false);
+            Alert.alert(t("chatDirectTradeTitle"), t("chatActiveDealBlockedMessage"));
+            return;
+          }
           const info = readApiErrorInfo(error);
           const key = directTradeErrorKey("requestLocationChange", error);
           if (key === "chatDirectTradeChooseListingFirst") {
@@ -1185,7 +1534,10 @@ export function ChatRoomScreen({
           if (info.status === 404) {
             setChangeRequestOpen(false);
             setDirectTradeOpen(true);
-            Alert.alert(t("chatDirectTradeTitle"), t("chatDirectTradeNeedStartFirst"));
+            Alert.alert(
+              t("chatDirectTradeTitle"),
+              t("chatDirectTradeNeedStartFirst"),
+            );
             return;
           }
           if (key) {
@@ -1201,24 +1553,43 @@ export function ChatRoomScreen({
       },
     );
   }, [
+    activeDealBlocked,
     changeRequestAddress,
     changeRequestCoords,
     chatRoomId,
     directTradeDetailQuery,
+    isTransactionCancelledOrRefunded,
+    markActiveDealBlocked,
     requestLocationChangeMutation,
+    showActiveDealBlockedAlert,
+    shouldTreatAsActiveDealBlock,
     t,
   ]);
 
   const onRespondLocationChange = useCallback(
     (accepted: boolean) => {
       if (!chatRoomId) return;
+      if (isTransactionCancelledOrRefunded) {
+        Alert.alert(t("chatDirectTradeTitle"), t("chatCancelTradeBlocked"));
+        return;
+      }
+      if (activeDealBlocked) {
+        showActiveDealBlockedAlert(t("chatDirectTradeTitle"));
+        return;
+      }
       respondLocationChangeMutation.mutate(
         { accepted },
         {
           onSuccess: () => {
+            setActiveDealBlocked(false);
             void directTradeDetailQuery.refetch();
           },
           onError: (error) => {
+            if (shouldTreatAsActiveDealBlock("respondLocationChange", error)) {
+              markActiveDealBlocked();
+              Alert.alert(t("chatDirectTradeTitle"), t("chatActiveDealBlockedMessage"));
+              return;
+            }
             const info = readApiErrorInfo(error);
             if (info.status === 404) {
               setDirectTradeOpen(true);
@@ -1241,7 +1612,17 @@ export function ChatRoomScreen({
         },
       );
     },
-    [chatRoomId, directTradeDetailQuery, respondLocationChangeMutation, t],
+    [
+      activeDealBlocked,
+      chatRoomId,
+      directTradeDetailQuery,
+      isTransactionCancelledOrRefunded,
+      markActiveDealBlocked,
+      respondLocationChangeMutation,
+      showActiveDealBlockedAlert,
+      shouldTreatAsActiveDealBlock,
+      t,
+    ],
   );
 
   const shareCoords = useCallback(
@@ -1331,12 +1712,29 @@ export function ChatRoomScreen({
   }, [canStartLiveGps, shareCoords, t]);
 
   const onUpdateLocationShare = useCallback(() => {
-    if (!hasDirectTrade || isTransactionFullyCompleted) return;
+    if (
+      !hasDirectTrade ||
+      isTransactionFullyCompleted ||
+      isTransactionCancelledOrRefunded
+    ) {
+      return;
+    }
     void shareCoords("update");
-  }, [hasDirectTrade, isTransactionFullyCompleted, shareCoords]);
+  }, [
+    hasDirectTrade,
+    isTransactionCancelledOrRefunded,
+    isTransactionFullyCompleted,
+    shareCoords,
+  ]);
 
   const onStopLocationShare = useCallback(() => {
-    if (!hasDirectTrade || isTransactionFullyCompleted) return;
+    if (
+      !hasDirectTrade ||
+      isTransactionFullyCompleted ||
+      isTransactionCancelledOrRefunded
+    ) {
+      return;
+    }
     if (!chatRoomId || stopLocationMutation.isPending) return;
     stopLocationMutation.mutate(undefined, {
       onSuccess: () => {
@@ -1354,6 +1752,7 @@ export function ChatRoomScreen({
   }, [
     chatRoomId,
     hasDirectTrade,
+    isTransactionCancelledOrRefunded,
     isTransactionFullyCompleted,
     stopLocationMutation,
     t,
@@ -1364,6 +1763,7 @@ export function ChatRoomScreen({
       !chatRoomId ||
       !hasDirectTrade ||
       !mySharingActive ||
+      isTransactionCancelledOrRefunded ||
       isTransactionFullyCompleted
     ) {
       return;
@@ -1376,6 +1776,7 @@ export function ChatRoomScreen({
   }, [
     chatRoomId,
     hasDirectTrade,
+    isTransactionCancelledOrRefunded,
     mySharingActive,
     shareCoords,
     isTransactionFullyCompleted,
@@ -1386,6 +1787,7 @@ export function ChatRoomScreen({
     if (
       !chatRoomId ||
       !hasDirectTrade ||
+      isTransactionCancelledOrRefunded ||
       isTransactionFullyCompleted ||
       (!mySharingActive && !counterpartSharingActive)
     ) {
@@ -1399,6 +1801,7 @@ export function ChatRoomScreen({
     chatRoomId,
     counterpartSharingActive,
     hasDirectTrade,
+    isTransactionCancelledOrRefunded,
     isTransactionFullyCompleted,
     messagesQuery,
     mySharingActive,
@@ -1608,11 +2011,76 @@ export function ChatRoomScreen({
           <LocationChangeRespondActions
             onAccept={() => onRespondLocationChange(true)}
             onDeny={() => onRespondLocationChange(false)}
-            disabled={respondLocationChangeMutation.isPending}
+            disabled={
+              activeDealBlocked ||
+              isTransactionCancelledOrRefunded ||
+              respondLocationChangeMutation.isPending
+            }
             acceptLabel={t("chatDirectTradeAccept")}
             denyLabel={t("chatDirectTradeDeny")}
             colors={colors}
           />
+        </Animated.View>
+      ) : null}
+
+      {activeDealBlocked ? (
+        <Animated.View
+          entering={uiSectionEnter(UI_SECTION_STAGGER_MS, reduceMotion)}
+          layout={uiLayoutTransition}
+          style={[
+            styles.activeDealBanner,
+            uiCardShadow(scheme),
+            {
+              borderColor: "#F59E0B55",
+              backgroundColor: scheme === "dark" ? "#2A2112" : "#FFF7E8",
+            },
+          ]}
+        >
+          <MaterialIcons name="lock" size={18} color="#F59E0B" />
+          <View style={styles.activeDealBannerCopy}>
+            <ThemedText
+              type="defaultSemiBold"
+              style={styles.activeDealBannerTitle}
+            >
+              {t("chatActiveDealBlockedTitle")}
+            </ThemedText>
+            <ThemedText style={styles.activeDealBannerText}>
+              {t("chatActiveDealBlockedMessage")}
+            </ThemedText>
+            <ThemedText style={styles.activeDealBannerNote}>
+              {t(
+                canSelectActiveDealFromChat
+                  ? "chatActiveDealSellerProductNote"
+                  : "chatActiveDealBuyerProductNote",
+              )}
+            </ThemedText>
+            {canSelectActiveDealFromChat ? (
+              <Pressable
+                onPress={onSelectActiveDealFromChat}
+                disabled={setActiveDealMutation.isPending}
+                style={({ pressed }) => [
+                  styles.activeDealBannerButton,
+                  {
+                    backgroundColor: "#F59E0B",
+                    opacity: setActiveDealMutation.isPending
+                      ? 0.55
+                      : pressed
+                        ? 0.88
+                        : 1,
+                  },
+                ]}
+              >
+                {setActiveDealMutation.isPending ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <MaterialIcons name="check-circle" size={16} color="#FFFFFF" />
+                )}
+                <ThemedText style={styles.activeDealBannerButtonText}>
+                  {t("chatActiveDealSelectThisBuyer")}
+                </ThemedText>
+              </Pressable>
+            ) : null}
+          </View>
         </Animated.View>
       ) : null}
 
@@ -1659,12 +2127,13 @@ export function ChatRoomScreen({
               <View style={styles.toolChipPairRow}>
                 <Pressable
                   onPress={openDirectTradeModal}
+                  disabled={activeDealBlocked}
                   style={({ pressed }) => [
                     styles.toolChip,
                     styles.toolChipFlex,
                     {
                       backgroundColor: colors.tint,
-                      opacity: pressed ? 0.88 : 1,
+                      opacity: activeDealBlocked ? 0.5 : pressed ? 0.88 : 1,
                     },
                   ]}
                 >
@@ -1679,28 +2148,44 @@ export function ChatRoomScreen({
 
                 <Pressable
                   onPress={openSafePaymentModal}
-                  disabled={!isBuyer}
+                  disabled={!isBuyer || activeDealBlocked}
                   style={({ pressed }) => [
                     styles.toolChip,
                     styles.toolChipFlex,
                     {
-                      borderColor: isBuyer ? colors.tint : colors.icon + "55",
-                      backgroundColor: isBuyer
-                        ? colors.tint + "12"
-                        : colors.icon + "10",
-                      opacity: !isBuyer ? 0.55 : pressed ? 0.88 : 1,
+                      borderColor:
+                        isBuyer && !activeDealBlocked
+                          ? colors.tint
+                          : colors.icon + "55",
+                      backgroundColor:
+                        isBuyer && !activeDealBlocked
+                          ? colors.tint + "12"
+                          : colors.icon + "10",
+                      opacity:
+                        !isBuyer || activeDealBlocked
+                          ? 0.55
+                          : pressed
+                            ? 0.88
+                            : 1,
                     },
                   ]}
                 >
                   <MaterialIcons
                     name="verified-user"
                     size={17}
-                    color={isBuyer ? colors.tint : colors.icon}
+                    color={
+                      isBuyer && !activeDealBlocked ? colors.tint : colors.icon
+                    }
                   />
                   <ThemedText
                     style={[
                       styles.toolChipText,
-                      { color: isBuyer ? colors.tint : colors.icon },
+                      {
+                        color:
+                          isBuyer && !activeDealBlocked
+                            ? colors.tint
+                            : colors.icon,
+                      },
                     ]}
                     numberOfLines={1}
                   >
@@ -1761,7 +2246,8 @@ export function ChatRoomScreen({
                           borderColor: colors.tint + "55",
                           opacity:
                             !canStartLiveGps ||
-                            isFetchingCoords || startLocationMutation.isPending
+                            isFetchingCoords ||
+                            startLocationMutation.isPending
                               ? 0.55
                               : pressed
                                 ? 0.88
@@ -1790,7 +2276,9 @@ export function ChatRoomScreen({
                       <Pressable
                         onPress={onUpdateLocationShare}
                         disabled={
-                          isFetchingCoords || updateLocationMutation.isPending
+                          isFetchingCoords ||
+                          isTransactionCancelledOrRefunded ||
+                          updateLocationMutation.isPending
                         }
                         style={({ pressed }) => [
                           styles.toolChip,
@@ -1799,6 +2287,7 @@ export function ChatRoomScreen({
                             borderColor: colors.tint + "55",
                             opacity:
                               isFetchingCoords ||
+                              isTransactionCancelledOrRefunded ||
                               updateLocationMutation.isPending
                                 ? 0.55
                                 : pressed
@@ -1826,13 +2315,18 @@ export function ChatRoomScreen({
                       </Pressable>
                       <Pressable
                         onPress={onStopLocationShare}
-                        disabled={stopLocationMutation.isPending}
+                        disabled={
+                          isTransactionCancelledOrRefunded ||
+                          stopLocationMutation.isPending
+                        }
                         style={({ pressed }) => [
                           styles.toolChip,
                           styles.toolChipRowItem,
                           {
                             borderColor: colors.icon + "55",
-                            opacity: stopLocationMutation.isPending
+                            opacity:
+                              isTransactionCancelledOrRefunded ||
+                              stopLocationMutation.isPending
                               ? 0.55
                               : pressed
                                 ? 0.88
@@ -1892,11 +2386,21 @@ export function ChatRoomScreen({
                           {isBuyer && !showPendingLocationChange ? (
                             <Pressable
                               onPress={() => setLocationPickerOpen(true)}
+                              disabled={
+                                activeDealBlocked ||
+                                isTransactionCancelledOrRefunded
+                              }
                               style={({ pressed }) => [
                                 styles.mapOpenBtn,
                                 {
                                   backgroundColor: colors.tint,
-                                  opacity: pressed ? 0.88 : 1,
+                                  opacity:
+                                    activeDealBlocked ||
+                                    isTransactionCancelledOrRefunded
+                                      ? 0.55
+                                      : pressed
+                                        ? 0.88
+                                        : 1,
                                 },
                               ]}
                             >
@@ -1916,12 +2420,22 @@ export function ChatRoomScreen({
                           {isBuyer ? (
                             <Pressable
                               onPress={() => setLocationPickerOpen(true)}
+                              disabled={
+                                activeDealBlocked ||
+                                isTransactionCancelledOrRefunded
+                              }
                               style={({ pressed }) => [
                                 styles.toolChip,
                                 styles.toolChipFull,
                                 {
                                   borderColor: colors.tint,
-                                  opacity: pressed ? 0.88 : 1,
+                                  opacity:
+                                    activeDealBlocked ||
+                                    isTransactionCancelledOrRefunded
+                                      ? 0.55
+                                      : pressed
+                                        ? 0.88
+                                        : 1,
                                 },
                               ]}
                             >
@@ -2245,7 +2759,9 @@ export function ChatRoomScreen({
                   />
                 </View>
                 <View style={styles.mapStatusGrid}>
-                  <View style={[styles.mapStatusChip, { borderColor: "#1E88E544" }]}>
+                  <View
+                    style={[styles.mapStatusChip, { borderColor: "#1E88E544" }]}
+                  >
                     <View
                       style={[
                         styles.liveLegendDot,
@@ -2264,7 +2780,9 @@ export function ChatRoomScreen({
                       {myLocationStatus}
                     </ThemedText>
                   </View>
-                  <View style={[styles.mapStatusChip, { borderColor: "#E5393544" }]}>
+                  <View
+                    style={[styles.mapStatusChip, { borderColor: "#E5393544" }]}
+                  >
                     <View
                       style={[
                         styles.liveLegendDot,
@@ -2309,9 +2827,16 @@ export function ChatRoomScreen({
                     },
                   ]}
                 >
-                  <MaterialIcons name="my-location" size={16} color={colors.tint} />
+                  <MaterialIcons
+                    name="my-location"
+                    size={16}
+                    color={colors.tint}
+                  />
                   <ThemedText
-                    style={[styles.locationChangeBtnText, { color: colors.tint }]}
+                    style={[
+                      styles.locationChangeBtnText,
+                      { color: colors.tint },
+                    ]}
                   >
                     Show my place
                   </ThemedText>
@@ -2444,7 +2969,10 @@ export function ChatRoomScreen({
                 <Pressable
                   key={loc.label}
                   onPress={() => onAcceptLocation(loc.label)}
-                  disabled={acceptLocationMutation.isPending}
+                  disabled={
+                    acceptLocationMutation.isPending ||
+                    isTransactionCancelledOrRefunded
+                  }
                   style={[
                     styles.locationOptionRow,
                     {
@@ -2616,11 +3144,16 @@ export function ChatRoomScreen({
             />
             <Pressable
               onPress={onSubmitLocationChange}
-              disabled={requestLocationChangeMutation.isPending}
+              disabled={
+                requestLocationChangeMutation.isPending ||
+                isTransactionCancelledOrRefunded
+              }
               style={[
                 styles.modalSaveBtn,
                 {
-                  backgroundColor: requestLocationChangeMutation.isPending
+                  backgroundColor:
+                    requestLocationChangeMutation.isPending ||
+                    isTransactionCancelledOrRefunded
                     ? colors.icon + "55"
                     : colors.tint,
                 },
@@ -2698,10 +3231,39 @@ export function ChatRoomScreen({
                 <ThemedText style={styles.safeMutedText}>
                   {t("chatCompleteTradeHint")}
                 </ThemedText>
+                {isTransactionCancelled ? (
+                  <ThemedText style={styles.cancelPenaltyText}>
+                    {t("chatCancelTradePenaltyNote")}
+                  </ThemedText>
+                ) : null}
                 {waitingForCounterpartyComplete ? (
                   <ThemedText style={styles.safeMutedText}>
                     {t("chatCompleteTradePendingBoth")}
                   </ThemedText>
+                ) : null}
+
+                {canCancelTransaction ? (
+                  <Pressable
+                    onPress={onCancelTransaction}
+                    disabled={cancelTransactionMutation.isPending}
+                    style={[
+                      styles.modalSaveBtn,
+                      styles.cancelTradeBtn,
+                      {
+                        backgroundColor: cancelTransactionMutation.isPending
+                          ? colors.icon + "55"
+                          : "#DC2626",
+                      },
+                    ]}
+                  >
+                    {cancelTransactionMutation.isPending ? (
+                      <ActivityIndicator color="#FFF" size="small" />
+                    ) : (
+                      <ThemedText style={styles.modalSaveBtnText}>
+                        {t("chatCancelTradeAction")}
+                      </ThemedText>
+                    )}
+                  </Pressable>
                 ) : null}
 
                 {canCompleteTrade ? (
@@ -3253,6 +3815,52 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingLeft: 2,
   },
+  activeDealBanner: {
+    marginHorizontal: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+  activeDealBannerCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
+  },
+  activeDealBannerTitle: {
+    fontSize: 13,
+    color: "#B45309",
+  },
+  activeDealBannerText: {
+    fontSize: 12,
+    lineHeight: 17,
+    opacity: 0.76,
+  },
+  activeDealBannerNote: {
+    fontSize: 12,
+    lineHeight: 17,
+    opacity: 0.68,
+  },
+  activeDealBannerButton: {
+    marginTop: 6,
+    alignSelf: "flex-start",
+    minHeight: 34,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  activeDealBannerButtonText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "800",
+  },
   respondRow: {
     flexDirection: "row",
     gap: 10,
@@ -3698,6 +4306,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 2,
+  },
+  cancelTradeBtn: {
+    marginTop: 10,
+  },
+  cancelPenaltyText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "700",
+    color: "#DC2626",
   },
   modalSaveBtnText: { color: "#FFF", fontWeight: "700" },
   locationOptionRow: {

@@ -15,6 +15,7 @@ import type {
   SafePaymentStatus,
   SafePaymentSubmitInput,
   SendChatMessageInput,
+  TransactionCancelInput,
   TransactionCompleteInput,
   TransactionReview,
   TransactionReviewInput,
@@ -68,6 +69,9 @@ export interface IChatRepository {
   ): Promise<DirectTradeTransaction>;
   completeTransaction(
     input: TransactionCompleteInput,
+  ): Promise<DirectTradeTransaction>;
+  cancelTransaction(
+    input: TransactionCancelInput,
   ): Promise<DirectTradeTransaction>;
   submitTransactionReview(
     transactionId: string,

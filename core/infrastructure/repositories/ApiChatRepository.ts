@@ -16,6 +16,7 @@ import type {
   SafePaymentStatus,
   SafePaymentSubmitInput,
   SendChatMessageInput,
+  TransactionCancelInput,
   TransactionCompleteInput,
   TransactionReview,
   TransactionReviewInput,
@@ -656,6 +657,21 @@ export class ApiChatRepository implements IChatRepository {
     const transaction = mapDirectTradeTransaction(data);
     if (!transaction)
       throw new Error("Complete transaction response is invalid");
+    return transaction;
+  }
+
+  async cancelTransaction(
+    input: TransactionCancelInput,
+  ): Promise<DirectTradeTransaction> {
+    const data = await this.http.post<unknown>(
+      API_ENDPOINTS.CLIENT_CHATS.TRANSACTION_CANCEL,
+      {
+        transactionId: input.transactionId,
+      },
+    );
+    const transaction = mapDirectTradeTransaction(data);
+    if (!transaction)
+      throw new Error("Cancel transaction response is invalid");
     return transaction;
   }
 
