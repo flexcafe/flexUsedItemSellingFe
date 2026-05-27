@@ -22,6 +22,7 @@ import { WebView } from "react-native-webview";
 import { z } from "zod";
 
 import { AuthLogo } from "@/components/auth-logo";
+import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import { PasswordInput } from "@/components/password-input";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
 import { PhoneNumberInput } from "@/components/phone-number-input";
@@ -137,6 +138,7 @@ export function RegisterScreen() {
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
   const reduceMotion = useReducedMotion();
+  const insets = useAppSafeAreaInsets();
 
   // Registration method toggle removed for now (phone-only).
   const registrationType = "PHONE_ONLY" as const;
@@ -486,7 +488,13 @@ export function RegisterScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingTop: Math.max(insets.top, 24) + 42,
+              paddingBottom: Math.max(insets.bottom, 24) + 96,
+            },
+          ]}
           keyboardShouldPersistTaps="handled"
         >
           <AuthAnimatedSection
@@ -907,8 +915,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 42,
-    paddingBottom: 96,
     gap: 18,
   },
   brandArea: {
@@ -1075,3 +1081,5 @@ const styles = StyleSheet.create({
   footerText: { fontSize: 14, opacity: 0.7 },
   footerLink: { fontSize: 14, fontWeight: "700" },
 });
+
+

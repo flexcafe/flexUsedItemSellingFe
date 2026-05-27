@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { AppSafeAreaView } from "@/components/app-safe-area";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
@@ -29,7 +30,6 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { formatListingDate } from "./myProductDetailHelpers";
 
@@ -134,7 +134,7 @@ export function PublicSellerProfileScreen({ userId }: Props) {
   }));
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+    <AppSafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
       <ThemedView style={styles.container}>
         <View style={[styles.topBar, { backgroundColor: colors.tint }]}>
           <AnimatedPressable
@@ -465,7 +465,7 @@ export function PublicSellerProfileScreen({ userId }: Props) {
           </Animated.ScrollView>
         )}
       </ThemedView>
-    </SafeAreaView>
+    </AppSafeAreaView>
   );
 }
 

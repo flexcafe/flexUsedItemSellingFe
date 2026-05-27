@@ -9,11 +9,10 @@ import {
   View,
 } from "react-native";
 import Animated, { useReducedMotion } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useLanguageSwitcherSafeTop } from "@/components/app-safe-area";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { paddingTopBelowLanguageSwitcher } from "@/constants/language-switcher-layout";
 import { Colors } from "@/constants/theme";
 import type { ClientNotification } from "@/core/domain/entities/Notification";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -211,12 +210,11 @@ function FilterChip({
 
 export function NotificationsScreen() {
   const { t, tf, locale } = useLocale();
-  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
   const reduceMotion = useReducedMotion();
-  const topInset = paddingTopBelowLanguageSwitcher(insets.top);
+  const topInset = useLanguageSwitcherSafeTop();
   const notificationsQuery = useNotifications(20);
   const markReadMutation = useMarkNotificationRead(20);
   const [expandedId, setExpandedId] = useState<string | null>(null);

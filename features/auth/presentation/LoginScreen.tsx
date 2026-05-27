@@ -15,6 +15,7 @@ import { useReducedMotion } from "react-native-reanimated";
 import { z } from "zod";
 
 import { AuthLogo } from "@/components/auth-logo";
+import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import {
   PHONE_COUNTRIES,
   PhoneNumberInput,
@@ -57,6 +58,7 @@ export function LoginScreen() {
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
   const reduceMotion = useReducedMotion();
+  const insets = useAppSafeAreaInsets();
 
   const phoneSchema = z.object({
     mode: z.literal("phone"),
@@ -147,7 +149,13 @@ export function LoginScreen() {
         style={styles.keyboardView}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop: Math.max(insets.top, 24),
+              paddingBottom: Math.max(insets.bottom, 24) + 96,
+            },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -252,7 +260,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 24,
   },
   keyboardView: {
     flex: 1,
@@ -260,8 +267,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
-    paddingTop: 24,
-    paddingBottom: 96,
   },
   header: {
     alignItems: "center",
@@ -349,3 +354,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
+

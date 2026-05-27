@@ -3,8 +3,8 @@ import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 import Toast, { type ToastConfigParams } from "react-native-toast-message";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { uiCardShadow, usePressScale } from "@/presentation/lib/uiAnimations";
@@ -84,7 +84,7 @@ function NotificationToastCard(
 export function NotificationToastRoot() {
   const colorScheme = useColorScheme();
   const scheme = colorScheme ?? "light";
-  const insets = useSafeAreaInsets();
+  const insets = useAppSafeAreaInsets();
   const colors = Colors[scheme];
 
   const toastConfig = useMemo(

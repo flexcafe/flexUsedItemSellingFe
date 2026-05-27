@@ -19,11 +19,10 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useLanguageSwitcherSafeTop } from "@/components/app-safe-area";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { paddingTopBelowLanguageSwitcher } from "@/constants/language-switcher-layout";
 import { Colors } from "@/constants/theme";
 import type { ChatRoom } from "@/core/domain/entities/Chat";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -204,14 +203,13 @@ const ChatInboxRow = memo(function ChatInboxRow({
 
 export function ChatInboxScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { t } = useLocale();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const colorScheme = useColorScheme();
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
   const reduceMotion = useReducedMotion();
-  const topInset = paddingTopBelowLanguageSwitcher(insets.top);
+  const topInset = useLanguageSwitcherSafeTop();
 
   const roomsQuery = useChatRooms({ take: 20 });
   const rooms = useMemo(() => {

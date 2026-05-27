@@ -1,13 +1,13 @@
 import { Colors } from "@/constants/theme";
 import type { Category } from "@/core/domain/entities/Category";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** Clears `LanguageSwitcher` (absolute `top: ~44` + bar height) from overlapping the hero. */
 const EXTRA_TOP_FOR_LANGUAGE_SWITCHER = 36;
@@ -33,7 +33,7 @@ export function HomeHero({
   onSelectCategory,
   onOpenReports,
 }: HomeHeroProps) {
-  const insets = useSafeAreaInsets();
+  const insets = useAppSafeAreaInsets();
   const router = useRouter();
   const { logout } = useAuth();
   const { t, categorySecondLine } = useLocale();

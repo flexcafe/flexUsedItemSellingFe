@@ -1,4 +1,5 @@
 import { AddProductListingButton } from "@/components/add-product-listing-button";
+import { useLanguageSwitcherSafeTop } from "@/components/app-safe-area";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
@@ -15,7 +16,6 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { memo, useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
-  Platform,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -100,6 +100,7 @@ export const MyProductsListing = memo(function MyProductsListing({
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
   const reduceMotion = useReducedMotion();
+  const topInset = useLanguageSwitcherSafeTop();
 
   const countLabel = useMemo(
     () => tf("productsListingCount", { count: totalCount }),
@@ -273,7 +274,7 @@ export const MyProductsListing = memo(function MyProductsListing({
   }, [colors.tint, isFetchingNextPage, reduceMotion, t]);
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { paddingTop: topInset }]}>
       <Animated.FlatList
         data={isLoading || isError ? [] : products}
         keyExtractor={(item) => item.id}
@@ -300,7 +301,6 @@ export const MyProductsListing = memo(function MyProductsListing({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: Platform.OS === "ios" ? 56 : 48,
   },
   listContent: {
     paddingHorizontal: 20,

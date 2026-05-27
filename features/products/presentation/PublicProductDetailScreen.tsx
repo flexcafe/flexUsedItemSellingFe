@@ -2,9 +2,10 @@ import { ProductListingThumbnail } from "@/components/product-listing-thumbnail"
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
-  paddingTopBelowLanguageSwitcher,
-  topOffsetForFloatingBackButton,
-} from "@/constants/language-switcher-layout";
+  useAppSafeAreaInsets,
+  useFloatingBackButtonTop,
+  useLanguageSwitcherSafeTop,
+} from "@/components/app-safe-area";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useOpenChatRoom } from "@/presentation/hooks/useClientChat";
@@ -64,7 +65,6 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
 import {
@@ -379,7 +379,7 @@ const ImageViewerModal = memo(function ImageViewerModal({
   onClose: () => void;
 }) {
   const { width, height } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
+  const insets = useAppSafeAreaInsets();
 
   return (
     <Modal
@@ -499,15 +499,15 @@ function ReviewsSheet({
 
 export function PublicProductDetailScreen({ productId }: Props) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const insets = useAppSafeAreaInsets();
   const { t, tf, locale } = useLocale();
   const colorScheme = useColorScheme();
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
   const { width } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
-  const topContentInset = paddingTopBelowLanguageSwitcher(insets.top);
-  const backButtonTop = topOffsetForFloatingBackButton(insets.top);
+  const topContentInset = useLanguageSwitcherSafeTop();
+  const backButtonTop = useFloatingBackButtonTop();
 
   const detailQuery = useClientProductDetail(productId);
   const product = detailQuery.data;

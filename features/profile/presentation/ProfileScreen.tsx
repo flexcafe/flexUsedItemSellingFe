@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 
+import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import { PasswordInput } from "@/components/password-input";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
 import { ThemedText } from "@/components/themed-text";
@@ -141,6 +142,7 @@ export function ProfileScreen() {
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
   const reduceMotion = useReducedMotion();
+  const insets = useAppSafeAreaInsets();
   const pointsQuery = useProfilePoints();
   const rankConfigsQuery = useRankConfigs();
   const statsQuery = useProfileTransactionStats();
@@ -628,7 +630,13 @@ export function ProfileScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingTop: Math.max(insets.top, 24),
+              paddingBottom: Math.max(insets.bottom, 24) + 42,
+            },
+          ]}
           refreshControl={
             <RefreshControl
               refreshing={profileRefreshing}
@@ -1772,8 +1780,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 42,
     gap: 16,
   },
   title: { fontSize: 24, marginBottom: 4 },

@@ -1,4 +1,5 @@
 import { DateTimeField } from "@/components/date-time-field";
+import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
@@ -49,7 +50,6 @@ import {
   View,
 } from "react-native";
 import Animated, { useReducedMotion } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Tab = "suggestion" | "fraud";
 
@@ -329,7 +329,7 @@ export function HomeReportsSection({
   const colorScheme = useColorScheme();
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
-  const insets = useSafeAreaInsets();
+  const insets = useAppSafeAreaInsets();
   const reduceMotion = useReducedMotion();
 
   const [tab, setTab] = useState<Tab>("suggestion");

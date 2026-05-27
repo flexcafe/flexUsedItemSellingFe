@@ -24,13 +24,15 @@ import Animated, {
   FadeInDown,
   useReducedMotion,
 } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
+import {
+  useAppSafeAreaInsets,
+  useFloatingBackButtonTop,
+} from "@/components/app-safe-area";
 import { DateTimeField } from "@/components/date-time-field";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { topOffsetForFloatingBackButton } from "@/constants/language-switcher-layout";
 import { Colors } from "@/constants/theme";
 import type { ChatMessage, ChatRoom } from "@/core/domain/entities/Chat";
 import type { DirectTradeTransaction } from "@/core/domain/types/chat";
@@ -297,7 +299,7 @@ export function ChatRoomScreen({
   peerUserId: peerUserIdParam,
 }: Props) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const insets = useAppSafeAreaInsets();
   const { t, tf } = useLocale();
   const { user } = useAuth();
   const colorScheme = useColorScheme();
@@ -309,7 +311,7 @@ export function ChatRoomScreen({
     LIVE_MAP_MODAL_MAX_HEIGHT,
     Math.round(windowHeight * 0.42),
   );
-  const backTop = topOffsetForFloatingBackButton(insets.top);
+  const backTop = useFloatingBackButtonTop();
   const queryClient = useQueryClient();
   const backPress = usePressScale();
   const sendPress = usePressScale();

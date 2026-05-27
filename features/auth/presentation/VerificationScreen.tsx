@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 
+import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
@@ -44,6 +45,7 @@ export function VerificationScreen() {
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
   const reduceMotion = useReducedMotion();
+  const insets = useAppSafeAreaInsets();
 
   const initialPhone = typeof params.phone === "string" ? params.phone : "";
   const initialEmail = typeof params.email === "string" ? params.email : "";
@@ -147,7 +149,13 @@ export function VerificationScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingTop: Math.max(insets.top, 24),
+              paddingBottom: Math.max(insets.bottom, 24) + 40,
+            },
+          ]}
           keyboardShouldPersistTaps="always"
         >
           <AuthAnimatedSection delayMs={0} reduceMotion={reduceMotion}>
@@ -327,8 +335,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 40,
     gap: 18,
   },
   headerRow: {
@@ -373,3 +379,5 @@ const styles = StyleSheet.create({
   fullWidthButton: { width: "100%", minHeight: 48, borderRadius: 10 },
   linkButton: { alignItems: "center", paddingVertical: 6 },
 });
+
+

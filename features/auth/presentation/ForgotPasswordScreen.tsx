@@ -21,6 +21,7 @@ import { useReducedMotion } from "react-native-reanimated";
 import { z } from "zod";
 
 import { AuthLogo } from "@/components/auth-logo";
+import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import {
   PHONE_COUNTRIES,
   PhoneNumberInput,
@@ -84,6 +85,7 @@ export function ForgotPasswordScreen() {
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
   const reduceMotion = useReducedMotion();
+  const insets = useAppSafeAreaInsets();
 
   const [step, setStep] = useState<Step>("phone");
   const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>(
@@ -260,7 +262,13 @@ export function ForgotPasswordScreen() {
         style={styles.keyboardView}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop: Math.max(insets.top, 8),
+              paddingBottom: Math.max(insets.bottom, 24) + 40,
+            },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -463,15 +471,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 24,
   },
   keyboardView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingTop: 8,
-    paddingBottom: 40,
     gap: 18,
   },
   headerRow: {
@@ -572,3 +577,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
+
