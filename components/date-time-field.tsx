@@ -15,6 +15,7 @@ import {
 } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
+import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
@@ -83,6 +84,7 @@ export function DateTimeField({
   embedded,
 }: Props) {
   const { t } = useLocale();
+  const insets = useAppSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const [showPicker, setShowPicker] = useState(false);
@@ -213,7 +215,10 @@ export function DateTimeField({
             <Pressable
               style={[
                 styles.modalSheet,
-                { backgroundColor: colors.background },
+                {
+                  backgroundColor: colors.background,
+                  paddingBottom: Math.max(24, insets.bottom + 12),
+                },
               ]}
               onPress={(e) => e.stopPropagation()}
             >
@@ -349,7 +354,6 @@ const styles = StyleSheet.create({
   modalSheet: {
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    paddingBottom: 24,
   },
   modalHeader: {
     flexDirection: "row",

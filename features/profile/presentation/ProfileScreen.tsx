@@ -40,6 +40,7 @@ import {
   useRequestWithdrawal,
   useWithdrawalRequests,
 } from "@/presentation/hooks/useProfileRewards";
+import { normalizeImagePickerAssetForUpload } from "@/presentation/lib/imageUploadAsset";
 import { UI_SECTION_STAGGER_MS } from "@/presentation/lib/uiAnimations";
 import { ReferralCodeBlock } from "@/presentation/components/ReferralCodeBlock";
 import { useAuth } from "@/presentation/providers/AuthProvider";
@@ -234,7 +235,10 @@ export function ProfileScreen() {
       });
 
       if (result.canceled) return;
-      const asset = result.assets?.[0];
+      const asset = await normalizeImagePickerAssetForUpload(
+        result.assets?.[0],
+        { jpegQuality: 0.85 },
+      );
       const uri = asset?.uri;
       if (!uri) return;
 
@@ -245,9 +249,7 @@ export function ProfileScreen() {
           ? "image/png"
           : ext === "webp"
             ? "image/webp"
-            : ext === "heic"
-              ? "image/heic"
-              : "image/jpeg";
+            : "image/jpeg";
 
       await uploadAvatar.mutateAsync({ uri, name: fileName, type });
       await refreshProfile();

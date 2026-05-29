@@ -38,11 +38,11 @@ import {
   buildLeafletPickerHtml,
   buildLeafletStaticViewHtml,
 } from "@/presentation/lib/leafletPickerHtml";
+import { normalizeImagePickerAssetForUpload } from "@/presentation/lib/imageUploadAsset";
 import {
   productConditionLabelKey,
   useLocale,
 } from "@/presentation/providers/LocaleProvider";
-import { File, Paths } from "expo-file-system";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Animated, { useReducedMotion } from "react-native-reanimated";
@@ -744,27 +744,10 @@ export function ProductListScreen() {
     ): Promise<ImagePicker.ImagePickerAsset | null> => {
       const uri = asset.uri?.trim();
       if (!uri) return null;
-      if (Platform.OS !== "android" || !uri.startsWith("content://")) {
-        return asset;
-      }
-
-      const mime = asset.mimeType ?? "";
-      const extFromName = asset.fileName?.split(".").pop()?.toLowerCase();
-      const ext =
-        extFromName ||
-        (mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg");
-      const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const fileName = `upload-${stamp}.${ext}`;
-
       try {
-        const source = new File(uri);
-        const destination = new File(Paths.cache, fileName);
-        source.copy(destination);
-        return {
-          ...asset,
-          uri: destination.uri,
-          fileName,
-        };
+        return await normalizeImagePickerAssetForUpload(asset, {
+          jpegQuality: 0.9,
+        });
       } catch {
         Alert.alert(
           t("productsErrorRequestTitle"),
