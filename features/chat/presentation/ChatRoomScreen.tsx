@@ -93,6 +93,7 @@ import {
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const SAFE_PAYMENT_COMPLETABLE_STATUSES = new Set([
   "SAFE_PAYMENT_RECEIVED",
+  "SAFE_PAYMENT_VERIFIED",
   "BUYER_COMPLETED",
   "SELLER_COMPLETED",
 ]);
@@ -521,9 +522,11 @@ export function ChatRoomScreen({
       : baseCompletionTransaction;
   const activeTransaction = completionTransaction;
   const usesSafePaymentCompletion = Boolean(safeTransaction);
+  const safeTransactionStatusUpper =
+    safeTransaction?.status?.toUpperCase() ?? "";
   const isSafeCompletable = Boolean(
     safeTransaction &&
-    SAFE_PAYMENT_COMPLETABLE_STATUSES.has(safeTransaction.status),
+    SAFE_PAYMENT_COMPLETABLE_STATUSES.has(safeTransactionStatusUpper),
   );
   const isBuyer = Boolean(
     user?.id && roomMeta?.buyerId && user.id === roomMeta.buyerId,
@@ -665,8 +668,10 @@ export function ChatRoomScreen({
     (usesSafePaymentCompletion
       ? isSafeCompletable
       : completionTransaction.status !== "COMPLETED") &&
-    // For meetup flows: must have agreed meeting place and no pending change
-    (!hasDirectTrade ||
+    // For meetup cash flows: must have agreed place and no pending change.
+    // Safe payment completion should not depend on meetup place state.
+    (usesSafePaymentCompletion ||
+      !hasDirectTrade ||
       (detail?.meetingLocation &&
         !showPendingLocationChange &&
         !isTransactionCancelledOrRefunded)),
