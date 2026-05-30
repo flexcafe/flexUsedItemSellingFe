@@ -6,8 +6,16 @@ import axios, {
 import { TokenStorage } from "../storage/TokenStorage";
 import { API_CONFIG } from "./constants";
 
-type JsonPrimitive = string | number | boolean | null;
-type JsonValue = JsonPrimitive | JsonValue[] | { [k: string]: JsonValue };
+type OnUnauthorizedCallback = () => void;
+
+function joinUrl(baseURL?: string, url?: string): string | undefined {
+  if (!baseURL && !url) return undefined;
+  if (!baseURL) return url;
+  if (!url) return baseURL;
+  const b = baseURL.endsWith("/") ? baseURL.slice(0, -1) : baseURL;
+  const u = url.startsWith("/") ? url : `/${url}`;
+  return `${b}${u}`;
+}
 
 function unwrap<T>(body: unknown): T {
   if (
@@ -21,27 +29,6 @@ function unwrap<T>(body: unknown): T {
   return body as T;
 }
 
-type OnUnauthorizedCallback = () => void;
-
-const REDACT_KEYS = new Set([
-  "password",
-  "confirmPassword",
-  "accessToken",
-  "refreshToken",
-  "token",
-  "authorization",
-  "Authorization",
-]);
-
-function joinUrl(baseURL?: string, url?: string): string | undefined {
-  if (!baseURL && !url) return undefined;
-  if (!baseURL) return url;
-  if (!url) return baseURL;
-  const b = baseURL.endsWith("/") ? baseURL.slice(0, -1) : baseURL;
-  const u = url.startsWith("/") ? url : `/${url}`;
-  return `${b}${u}`;
-}
-
 function toPlainObject(value: unknown): unknown {
   if (value == null) return value;
   if (typeof value !== "object") return value;
@@ -51,32 +38,6 @@ function toPlainObject(value: unknown): unknown {
     out[k] = toPlainObject(v);
   }
   return out;
-}
-
-function redact(value: unknown): unknown {
-  if (value == null) return value;
-  if (Array.isArray(value)) return value.map(redact);
-  if (typeof value !== "object") return value;
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-    out[k] = REDACT_KEYS.has(k) ? "[REDACTED]" : redact(v);
-  }
-  return out;
-}
-
-function safeJson(value: unknown): JsonValue {
-  try {
-    return JSON.parse(JSON.stringify(value)) as JsonValue;
-  } catch {
-    return "[Unserializable]" as unknown as JsonValue;
-  }
-}
-
-function shouldLogHttp(): boolean {
-  // Expo: __DEV__ is true for development builds.
-  const dev = typeof __DEV__ !== "undefined" ? __DEV__ : false;
-  const flag = process.env.EXPO_PUBLIC_DEBUG_HTTP;
-  return dev && flag !== "0";
 }
 
 function readContentType(
@@ -179,13 +140,6 @@ export class HttpClient {
 
     this.client.interceptors.request.use(
       async (config) => {
-        const startedAt = Date.now();
-        const requestId = `${startedAt}-${Math.random().toString(16).slice(2)}`;
-        (config as AxiosRequestConfig & { metadata?: unknown }).metadata = {
-          startedAt,
-          requestId,
-        };
-
         const token = await TokenStorage.getAccessToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -199,80 +153,14 @@ export class HttpClient {
           ensureMultipartForFormData(config.headers);
         }
 
-        if (shouldLogHttp()) {
-          const plainHeaders = toPlainObject(config.headers);
-          const plainBody = toPlainObject(config.data);
-          // NOTE: we intentionally redact auth + password-like fields.
-          console.log("[HTTP →]", {
-            requestId,
-            method: (config.method ?? "GET").toUpperCase(),
-            baseURL: config.baseURL,
-            url: config.url,
-            fullUrl: joinUrl(config.baseURL, config.url),
-            params: safeJson(redact(toPlainObject(config.params))),
-            headers: safeJson(redact(plainHeaders)),
-            data: safeJson(redact(plainBody)),
-          });
-        }
         return config;
       },
       (error) => Promise.reject(error),
     );
 
     this.client.interceptors.response.use(
-      (response) => {
-        if (shouldLogHttp()) {
-          const meta = (
-            response.config as AxiosRequestConfig & { metadata?: unknown }
-          ).metadata as { startedAt?: number; requestId?: string } | undefined;
-          const elapsedMs =
-            meta?.startedAt != null ? Date.now() - meta.startedAt : undefined;
-
-          console.log("[HTTP ←]", {
-            requestId: meta?.requestId,
-            status: response.status,
-            statusText: response.statusText,
-            url: response.config?.url,
-            fullUrl: joinUrl(response.config?.baseURL, response.config?.url),
-            elapsedMs,
-            responseHeaders: safeJson(redact(toPlainObject(response.headers))),
-            data: safeJson(redact(toPlainObject(response.data))),
-          });
-        }
-        return response;
-      },
+      (response) => response,
       async (error) => {
-        if (shouldLogHttp()) {
-          const cfg = (error?.config ?? {}) as AxiosRequestConfig & {
-            metadata?: unknown;
-          };
-          const meta = cfg.metadata as
-            | { startedAt?: number; requestId?: string }
-            | undefined;
-          const elapsedMs =
-            meta?.startedAt != null ? Date.now() - meta.startedAt : undefined;
-
-          console.log("[HTTP ✕]", {
-            requestId: meta?.requestId,
-            method: (cfg.method ?? "GET").toUpperCase(),
-            url: cfg.url,
-            fullUrl: joinUrl(cfg.baseURL, cfg.url),
-            elapsedMs,
-            errorCode: error?.code,
-            errorMessage: error?.message,
-            requestHeaders: safeJson(redact(toPlainObject(cfg.headers))),
-            requestParams: safeJson(redact(toPlainObject(cfg.params))),
-            requestData: safeJson(redact(toPlainObject(cfg.data))),
-            status: error?.response?.status,
-            statusText: error?.response?.statusText,
-            responseHeaders: safeJson(
-              redact(toPlainObject(error?.response?.headers)),
-            ),
-            responseData: safeJson(
-              redact(toPlainObject(error?.response?.data)),
-            ),
-          });
-        }
         if (error.response?.status === 401) {
           await TokenStorage.clearTokens();
           this.onUnauthorized?.();
@@ -300,8 +188,6 @@ export class HttpClient {
     const baseURL = this.client.defaults.baseURL ?? API_CONFIG.BASE_URL;
     const joined = joinUrl(baseURL, url) ?? url;
     const fullUrl = mergeQueryIntoUrl(joined, config?.params);
-    const startedAt = Date.now();
-    const requestId = `${startedAt}-${Math.random().toString(16).slice(2)}`;
 
     const headers: Record<string, string> = {
       Accept: "application/json, text/plain, */*",
@@ -310,75 +196,18 @@ export class HttpClient {
     const token = await TokenStorage.getAccessToken();
     if (token) headers.Authorization = `Bearer ${token}`;
 
-    if (shouldLogHttp()) {
-      console.log("[HTTP →]", {
-        requestId,
-        method,
-        transport: "fetch-multipart",
-        baseURL,
-        url,
-        fullUrl,
-        params: safeJson(redact(toPlainObject(config?.params))),
-        headers: safeJson(redact(toPlainObject(headers))),
-        data: safeJson(redact(toPlainObject(data))),
-      });
-    }
+    const response = await fetch(fullUrl, {
+      method,
+      headers,
+      body: data as BodyInit | null | undefined,
+    });
 
-    let response: Response;
-    try {
-      response = await fetch(fullUrl, {
-        method,
-        headers,
-        body: data as BodyInit | null | undefined,
-      });
-    } catch (error) {
-      if (shouldLogHttp()) {
-        console.log("[HTTP ✕]", {
-          requestId,
-          method,
-          transport: "fetch-multipart",
-          url,
-          fullUrl,
-          elapsedMs: Date.now() - startedAt,
-          errorCode: "ERR_NETWORK",
-          errorMessage:
-            error instanceof Error ? error.message : "Network request failed",
-          requestHeaders: safeJson(redact(toPlainObject(headers))),
-          requestParams: safeJson(redact(toPlainObject(config?.params))),
-          requestData: safeJson(redact(toPlainObject(data))),
-          status: undefined,
-          statusText: undefined,
-        });
-      }
-      throw error;
-    }
-
-    const elapsedMs = Date.now() - startedAt;
     const rawText = await response.text();
     let parsed: unknown = rawText;
     try {
       parsed = rawText ? JSON.parse(rawText) : null;
     } catch {
       // non-JSON body
-    }
-
-    if (shouldLogHttp()) {
-      const responseHeaders: Record<string, string> = {};
-      response.headers.forEach((value, key) => {
-        responseHeaders[key] = value;
-      });
-      console.log(response.ok ? "[HTTP ←]" : "[HTTP ✕]", {
-        requestId,
-        method,
-        transport: "fetch-multipart",
-        url,
-        fullUrl,
-        elapsedMs,
-        status: response.status,
-        statusText: response.statusText,
-        responseHeaders: safeJson(redact(responseHeaders)),
-        data: safeJson(redact(toPlainObject(parsed))),
-      });
     }
 
     if (response.status === 401) {
