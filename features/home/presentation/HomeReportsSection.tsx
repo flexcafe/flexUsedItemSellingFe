@@ -1,5 +1,6 @@
 import { DateTimeField } from "@/components/date-time-field";
 import { useAppSafeAreaInsets } from "@/components/app-safe-area";
+import { AppScrollView } from "@/components/app-scroll-view";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
@@ -44,7 +45,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -486,7 +486,7 @@ export function HomeReportsSection({
             />
           </View>
 
-          <ScrollView
+          <AppScrollView
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={[
@@ -792,7 +792,7 @@ export function HomeReportsSection({
                 )}
               </ProfileTabPanel>
             )}
-          </ScrollView>
+          </AppScrollView>
         </KeyboardAvoidingView>
       </ThemedView>
     </Modal>
@@ -1026,3 +1026,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
+
+
+

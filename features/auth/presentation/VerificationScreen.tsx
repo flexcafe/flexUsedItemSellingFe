@@ -7,7 +7,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -15,6 +14,7 @@ import {
 import { useReducedMotion } from "react-native-reanimated";
 
 import { useAppSafeAreaInsets } from "@/components/app-safe-area";
+import { AppScrollView } from "@/components/app-scroll-view";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
@@ -148,7 +148,7 @@ export function VerificationScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-        <ScrollView
+        <AppScrollView
           contentContainerStyle={[
             styles.content,
             {
@@ -325,7 +325,7 @@ export function VerificationScreen() {
               )}
             </Pressable>
           </AuthAnimatedCard>
-        </ScrollView>
+        </AppScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
   );
@@ -379,5 +379,8 @@ const styles = StyleSheet.create({
   fullWidthButton: { width: "100%", minHeight: 48, borderRadius: 10 },
   linkButton: { alignItems: "center", paddingVertical: 6 },
 });
+
+
+
 
 

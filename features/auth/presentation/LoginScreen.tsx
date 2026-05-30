@@ -7,7 +7,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   View,
 } from "react-native";
@@ -16,6 +15,7 @@ import { z } from "zod";
 
 import { AuthLogo } from "@/components/auth-logo";
 import { useAppSafeAreaInsets } from "@/components/app-safe-area";
+import { AppScrollView } from "@/components/app-scroll-view";
 import {
   PHONE_COUNTRIES,
   PhoneNumberInput,
@@ -148,7 +148,7 @@ export function LoginScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
-        <ScrollView
+        <AppScrollView
           contentContainerStyle={[
             styles.scrollContent,
             {
@@ -241,7 +241,7 @@ export function LoginScreen() {
               </Pressable>
             </AuthStaggerItem>
           </View>
-        </ScrollView>
+        </AppScrollView>
 
         <AuthLanguageBar
           locale={locale}
@@ -354,5 +354,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
+
+
 
 

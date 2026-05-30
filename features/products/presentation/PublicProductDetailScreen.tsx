@@ -6,6 +6,7 @@ import {
   useFloatingBackButtonTop,
   useLanguageSwitcherSafeTop,
 } from "@/components/app-safe-area";
+import { AppScrollView } from "@/components/app-scroll-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useOpenChatRoom } from "@/presentation/hooks/useClientChat";
@@ -46,7 +47,6 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
-  ScrollView,
   StyleSheet,
   View,
   useWindowDimensions,
@@ -882,7 +882,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
         >
               {images.length > 0 ? (
             <>
-              <ScrollView
+              <AppScrollView
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
@@ -911,7 +911,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
                     />
                   </Pressable>
                 ))}
-              </ScrollView>
+              </AppScrollView>
               {images.length > 1 ? (
                 <View style={styles.dotsRow}>
                   {images.map((uri, i) => (
@@ -924,7 +924,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
                   ))}
                 </View>
               ) : null}
-              <ScrollView
+              <AppScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.thumbsRow}
@@ -941,7 +941,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
                     }}
                   />
                 ))}
-              </ScrollView>
+              </AppScrollView>
             </>
           ) : (
             <View style={styles.galleryEmpty}>
@@ -1383,7 +1383,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
             <ActivityIndicator color={colors.tint} />
           </View>
         ) : reviewsQuery.data ? (
-          <ScrollView
+          <AppScrollView
             style={styles.reviewsScroll}
             showsVerticalScrollIndicator={false}
           >
@@ -1450,7 +1450,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
                 )}
               </Pressable>
             ) : null}
-          </ScrollView>
+          </AppScrollView>
         ) : (
           <View style={styles.centeredBlock}>
             <ThemedText>{t("productsDetailNoData")}</ThemedText>
@@ -1822,3 +1822,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.18)",
   },
 });
+
+
+

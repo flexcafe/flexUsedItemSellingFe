@@ -1,3 +1,4 @@
+import { AppScrollView } from "@/components/app-scroll-view";
 import { ProductListingThumbnail } from "@/components/product-listing-thumbnail";
 import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
@@ -24,7 +25,6 @@ import {
   NativeSyntheticEvent,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   View,
   useWindowDimensions,
@@ -399,7 +399,7 @@ export const MyProductDetailSheet = memo(function MyProductDetailSheet({
             </Animated.View>
           ) : (
             <View style={styles.body}>
-              <ScrollView
+              <AppScrollView
                 style={styles.scroll}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
@@ -409,7 +409,7 @@ export const MyProductDetailSheet = memo(function MyProductDetailSheet({
                   entering={staggerEnter(0, reduceMotion)}
                   style={styles.galleryBlock}
                 >
-                  <ScrollView
+                  <AppScrollView
                     horizontal
                     pagingEnabled={false}
                     decelerationRate="fast"
@@ -447,7 +447,7 @@ export const MyProductDetailSheet = memo(function MyProductDetailSheet({
                         />
                       </View>
                     )}
-                  </ScrollView>
+                  </AppScrollView>
                   {images.length > 1 ? (
                     <>
                       <View style={styles.photoCountBadge}>
@@ -813,7 +813,7 @@ export const MyProductDetailSheet = memo(function MyProductDetailSheet({
                     ))}
                   </SectionCard>
                 ) : null}
-              </ScrollView>
+              </AppScrollView>
 
               <Animated.View
                 entering={staggerEnter(SECTION_STAGGER_MS * 7, reduceMotion)}
@@ -1258,3 +1258,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 });
+
+
+

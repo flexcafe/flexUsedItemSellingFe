@@ -12,7 +12,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -23,6 +22,7 @@ import { z } from "zod";
 
 import { AuthLogo } from "@/components/auth-logo";
 import { useAppSafeAreaInsets } from "@/components/app-safe-area";
+import { AppScrollView } from "@/components/app-scroll-view";
 import { PasswordInput } from "@/components/password-input";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
 import { PhoneNumberInput } from "@/components/phone-number-input";
@@ -487,7 +487,7 @@ export function RegisterScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-        <ScrollView
+        <AppScrollView
           contentContainerStyle={[
             styles.content,
             {
@@ -897,7 +897,7 @@ export function RegisterScreen() {
               </ThemedText>
             </Pressable>
           </AuthStaggerItem>
-        </ScrollView>
+        </AppScrollView>
         <AuthLanguageBar
           locale={locale}
           onSelect={setLocale}
@@ -1081,5 +1081,8 @@ const styles = StyleSheet.create({
   footerText: { fontSize: 14, opacity: 0.7 },
   footerLink: { fontSize: 14, fontWeight: "700" },
 });
+
+
+
 
 

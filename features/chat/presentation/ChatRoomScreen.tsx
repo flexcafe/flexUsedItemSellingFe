@@ -12,7 +12,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   TextInput,
   useWindowDimensions,
@@ -30,6 +29,7 @@ import {
   useAppSafeAreaInsets,
   useFloatingBackButtonTop,
 } from "@/components/app-safe-area";
+import { AppScrollView } from "@/components/app-scroll-view";
 import { DateTimeField } from "@/components/date-time-field";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -108,6 +108,11 @@ const SAFE_PAYMENT_CANCEL_ALLOWED_STATUSES = new Set([
   "SAFE_PAYMENT_AWAITING_INSTRUCTION",
   "SAFE_PAYMENT_INSTRUCTION_SENT",
 ]);
+const TERMINAL_TRANSACTION_STATUSES = new Set([
+  "CANCELLED",
+  "COMPLETED",
+  "REFUNDED",
+]);
 
 function isSafePaymentCancelBlockedMessage(message: string): boolean {
   const normalized = message.toLowerCase();
@@ -116,6 +121,44 @@ function isSafePaymentCancelBlockedMessage(message: string): boolean {
     normalized.includes("payment submission") ||
     normalized.includes("payment already") ||
     normalized.includes("already initiated")
+  );
+}
+
+function normalizedTransactionStatus(
+  transaction: DirectTradeTransaction | null | undefined,
+): string {
+  return transaction?.status?.toUpperCase() ?? "";
+}
+
+function isBlockingSafePayment(
+  transaction: DirectTradeTransaction | null | undefined,
+): boolean {
+  const status = normalizedTransactionStatus(transaction);
+  return Boolean(
+    transaction &&
+      transaction.type?.toUpperCase() === "SAFE_PAYMENT" &&
+      !["CANCELLED", "REFUNDED"].includes(status),
+  );
+}
+
+function canCancelSafePayment(
+  transaction: DirectTradeTransaction | null | undefined,
+): boolean {
+  return Boolean(
+    transaction &&
+      SAFE_PAYMENT_CANCEL_ALLOWED_STATUSES.has(
+        normalizedTransactionStatus(transaction),
+      ),
+  );
+}
+
+function canCancelDirectTrade(
+  transaction: DirectTradeTransaction | null | undefined,
+): boolean {
+  return Boolean(
+    transaction &&
+      transaction.type?.toUpperCase() === "DIRECT_TRADE" &&
+      normalizedTransactionStatus(transaction) === "INITIATED",
   );
 }
 
@@ -150,12 +193,22 @@ function readTransactionFromMessage(
   const type =
     typeof typeRaw === "string" && typeRaw.trim() ? typeRaw : fallbackType;
   if (!type) return null;
+  const fallbackStatus =
+    message.type === "TRANSACTION_COMPLETED"
+      ? "COMPLETED"
+      : message.type === "SAFE_PAYMENT_REQUESTED"
+        ? "SAFE_PAYMENT_AWAITING_INSTRUCTION"
+        : message.type === "SAFE_PAYMENT_INSTRUCTION_SENT"
+          ? "SAFE_PAYMENT_INSTRUCTION_SENT"
+          : message.type === "SAFE_PAYMENT_INITIATED"
+            ? "SAFE_PAYMENT_PENDING"
+            : message.type === "SAFE_PAYMENT_VERIFIED"
+              ? "SAFE_PAYMENT_VERIFIED"
+              : "INITIATED";
   const status =
     typeof statusRaw === "string" && statusRaw.trim()
       ? statusRaw
-      : message.type === "TRANSACTION_COMPLETED"
-        ? "COMPLETED"
-        : "INITIATED";
+      : fallbackStatus;
   return {
     id: idRaw.trim(),
     chatRoomId: chatRoomIdRaw.trim(),
@@ -291,6 +344,7 @@ type Props = {
 };
 
 const LIVE_MAP_MODAL_MAX_HEIGHT = 400;
+const COMPLETION_MODAL_MAX_HEIGHT = 390;
 
 export function ChatRoomScreen({
   chatRoomId,
@@ -311,6 +365,14 @@ export function ChatRoomScreen({
   const liveMapModalHeight = Math.min(
     LIVE_MAP_MODAL_MAX_HEIGHT,
     Math.round(windowHeight * 0.42),
+  );
+  const completionModalHeight = Math.max(
+    220,
+    Math.min(
+      COMPLETION_MODAL_MAX_HEIGHT,
+      Math.round(windowHeight * 0.48),
+      windowHeight - insets.top - insets.bottom - 180,
+    ),
   );
   const backTop = useFloatingBackButtonTop();
   const queryClient = useQueryClient();
@@ -423,10 +485,7 @@ export function ChatRoomScreen({
     latitude: number;
     longitude: number;
   } | null>(null);
-  const safePaymentStatusQuery = useSafePaymentStatus(
-    chatRoomId,
-    safePaymentOpen || completionOpen,
-  );
+  const safePaymentStatusQuery = useSafePaymentStatus(chatRoomId);
   const listRef = useRef<FlatListType<ChatMessage>>(null);
   const messages = useMemo(() => {
     const pages = messagesQuery.data?.pages ?? [];
@@ -492,38 +551,65 @@ export function ChatRoomScreen({
     counterpartSharingActive,
   );
   const compactStatus = `${myMarkerLabel}: ${myLocationStatus} · ${peerMarkerLabel}: ${peerLocationStatus}`;
+  const detail = directTradeDetailQuery.data;
   const safePaymentStatus = safePaymentStatusQuery.data ?? null;
-  const messageTransaction = useMemo(() => {
+  const messageTransactions = useMemo(() => {
+    let direct: DirectTradeTransaction | null = null;
+    let safe: DirectTradeTransaction | null = null;
     for (let i = chronological.length - 1; i >= 0; i -= 1) {
       const fromMessage = readTransactionFromMessage(chronological[i]);
-      if (fromMessage) return fromMessage;
+      if (!fromMessage) continue;
+      const type = fromMessage.type.toUpperCase();
+      if (type === "DIRECT_TRADE" && !direct) direct = fromMessage;
+      if (type === "SAFE_PAYMENT" && !safe) safe = fromMessage;
+      if (direct && safe) break;
     }
-    return null;
+    return { direct, safe };
   }, [chronological]);
-  const cashMessageTransaction =
-    messageTransaction?.type === "DIRECT_TRADE" ? messageTransaction : null;
-  const cashTransaction = directTradeTransaction ?? cashMessageTransaction;
+  const directTradeDetailTransaction = useMemo<DirectTradeTransaction | null>(
+    () =>
+      detail?.transactionId && chatRoomId
+        ? {
+            id: detail.transactionId,
+            chatRoomId,
+            type: "DIRECT_TRADE",
+            status: "INITIATED",
+            amount: 0,
+            buyerCompleted: false,
+            sellerCompleted: false,
+            completedAt: null,
+          }
+        : null,
+    [chatRoomId, detail?.transactionId],
+  );
+  const cashTransaction =
+    directTradeTransaction ??
+    messageTransactions.direct ??
+    directTradeDetailTransaction;
   const hasDirectTrade = Boolean(cashTransaction);
   const toolsSubtitle = hasDirectTrade
     ? compactStatus
     : t("chatTradeToolsSubtitleNoDirectTrade");
-  const safeTransaction = safePaymentStatus?.transaction ?? null;
+  const safeTransaction =
+    safePaymentStatus?.transaction ?? messageTransactions.safe;
+  const safePaymentIsBlocking = isBlockingSafePayment(safeTransaction);
   const sellerActiveDealChatRoomId =
     localActiveDealChatRoomId ??
     sellerListingQuery.data?.activeDealChatRoomId ??
     null;
   const isThisChatSellerActiveDeal = sellerActiveDealChatRoomId === chatRoomId;
-  const baseCompletionTransaction = safeTransaction ?? cashTransaction;
+  const baseCompletionTransaction = safePaymentIsBlocking
+    ? safeTransaction
+    : cashTransaction;
   const completionTransaction =
     cancelledTransaction &&
     (!baseCompletionTransaction ||
       cancelledTransaction.id === baseCompletionTransaction.id)
       ? cancelledTransaction
       : baseCompletionTransaction;
-  const activeTransaction = completionTransaction;
-  const usesSafePaymentCompletion = Boolean(safeTransaction);
+  const usesSafePaymentCompletion = safePaymentIsBlocking;
   const safeTransactionStatusUpper =
-    safeTransaction?.status?.toUpperCase() ?? "";
+    normalizedTransactionStatus(safeTransaction);
   const isSafeCompletable = Boolean(
     safeTransaction &&
     SAFE_PAYMENT_COMPLETABLE_STATUSES.has(safeTransactionStatusUpper),
@@ -531,16 +617,20 @@ export function ChatRoomScreen({
   const isBuyer = Boolean(
     user?.id && roomMeta?.buyerId && user.id === roomMeta.buyerId,
   );
+  const isSeller = Boolean(
+    user?.id && roomMeta?.sellerId && user.id === roomMeta.sellerId,
+  );
+  const isTradeParticipant = isBuyer || isSeller;
   const canSelectActiveDealFromChat = Boolean(
-    roomMeta?.listingId && !isBuyer,
+    roomMeta?.listingId && isSeller,
   );
   const currentUserAlreadyCompleted = Boolean(
     completionTransaction &&
+    isTradeParticipant &&
     (isBuyer
       ? completionTransaction.buyerCompleted
       : completionTransaction.sellerCompleted),
   );
-  const detail = directTradeDetailQuery.data;
   const meetupMapPin = useMemo(() => {
     if (
       detail?.meetingLatitude != null &&
@@ -605,22 +695,18 @@ export function ChatRoomScreen({
     myPoint || counterpartPoint || meetupMapPin || proposedMapPin,
   );
   const transactionStatusUpper =
-    completionTransaction?.status?.toUpperCase() ?? "";
+    normalizedTransactionStatus(completionTransaction);
   const isTransactionFullyCompleted =
     transactionStatusUpper === "COMPLETED";
   const isTransactionCancelled = transactionStatusUpper === "CANCELLED";
   const isTransactionCancelledOrRefunded =
     transactionStatusUpper === "CANCELLED" ||
     transactionStatusUpper === "REFUNDED";
-  const isTransactionCancelBlocked =
-    TRANSACTION_CANCEL_BLOCKED_STATUSES.has(transactionStatusUpper) ||
-    (usesSafePaymentCompletion &&
-      !SAFE_PAYMENT_CANCEL_ALLOWED_STATUSES.has(transactionStatusUpper));
-  const isSafePaymentCancelBlocked =
-    usesSafePaymentCompletion &&
-    !SAFE_PAYMENT_CANCEL_ALLOWED_STATUSES.has(transactionStatusUpper) &&
-    !TRANSACTION_CANCEL_BLOCKED_STATUSES.has(transactionStatusUpper);
   const hasConfirmedMeetingLocation = Boolean(detail?.meetingLocation?.trim());
+  const hasMeetupFlow = Boolean(hasDirectTrade || detail);
+  const meetupReadyForCompletion =
+    !hasMeetupFlow ||
+    (hasConfirmedMeetingLocation && !showPendingLocationChange);
   const canStartLiveGps = Boolean(
     hasDirectTrade &&
     !isTransactionCancelledOrRefunded &&
@@ -663,18 +749,29 @@ export function ChatRoomScreen({
   }, [chronological]);
   const canCompleteTrade = Boolean(
     completionTransaction &&
+    isTradeParticipant &&
     !currentUserAlreadyCompleted &&
-    !isTransactionCancelBlocked &&
+    !TERMINAL_TRANSACTION_STATUSES.has(transactionStatusUpper) &&
     (usesSafePaymentCompletion
       ? isSafeCompletable
-      : completionTransaction.status !== "COMPLETED") &&
-    // For meetup cash flows: must have agreed place and no pending change.
-    // Safe payment completion should not depend on meetup place state.
-    (usesSafePaymentCompletion ||
-      !hasDirectTrade ||
-      (detail?.meetingLocation &&
-        !showPendingLocationChange &&
-        !isTransactionCancelledOrRefunded)),
+      : true) &&
+    meetupReadyForCompletion,
+  );
+  const safePaymentCancelTarget = canCancelSafePayment(safeTransaction)
+    ? safeTransaction
+    : null;
+  const directTradeCancelTarget =
+    canCancelDirectTrade(cashTransaction) && !safePaymentIsBlocking
+      ? cashTransaction
+      : null;
+  const cancelTransactionTarget =
+    safePaymentCancelTarget ?? directTradeCancelTarget;
+  const activeTransaction = completionTransaction ?? cancelTransactionTarget;
+  const isSafePaymentCancelBlocked = Boolean(
+    safePaymentIsBlocking &&
+      safeTransaction &&
+      !canCancelSafePayment(safeTransaction) &&
+      !TRANSACTION_CANCEL_BLOCKED_STATUSES.has(safeTransactionStatusUpper),
   );
   const waitingForCounterpartyComplete = Boolean(
     completionTransaction &&
@@ -691,10 +788,10 @@ export function ChatRoomScreen({
     completionTransaction &&
       !isTransactionCancelledOrRefunded &&
       ((isBuyer && completionTransaction.buyerCompleted) ||
-        (!isBuyer && completionTransaction.sellerCompleted)),
+        (isSeller && completionTransaction.sellerCompleted)),
   );
   const canCancelTransaction = Boolean(
-    completionTransaction && !isTransactionCancelBlocked,
+    cancelTransactionTarget && isTradeParticipant,
   );
   const canShowCompletionTool = Boolean(
     chatRoomId &&
@@ -901,7 +998,8 @@ export function ChatRoomScreen({
   }, [myShareOverride, mySharingFromMessages]);
 
   useEffect(() => {
-    if (!messageTransaction || messageTransaction.type !== "DIRECT_TRADE")
+    const messageTransaction = messageTransactions.direct;
+    if (!messageTransaction)
       return;
     if (cancelledTransaction?.id === messageTransaction.id) return;
     setDirectTradeTransaction((prev) => {
@@ -916,7 +1014,7 @@ export function ChatRoomScreen({
         completedAt: messageTransaction.completedAt ?? prev.completedAt,
       };
     });
-  }, [cancelledTransaction?.id, messageTransaction]);
+  }, [cancelledTransaction?.id, messageTransactions.direct]);
 
   const latestMessageId = messages[0]?.id ?? null;
   useEffect(() => {
@@ -1097,6 +1195,13 @@ export function ChatRoomScreen({
       );
       return;
     }
+    if (!meetupReadyForCompletion) {
+      Alert.alert(
+        t("chatCompleteTradeTitle"),
+        t("chatDirectTradeAwaitingLocation"),
+      );
+      return;
+    }
     if (
       currentUserAlreadyCompleted &&
       completionTransaction?.status !== "COMPLETED"
@@ -1151,6 +1256,7 @@ export function ChatRoomScreen({
     completeTransactionMutation,
     currentUserAlreadyCompleted,
     isSafeCompletable,
+    meetupReadyForCompletion,
     mySharingActive,
     safePaymentStatusQuery,
     stopLocationMutation,
@@ -1159,20 +1265,9 @@ export function ChatRoomScreen({
   ]);
 
   const onCancelTransaction = useCallback(() => {
-    const transactionId = completionTransaction?.id;
+    const transactionId = cancelTransactionTarget?.id;
     if (!transactionId) {
       Alert.alert(t("chatCancelTradeTitle"), t("chatCompleteTradeUnavailable"));
-      return;
-    }
-    if (isTransactionCancelBlocked) {
-      Alert.alert(
-        t("chatCancelTradeTitle"),
-        t(
-          isSafePaymentCancelBlocked
-            ? "chatCancelTradeSafePaymentBlocked"
-            : "chatCancelTradeBlocked",
-        ),
-      );
       return;
     }
     Alert.alert(t("chatCancelTradeTitle"), t("chatCancelTradeConfirm"), [
@@ -1225,8 +1320,7 @@ export function ChatRoomScreen({
     ]);
   }, [
     cancelTransactionMutation,
-    completionTransaction?.id,
-    isTransactionCancelBlocked,
+    cancelTransactionTarget?.id,
     isSafePaymentCancelBlocked,
     safePaymentStatusQuery,
     t,
@@ -2151,7 +2245,7 @@ export function ChatRoomScreen({
             layout={uiLayoutTransition}
             style={styles.toolsExpandedBody}
           >
-            <ScrollView
+            <AppScrollView
               nestedScrollEnabled
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
@@ -2559,7 +2653,7 @@ export function ChatRoomScreen({
                   {t("chatLocationRequiresDirectTrade")}
                 </ThemedText>
               )}
-            </ScrollView>
+            </AppScrollView>
           </Animated.View>
         ) : null}
       </Animated.View>
@@ -3225,10 +3319,12 @@ export function ChatRoomScreen({
             }
             style={[
               styles.modalCard,
+              styles.completionModalCard,
               uiCardShadow(scheme),
               {
                 backgroundColor: colors.background,
                 borderColor: colors.icon + "33",
+                height: completionModalHeight,
               },
             ]}
           >
@@ -3260,7 +3356,13 @@ export function ChatRoomScreen({
                 {t("chatCompleteTradeUnavailable")}
               </ThemedText>
             ) : (
-              <>
+              <AppScrollView
+                style={styles.completionModalBodyScroll}
+                contentContainerStyle={styles.completionModalBodyContent}
+                showsVerticalScrollIndicator
+                bounces={false}
+                keyboardShouldPersistTaps="handled"
+              >
                 <ThemedText style={styles.pickerLabel}>
                   {t("chatCompleteTradeStatus")}: {activeTransaction.status}
                 </ThemedText>
@@ -3347,7 +3449,7 @@ export function ChatRoomScreen({
                       {t("chatReviewHint")}
                     </ThemedText>
                     {currentUserAlreadyCompleted &&
-                    completionTransaction.status !== "COMPLETED" ? (
+                    completionTransaction?.status !== "COMPLETED" ? (
                       <ThemedText style={styles.safeMutedText}>
                         {t("chatReviewUnlockedHelper")}
                       </ThemedText>
@@ -3421,7 +3523,7 @@ export function ChatRoomScreen({
                       : t("chatCompleteTradePendingBoth")}
                   </ThemedText>
                 )}
-              </>
+              </AppScrollView>
             )}
           </Animated.View>
         </Animated.View>
@@ -4309,6 +4411,9 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 10,
   },
+  completionModalCard: {
+    overflow: "hidden",
+  },
   modalHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -4333,6 +4438,15 @@ const styles = StyleSheet.create({
     top: "50%",
     transform: [{ translateY: -15 }],
   },
+  completionModalBodyScroll: {
+    flex: 1,
+    minHeight: 0,
+  },
+  completionModalBodyContent: {
+    gap: 10,
+    paddingBottom: 4,
+    paddingRight: 4,
+  },
   modalInput: {
     borderWidth: 1,
     borderRadius: 10,
@@ -4355,7 +4469,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   reviewCommentInput: {
-    minHeight: 90,
+    minHeight: 76,
     textAlignVertical: "top",
   },
   modalSaveBtn: {
@@ -4414,3 +4528,6 @@ const styles = StyleSheet.create({
   },
   locationChangeBtnText: { fontSize: 13, fontWeight: "600" },
 });
+
+
+

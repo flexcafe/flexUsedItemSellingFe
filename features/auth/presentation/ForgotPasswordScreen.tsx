@@ -12,7 +12,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -22,6 +21,7 @@ import { z } from "zod";
 
 import { AuthLogo } from "@/components/auth-logo";
 import { useAppSafeAreaInsets } from "@/components/app-safe-area";
+import { AppScrollView } from "@/components/app-scroll-view";
 import {
   PHONE_COUNTRIES,
   PhoneNumberInput,
@@ -261,7 +261,7 @@ export function ForgotPasswordScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
-        <ScrollView
+        <AppScrollView
           contentContainerStyle={[
             styles.scrollContent,
             {
@@ -461,7 +461,7 @@ export function ForgotPasswordScreen() {
               </ThemedText>
             </Pressable>
           </AuthStaggerItem>
-        </ScrollView>
+        </AppScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
   );
@@ -577,5 +577,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
+
+
 
 

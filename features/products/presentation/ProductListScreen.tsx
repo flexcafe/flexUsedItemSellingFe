@@ -1,3 +1,4 @@
+import { AppScrollView } from "@/components/app-scroll-view";
 import * as ImagePicker from "expo-image-picker";
 import type { LocationGeocodedAddress } from "expo-location";
 import * as Location from "expo-location";
@@ -7,7 +8,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -1206,7 +1206,7 @@ export function ProductListScreen() {
                     ? t("productsComposerStepHint3")
                     : t("productsComposerStepHint4")}
             </ThemedText>
-            <ScrollView
+            <AppScrollView
               style={styles.formBody}
               keyboardShouldPersistTaps="handled"
               nestedScrollEnabled
@@ -1216,7 +1216,7 @@ export function ProductListScreen() {
                   <ThemedText style={styles.fieldLabel}>
                     {t("productsFieldCategory")}
                   </ThemedText>
-                  <ScrollView
+                  <AppScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     style={styles.chipsWrap}
@@ -1239,7 +1239,7 @@ export function ProductListScreen() {
                         </ThemedText>
                       </Pressable>
                     ))}
-                  </ScrollView>
+                  </AppScrollView>
 
                   <ThemedText style={styles.fieldLabel}>
                     {t("productsFieldTitle")}
@@ -1879,7 +1879,7 @@ export function ProductListScreen() {
                           count: form.existingImageUrls.length,
                         })}
                       </ThemedText>
-                      <ScrollView
+                      <AppScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         style={styles.selectedImagesStrip}
@@ -1904,7 +1904,7 @@ export function ProductListScreen() {
                             </View>
                           </View>
                         ))}
-                      </ScrollView>
+                      </AppScrollView>
                     </>
                   ) : null}
                   {form.imageFiles.length > 0 ? (
@@ -1914,7 +1914,7 @@ export function ProductListScreen() {
                           count: form.imageFiles.length,
                         })}
                       </ThemedText>
-                      <ScrollView
+                      <AppScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         style={styles.selectedImagesStrip}
@@ -1959,7 +1959,7 @@ export function ProductListScreen() {
           </View>
                           </View>
                         ))}
-                      </ScrollView>
+                      </AppScrollView>
                       <Pressable
                         onPress={() =>
                           setForm((prev) => ({ ...prev, imageFiles: [] }))
@@ -1974,7 +1974,7 @@ export function ProductListScreen() {
                   ) : null}
                 </>
               ) : null}
-            </ScrollView>
+            </AppScrollView>
             <View style={styles.composerFooter}>
               {composerStep > 0 ? (
                 <Pressable
@@ -2079,7 +2079,7 @@ export function ProductListScreen() {
               </View>
               <View style={styles.preferredMapModalHeaderSide} />
             </View>
-            <ScrollView
+            <AppScrollView
               keyboardShouldPersistTaps="handled"
               nestedScrollEnabled={Platform.OS === "android"}
               showsVerticalScrollIndicator={false}
@@ -2138,7 +2138,7 @@ export function ProductListScreen() {
                       : t("productsMapUseCurrent")}
                 </ThemedText>
               </Pressable>
-            </ScrollView>
+            </AppScrollView>
           </View>
         </View>
       </Modal>
@@ -2595,3 +2595,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
+
+

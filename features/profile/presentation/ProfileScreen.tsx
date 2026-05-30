@@ -9,13 +9,13 @@ import {
   Platform,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   TextInput,
   View,
 } from "react-native";
 
 import { useAppSafeAreaInsets } from "@/components/app-safe-area";
+import { AppScrollView } from "@/components/app-scroll-view";
 import { PasswordInput } from "@/components/password-input";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
 import { ThemedText } from "@/components/themed-text";
@@ -631,7 +631,7 @@ export function ProfileScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-        <ScrollView
+        <AppScrollView
           contentContainerStyle={[
             styles.content,
             {
@@ -1772,7 +1772,7 @@ export function ProfileScreen() {
               </ThemedText>
             </ProfilePressableScale>
           </ProfileAnimatedSection>
-        </ScrollView>
+        </AppScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
   );
@@ -2084,3 +2084,6 @@ const styles = StyleSheet.create({
   },
   signOutText: { fontSize: 14, fontWeight: "700" },
 });
+
+
+
