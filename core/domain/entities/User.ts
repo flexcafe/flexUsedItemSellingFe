@@ -19,5 +19,8 @@ export interface AuthUser {
   kbzPayRequestedAt: string | null;
   /** From GET /client/auth/me — share with friends at registration. */
   referralCode: string | null;
+  facebookName: string | null;
+  facebookProfileUrl: string | null;
+  facebookLinkedAt: string | null;
   accessToken: string;
 }

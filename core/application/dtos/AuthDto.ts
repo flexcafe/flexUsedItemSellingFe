@@ -26,6 +26,9 @@ export interface AuthProfileDto {
   nickname?: string | null;
   avatarUrl?: string | null;
   profile?: AuthClientProfileDto | null;
+  facebookName?: string | null;
+  facebookProfileUrl?: string | null;
+  facebookLinkedAt?: string | null;
   phone?: string;
   role?: string;
   isPhoneVerified?: boolean;

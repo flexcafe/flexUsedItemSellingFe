@@ -57,7 +57,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Flex Used Market to access your photos to set a profile avatar."
+          "photosPermission": "Allow Flex Used Market to access your photos for profile avatars and Facebook follow proof screenshots."
         }
       ],
       "@react-native-community/datetimepicker"

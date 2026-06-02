@@ -6,9 +6,11 @@ import type {
   WithdrawalRequest,
   WithdrawalStatus,
 } from "@/core/domain/entities/ProfileRewards";
+import type { FacebookFollowSubmission } from "@/core/domain/types/profile";
 import type {
   ProfilePointsSummaryDto,
   ProfileTransactionStatsDto,
+  FacebookFollowSubmissionDto,
   RankConfigDto,
   WithdrawalRequestDto,
 } from "../dtos/ProfileDto";
@@ -126,6 +128,38 @@ export function toWithdrawalRequest(
     processedById: toNullableString(dto.processedById),
     processedAt: toNullableString(dto.processedAt),
     kbzTransferRef: toNullableString(dto.kbzTransferRef),
+    createdAt: toStringValue(dto.createdAt),
+    updatedAt: toStringValue(dto.updatedAt),
+  };
+}
+
+function toAdminNoteString(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (value != null && typeof value === "object" && !Array.isArray(value)) {
+    const raw = (value as Record<string, unknown>).message;
+    return typeof raw === "string" && raw.trim() ? raw.trim() : null;
+  }
+  return null;
+}
+
+export function toFacebookFollowSubmission(
+  dto: FacebookFollowSubmissionDto | null | undefined,
+): FacebookFollowSubmission | null {
+  if (!dto) return null;
+  const rawStatus = toStringValue(dto.status, "PENDING").toUpperCase();
+  return {
+    id: toStringValue(dto.id),
+    userId: toStringValue(dto.userId),
+    userNickname: toStringValue(dto.userNickname),
+    userPhone: toStringValue(dto.userPhone),
+    facebookName: toStringValue(dto.facebookName),
+    facebookProfileUrl: toStringValue(dto.facebookProfileUrl),
+    facebookPageUrl: toStringValue(dto.facebookPageUrl),
+    screenshotUrl: toAbsoluteMediaUrl(toStringValue(dto.screenshotUrl)),
+    status: rawStatus || "PENDING",
+    adminNote: toAdminNoteString(dto.adminNote),
+    reviewedById: toNullableString(dto.reviewedById),
+    reviewedAt: toNullableString(dto.reviewedAt),
     createdAt: toStringValue(dto.createdAt),
     updatedAt: toStringValue(dto.updatedAt),
   };

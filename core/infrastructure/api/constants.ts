@@ -37,6 +37,11 @@ export const API_ENDPOINTS = {
     WITHDRAWALS: "/v1/client/profile/withdrawals",
     CHANGE_PASSWORD: "/v1/client/profile/change-password",
     AVATAR: "/v1/client/profile/avatar",
+    FACEBOOK_LINK: "/v1/client/profile/facebook/link",
+    FACEBOOK_FOLLOW_SUBMISSIONS:
+      "/v1/client/profile/facebook/follow-submissions",
+    FACEBOOK_FOLLOW_SUBMISSIONS_LATEST:
+      "/v1/client/profile/facebook/follow-submissions/latest",
   },
   SLIDER_ADS: {
     LIST: "/v1/client/slider-ads",

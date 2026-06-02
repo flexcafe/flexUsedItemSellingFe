@@ -47,3 +47,20 @@ export interface WithdrawalRequestDto {
 export interface WithdrawalRequestInputDto {
   amount: number;
 }
+
+export interface FacebookFollowSubmissionDto {
+  id?: string | null;
+  userId?: string | null;
+  userNickname?: string | null;
+  userPhone?: string | null;
+  facebookName?: string | null;
+  facebookProfileUrl?: string | null;
+  facebookPageUrl?: string | null;
+  screenshotUrl?: string | null;
+  status?: string | null;
+  adminNote?: string | null | Record<string, unknown>;
+  reviewedById?: string | null;
+  reviewedAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}

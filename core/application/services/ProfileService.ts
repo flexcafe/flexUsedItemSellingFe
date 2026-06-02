@@ -9,6 +9,9 @@ import type { IProfileService } from "@/core/domain/services/IProfileService";
 import type {
   AvatarUploadResult,
   ChangePasswordInput,
+  FacebookFollowSubmission,
+  FacebookFollowSubmissionInput,
+  FacebookLinkInput,
   UploadFile,
 } from "@/core/domain/types/profile";
 
@@ -41,5 +44,19 @@ export class ProfileService implements IProfileService {
 
   uploadAvatar(file: UploadFile): Promise<AvatarUploadResult> {
     return this.repo.uploadAvatar(file);
+  }
+
+  linkFacebookAccount(input: FacebookLinkInput): Promise<boolean> {
+    return this.repo.linkFacebookAccount(input);
+  }
+
+  getLatestFacebookFollowSubmission(): Promise<FacebookFollowSubmission | null> {
+    return this.repo.getLatestFacebookFollowSubmission();
+  }
+
+  submitFacebookFollowSubmission(
+    input: FacebookFollowSubmissionInput,
+  ): Promise<FacebookFollowSubmission> {
+    return this.repo.submitFacebookFollowSubmission(input);
   }
 }

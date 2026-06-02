@@ -73,6 +73,16 @@ function pickDisplayName(user: AuthProfileDto | undefined): string | null {
   return nick || null;
 }
 
+function pickProfileString(
+  user: AuthProfileDto | undefined,
+  key: "facebookName" | "facebookProfileUrl" | "facebookLinkedAt",
+): string | null {
+  const root = toSafeString(user?.[key]).trim();
+  if (root) return root;
+  const nested = toSafeString(user?.profile?.[key]).trim();
+  return nested || null;
+}
+
 /**
  * Resolves avatar URL from root `avatarUrl`, nested `profile.avatar` (string or object),
  * and common backend field names.
@@ -143,6 +153,9 @@ export function toAuthUser(
       typeof user?.referralCode === "string" && user.referralCode.trim()
         ? user.referralCode.trim()
         : null,
+    facebookName: pickProfileString(user, "facebookName"),
+    facebookProfileUrl: pickProfileString(user, "facebookProfileUrl"),
+    facebookLinkedAt: pickProfileString(user, "facebookLinkedAt"),
     accessToken: token,
   };
 }

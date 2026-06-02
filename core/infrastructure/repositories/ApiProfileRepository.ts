@@ -1,4 +1,5 @@
 import type {
+  FacebookFollowSubmissionDto,
   ProfilePointsSummaryDto,
   ProfileTransactionStatsDto,
   RankConfigDto,
@@ -9,6 +10,7 @@ import {
   toProfilePointsSummary,
   toProfileTransactionStats,
   toRankConfigsFromDtos,
+  toFacebookFollowSubmission,
   toWithdrawalRequest,
 } from "@/core/application/mappers/ProfileMapper";
 import type {
@@ -21,6 +23,9 @@ import type { IProfileRepository } from "@/core/domain/repositories/IProfileRepo
 import type {
   AvatarUploadResult,
   ChangePasswordInput,
+  FacebookFollowSubmission,
+  FacebookFollowSubmissionInput,
+  FacebookLinkInput,
   UploadFile,
 } from "@/core/domain/types/profile";
 import type { HttpClient } from "../api/HttpClient";
@@ -138,5 +143,44 @@ export class ApiProfileRepository implements IProfileRepository {
     const raw = pickAvatarUrlFromUploadResponse(res);
     const avatarUrl = raw ? toAbsoluteMediaUrl(raw) : "";
     return { avatarUrl };
+  }
+
+  async linkFacebookAccount(input: FacebookLinkInput): Promise<boolean> {
+    const res = await this.http.post<boolean>(
+      API_ENDPOINTS.PROFILE.FACEBOOK_LINK,
+      input,
+    );
+    return Boolean(res);
+  }
+
+  async getLatestFacebookFollowSubmission(): Promise<FacebookFollowSubmission | null> {
+    const dto = await this.http.get<FacebookFollowSubmissionDto | null>(
+      API_ENDPOINTS.PROFILE.FACEBOOK_FOLLOW_SUBMISSIONS_LATEST,
+    );
+    return toFacebookFollowSubmission(dto);
+  }
+
+  async submitFacebookFollowSubmission(
+    input: FacebookFollowSubmissionInput,
+  ): Promise<FacebookFollowSubmission> {
+    const form = new FormData();
+    form.append("facebookName", input.facebookName);
+    form.append("facebookProfileUrl", input.facebookProfileUrl);
+    form.append("facebookPageUrl", input.facebookPageUrl);
+    form.append("screenshot", {
+      uri: input.screenshot.uri,
+      name: input.screenshot.name,
+      type: input.screenshot.type,
+    } as unknown as Blob);
+
+    const dto = await this.http.postForm<FacebookFollowSubmissionDto>(
+      API_ENDPOINTS.PROFILE.FACEBOOK_FOLLOW_SUBMISSIONS,
+      form,
+    );
+    const submission = toFacebookFollowSubmission(dto);
+    if (!submission) {
+      throw new Error("Facebook follow submission response is empty.");
+    }
+    return submission;
   }
 }

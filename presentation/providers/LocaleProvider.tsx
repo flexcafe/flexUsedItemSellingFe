@@ -694,6 +694,141 @@ const DICT: Dictionary = {
     my: "အတည်ပြုခြင်း ပြီးစီးပြီးဖြစ်သည်။",
     zh: "已完成验证。",
   },
+  facebookVerification: {
+    ko: "Facebook verification",
+    my: "Facebook verification",
+    zh: "Facebook verification",
+  },
+  facebookLinkIntro: {
+    ko: "Link your Facebook account with a verified access token and profile URL.",
+    my: "Link your Facebook account with a verified access token and profile URL.",
+    zh: "Link your Facebook account with a verified access token and profile URL.",
+  },
+  facebookOAuthButton: {
+    ko: "Continue with Facebook",
+    my: "Continue with Facebook",
+    zh: "Continue with Facebook",
+  },
+  facebookManualTokenHint: {
+    ko: "OAuth fills the access token automatically. You can also paste a token manually.",
+    my: "OAuth fills the access token automatically. You can also paste a token manually.",
+    zh: "OAuth fills the access token automatically. You can also paste a token manually.",
+  },
+  facebookAccessTokenPlaceholder: {
+    ko: "Facebook access token",
+    my: "Facebook access token",
+    zh: "Facebook access token",
+  },
+  facebookProfileUrlPlaceholder: {
+    ko: "Facebook profile URL",
+    my: "Facebook profile URL",
+    zh: "Facebook profile URL",
+  },
+  facebookLinkAccount: {
+    ko: "Link Facebook account",
+    my: "Link Facebook account",
+    zh: "Link Facebook account",
+  },
+  facebookLinkedSuccess: {
+    ko: "Facebook account linked successfully.",
+    my: "Facebook account linked successfully.",
+    zh: "Facebook account linked successfully.",
+  },
+  facebookOAuthTokenReceived: {
+    ko: "Facebook token received. Review the profile URL, then link your account.",
+    my: "Facebook token received. Review the profile URL, then link your account.",
+    zh: "Facebook token received. Review the profile URL, then link your account.",
+  },
+  facebookMissingAppId: {
+    ko: "Set EXPO_PUBLIC_FACEBOOK_APP_ID before using Facebook OAuth.",
+    my: "Set EXPO_PUBLIC_FACEBOOK_APP_ID before using Facebook OAuth.",
+    zh: "Set EXPO_PUBLIC_FACEBOOK_APP_ID before using Facebook OAuth.",
+  },
+  facebookMissingPageUrl: {
+    ko: "Set EXPO_PUBLIC_FACEBOOK_PAGE_URL before submitting follow proof.",
+    my: "Set EXPO_PUBLIC_FACEBOOK_PAGE_URL before submitting follow proof.",
+    zh: "Set EXPO_PUBLIC_FACEBOOK_PAGE_URL before submitting follow proof.",
+  },
+  facebookLinkRequired: {
+    ko: "Facebook access token and profile URL are required.",
+    my: "Facebook access token and profile URL are required.",
+    zh: "Facebook access token and profile URL are required.",
+  },
+  facebookNameLabel: {
+    ko: "Facebook name",
+    my: "Facebook name",
+    zh: "Facebook name",
+  },
+  facebookOpenProfile: {
+    ko: "Open Facebook profile",
+    my: "Open Facebook profile",
+    zh: "Open Facebook profile",
+  },
+  facebookFollowProof: {
+    ko: "Facebook follow proof",
+    my: "Facebook follow proof",
+    zh: "Facebook follow proof",
+  },
+  facebookFollowIntro: {
+    ko: "Submit your Facebook follow screenshot for manual admin review.",
+    my: "Submit your Facebook follow screenshot for manual admin review.",
+    zh: "Submit your Facebook follow screenshot for manual admin review.",
+  },
+  facebookNamePlaceholder: {
+    ko: "Your Facebook name",
+    my: "Your Facebook name",
+    zh: "Your Facebook name",
+  },
+  facebookPageUrlPlaceholder: {
+    ko: "Facebook page URL you followed",
+    my: "Facebook page URL you followed",
+    zh: "Facebook page URL you followed",
+  },
+  facebookScreenshotButton: {
+    ko: "Choose follow screenshot",
+    my: "Choose follow screenshot",
+    zh: "Choose follow screenshot",
+  },
+  facebookScreenshotSelected: {
+    ko: "Screenshot selected",
+    my: "Screenshot selected",
+    zh: "Screenshot selected",
+  },
+  facebookSubmitFollowProof: {
+    ko: "Submit follow proof",
+    my: "Submit follow proof",
+    zh: "Submit follow proof",
+  },
+  facebookFollowSubmitted: {
+    ko: "Facebook follow proof submitted for review.",
+    my: "Facebook follow proof submitted for review.",
+    zh: "Facebook follow proof submitted for review.",
+  },
+  facebookFollowRequired: {
+    ko: "Link Facebook first, then choose a follow screenshot.",
+    my: "Link Facebook first, then choose a follow screenshot.",
+    zh: "Link Facebook first, then choose a follow screenshot.",
+  },
+  facebookFollowLatestStatus: {
+    ko: "Latest follow review",
+    my: "Latest follow review",
+    zh: "Latest follow review",
+  },
+  facebookFollowNoSubmission: {
+    ko: "No submission yet",
+    my: "No submission yet",
+    zh: "No submission yet",
+  },
+  facebookOpenPage: {
+    ko: "Open followed page",
+    my: "Open followed page",
+    zh: "Open followed page",
+  },
+  facebookFollowAdminNote: {
+    ko: "Admin note",
+    my: "Admin note",
+    zh: "Admin note",
+  },
   rewardMyProfile: {
     ko: "내 프로필",
     my: "ကျွန်ုပ်၏ ပရိုဖိုင်",
