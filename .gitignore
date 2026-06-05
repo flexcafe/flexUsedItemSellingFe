@@ -46,3 +46,4 @@ app-example
 # local editor / AI tooling
 .vscode/
 .cursor/
+nul

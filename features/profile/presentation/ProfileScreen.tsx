@@ -1,15 +1,13 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import * as AuthSession from "expo-auth-session";
-import * as Facebook from "expo-auth-session/providers/facebook";
 import { Image, type ImageSource } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import * as WebBrowser from "expo-web-browser";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Linking,
+  NativeModules,
   Platform,
   Pressable,
   RefreshControl,
@@ -17,6 +15,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { AccessToken, LoginManager, Settings, type LoginResult } from "react-native-fbsdk-next";
 
 import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import { AppScrollView } from "@/components/app-scroll-view";
@@ -64,18 +63,15 @@ import {
   ProfileTabPanel,
 } from "./profileAnimated";
 
-WebBrowser.maybeCompleteAuthSession();
-
 const SUCCESS = "#16a34a";
 const WARNING = "#d97706";
 const DANGER = "#e74c3c";
 const MIN_WITHDRAWAL_POINTS = 5000;
 const FACEBOOK_APP_ID = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID?.trim() ?? "";
-const FACEBOOK_PAGE_URL = process.env.EXPO_PUBLIC_FACEBOOK_PAGE_URL?.trim() ?? "";
-const FACEBOOK_REDIRECT_URI = AuthSession.makeRedirectUri({
-  scheme: "flexusedmarket",
-  path: "facebook-auth",
-});
+const FACEBOOK_CLIENT_TOKEN = "c0c7165def84af13fe58bfa0df5bff30";
+const FACEBOOK_PAGE_URL =
+  process.env.EXPO_PUBLIC_FACEBOOK_PAGE_URL?.trim() ?? "";
+const FACEBOOK_NATIVE_MODULES = ["FBSettings", "FBLoginManager", "FBAccessToken"];
 
 const RANK_ACCENTS: Record<UserRankTier, string> = {
   VIP: "#7c3aed",
@@ -141,7 +137,10 @@ function cooldownHhMm(ms: number): { hours: string; minutes: string } {
   return { hours: String(hours), minutes: String(minutes) };
 }
 
-function imageUploadMimeType(fileName: string, fallback = "image/jpeg"): string {
+function imageUploadMimeType(
+  fileName: string,
+  fallback = "image/jpeg",
+): string {
   const ext = fileName.split(".").pop()?.toLowerCase();
   if (ext === "png") return "image/png";
   if (ext === "webp") return "image/webp";
@@ -185,12 +184,6 @@ export function ProfileScreen() {
   const linkFacebookAccount = useLinkFacebookAccount();
   const submitFacebookFollow = useSubmitFacebookFollowSubmission();
   const uploadAvatar = useUploadAvatar();
-  const [facebookAuthRequest, facebookAuthResponse, promptFacebookAuth] =
-    Facebook.useAuthRequest({
-      clientId: FACEBOOK_APP_ID || "0",
-      redirectUri: FACEBOOK_REDIRECT_URI,
-      scopes: ["public_profile", "email"],
-    });
 
   const [activeTab, setActiveTab] = useState<
     "rewards" | "verifications" | "password"
@@ -242,8 +235,6 @@ export function ProfileScreen() {
     Boolean(user?.isEmailVerified),
   );
   const [loading, setLoading] = useState<Record<string, boolean>>({});
-  const handledFacebookAuthKeyRef = useRef("");
-
   const initials = useMemo(() => {
     const parts = sampleName.split(" ").filter(Boolean);
     if (parts.length === 0) return "FU";
@@ -347,7 +338,14 @@ export function ProfileScreen() {
     const serverMessage = (
       err as { response?: { data?: { message?: unknown } } }
     )?.response?.data?.message;
-    return typeof serverMessage === "string" ? serverMessage : undefined;
+    if (typeof serverMessage === "string" && serverMessage.trim()) {
+      return serverMessage.trim();
+    }
+    const nativeMessage = (err as { message?: unknown })?.message;
+    if (typeof nativeMessage === "string" && nativeMessage.trim()) {
+      return nativeMessage.trim();
+    }
+    return undefined;
   };
 
   useEffect(() => {
@@ -383,58 +381,6 @@ export function ProfileScreen() {
       Alert.alert(t("errorTitle"), detail ?? t("genericErrorBody"));
     }
   };
-
-  useEffect(() => {
-    if (facebookAuthResponse?.type !== "success") return;
-
-    const autoLinkFacebook = async () => {
-      const params = facebookAuthResponse.params as Record<string, unknown>;
-      const token =
-        facebookAuthResponse.authentication?.accessToken ??
-        (typeof params.access_token === "string" ? params.access_token : "");
-      const authKey = facebookAuthResponse.url || token;
-      if (authKey && handledFacebookAuthKeyRef.current === authKey) return;
-      handledFacebookAuthKeyRef.current = authKey;
-
-      if (!token) {
-        Alert.alert(t("errorTitle"), t("facebookLinkRequired"));
-        return;
-      }
-
-      setBusy("facebookLink", true);
-      try {
-        const res = await fetch(
-          `https://graph.facebook.com/me?fields=id,name&access_token=${encodeURIComponent(
-            token,
-          )}`,
-        );
-        const data = (await res.json()) as { id?: unknown; name?: unknown };
-        const graphId = typeof data.id === "string" ? data.id.trim() : "";
-        const graphName = typeof data.name === "string" ? data.name.trim() : "";
-        const profileUrl = graphId ? `https://www.facebook.com/${graphId}` : "";
-
-        if (!profileUrl) {
-          Alert.alert(t("errorTitle"), t("facebookLinkRequired"));
-          return;
-        }
-
-        await linkFacebookAccount.mutateAsync({
-          facebookAccessToken: token,
-          facebookProfileUrl: profileUrl,
-        });
-        if (graphName) setFacebookName(graphName);
-        setFacebookProfileUrl(profileUrl);
-        await refreshProfile();
-        Alert.alert(t("profileTitle"), t("facebookLinkedSuccess"));
-      } catch (err) {
-        handleError(err);
-      } finally {
-        setBusy("facebookLink", false);
-      }
-    };
-
-    void autoLinkFacebook();
-  }, [facebookAuthResponse, linkFacebookAccount, refreshProfile, t]);
 
   const handleSendOtp = async () => {
     const normalized = normalizePhone(phone);
@@ -503,10 +449,89 @@ export function ProfileScreen() {
       Alert.alert(t("errorTitle"), t("facebookMissingAppId"));
       return;
     }
+    if (!FACEBOOK_CLIENT_TOKEN) {
+      Alert.alert(t("errorTitle"), t("facebookLinkRequired"));
+      return;
+    }
+    const missingFacebookModule = FACEBOOK_NATIVE_MODULES.find(
+      (moduleName) => !NativeModules[moduleName],
+    );
+    if (missingFacebookModule) {
+      Alert.alert(
+        t("errorTitle"),
+        `Facebook native module ${missingFacebookModule} is missing. Rebuild and reinstall the EAS development app after adding react-native-fbsdk-next.`,
+      );
+      return;
+    }
+    setBusy("facebookLink", true);
     try {
-      await promptFacebookAuth();
+      Settings.setAppID(FACEBOOK_APP_ID);
+      Settings.setClientToken(FACEBOOK_CLIENT_TOKEN);
+      Settings.setAppName("Flex Used Market");
+      Settings.setAutoLogAppEventsEnabled(false);
+      Settings.setAdvertiserIDCollectionEnabled(false);
+      Settings.initializeSDK();
+      const loginBehavior =
+        Platform.OS === "android" ? "native_with_fallback" : "browser";
+      LoginManager.setLoginBehavior(loginBehavior);
+      let loginResult: LoginResult;
+      try {
+        loginResult = await LoginManager.logInWithPermissions([
+          "public_profile",
+          "email",
+        ]);
+      } catch (firstError) {
+        if (Platform.OS !== "android") {
+          throw firstError;
+        }
+        LoginManager.setLoginBehavior("web_only");
+        loginResult = await LoginManager.logInWithPermissions([
+          "public_profile",
+          "email",
+        ]);
+      }
+
+      if (loginResult.isCancelled) return;
+
+      const accessToken = await AccessToken.getCurrentAccessToken();
+      const token = accessToken?.accessToken?.trim() ?? "";
+
+      if (!token) {
+        Alert.alert(t("errorTitle"), t("facebookLinkRequired"));
+        return;
+      }
+
+      const res = await fetch(
+        `https://graph.facebook.com/me?fields=id,name&access_token=${encodeURIComponent(
+          token,
+        )}`,
+      );
+      const data = (await res.json()) as { id?: unknown; name?: unknown };
+      const graphId = typeof data.id === "string" ? data.id.trim() : "";
+      const graphName = typeof data.name === "string" ? data.name.trim() : "";
+      const profileUrl = graphId ? `https://www.facebook.com/${graphId}` : "";
+
+      if (!profileUrl) {
+        Alert.alert(t("errorTitle"), t("facebookLinkRequired"));
+        return;
+      }
+
+      await linkFacebookAccount.mutateAsync({
+        facebookAccessToken: token,
+        facebookProfileUrl: profileUrl,
+      });
+      if (graphName) setFacebookName(graphName);
+      setFacebookProfileUrl(profileUrl);
+      await refreshProfile();
+      Alert.alert(t("profileTitle"), t("facebookLinkedSuccess"));
     } catch (err) {
-      handleError(err);
+      console.warn("[Facebook Login Error]", err);
+      handleError(
+        err,
+        "Facebook login failed. Rebuild the EAS development app after adding the Facebook SDK, then try again.",
+      );
+    } finally {
+      setBusy("facebookLink", false);
     }
   };
 
@@ -701,7 +726,8 @@ export function ProfileScreen() {
     ? t("profileStatusVerified")
     : t("profileStatusNotVerified");
   const latestFacebookFollow = latestFacebookFollowQuery.data;
-  const facebookFollowStatus = latestFacebookFollow?.status?.toUpperCase() ?? "";
+  const facebookFollowStatus =
+    latestFacebookFollow?.status?.toUpperCase() ?? "";
   const facebookFollowStatusColor =
     facebookFollowStatus === "APPROVED"
       ? SUCCESS
@@ -1552,11 +1578,12 @@ export function ProfileScreen() {
                   ) : null}
                 </ProfileAnimatedCard>
 
-                <ProfileAnimatedCard scheme={scheme} borderColor={colors.icon}>
-                  <View style={styles.cardHeader}>
-                    <Pressable
-                      onPress={() =>
-                        setShowFacebookVerification((prev) => !prev)
+                  {/*
+                  <ProfileAnimatedCard scheme={scheme} borderColor={colors.icon}>
+                    <View style={styles.cardHeader}>
+                      <Pressable
+                        onPress={() =>
+                          setShowFacebookVerification((prev) => !prev)
                       }
                       style={styles.collapsibleHeader}
                     >
@@ -1584,9 +1611,9 @@ export function ProfileScreen() {
                       />
                     </Pressable>
                   </View>
-                  {showFacebookVerification ? (
-                    <ProfileFadeIn reduceMotion={reduceMotion}>
-                      <>
+                    {showFacebookVerification ? (
+                      <ProfileFadeIn reduceMotion={reduceMotion}>
+                        <>
                         {facebookLinked ? (
                           <>
                             <ThemedText style={styles.profileSub}>
@@ -1634,16 +1661,14 @@ export function ProfileScreen() {
                               onPress={handleStartFacebookOAuth}
                               disabled={
                                 loading.facebookLink ||
-                                !FACEBOOK_APP_ID ||
-                                !facebookAuthRequest
+                                !FACEBOOK_APP_ID
                               }
                               style={[
                                 styles.primaryButton,
                                 styles.fullWidthButton,
                                 { backgroundColor: "#1877F2" },
                                 (loading.facebookLink ||
-                                  !FACEBOOK_APP_ID ||
-                                  !facebookAuthRequest) && { opacity: 0.6 },
+                                  !FACEBOOK_APP_ID) && { opacity: 0.6 },
                               ]}
                             >
                               {loading.facebookLink ? (
@@ -1657,169 +1682,171 @@ export function ProfileScreen() {
                           </>
                         )}
 
-                        <View style={styles.divider} />
-                        <ThemedText style={styles.cardTitle}>
-                          {t("facebookFollowProof")}
-                        </ThemedText>
-                        <ThemedText style={styles.profileSub}>
-                          {t("facebookFollowIntro")}
-                        </ThemedText>
-                        <View
-                          style={[
-                            styles.infoBox,
-                            { borderColor: colors.icon },
-                          ]}
-                        >
-                          <ThemedText style={styles.infoLabel}>
-                            {t("facebookNameLabel")}
-                          </ThemedText>
-                          <ThemedText style={styles.infoValue}>
-                            {user?.facebookName || facebookName}
-                          </ThemedText>
-                        </View>
-                        {FACEBOOK_PAGE_URL ? (
-                          <Pressable
-                            onPress={() => handleOpenUrl(FACEBOOK_PAGE_URL)}
-                            style={styles.linkButton}
-                          >
-                            <ThemedText
-                              style={{
-                                color: colors.tint,
-                                fontWeight: "700",
-                              }}
-                            >
-                              {t("facebookOpenPage")}
+                            {/*
+                            <View style={styles.divider} />
+                            <ThemedText style={styles.cardTitle}>
+                              {t("facebookFollowProof")}
                             </ThemedText>
-                          </Pressable>
-                        ) : (
-                          <ThemedText style={styles.profileSub}>
-                            {t("facebookMissingPageUrl")}
-                          </ThemedText>
-                        )}
-                        <Pressable
-                          onPress={handlePickFacebookScreenshot}
-                          disabled={
-                            !facebookLinked ||
-                            loading.facebookScreenshot ||
-                            loading.facebookFollowSubmit
-                          }
-                          style={[
-                            styles.outlineButton,
-                            { borderColor: colors.tint },
-                            (!facebookLinked ||
-                              loading.facebookScreenshot ||
-                              loading.facebookFollowSubmit) && {
-                              opacity: 0.6,
-                            },
-                          ]}
-                        >
-                          {loading.facebookScreenshot ? (
-                            <ActivityIndicator color={colors.tint} />
-                          ) : (
-                            <ThemedText
+                            <ThemedText style={styles.profileSub}>
+                              {t("facebookFollowIntro")}
+                            </ThemedText>
+                            <View
                               style={[
-                                styles.outlineButtonText,
-                                { color: colors.tint },
+                                styles.infoBox,
+                                { borderColor: colors.icon },
                               ]}
                             >
-                              {facebookScreenshot
-                                ? t("facebookScreenshotSelected")
-                                : t("facebookScreenshotButton")}
-                            </ThemedText>
-                          )}
-                        </Pressable>
-                        {facebookScreenshot ? (
-                          <ThemedText style={styles.profileSub}>
-                            {facebookScreenshot.name}
-                          </ThemedText>
-                        ) : null}
-                        <Pressable
-                          onPress={handleSubmitFacebookFollow}
-                          disabled={
-                            loading.facebookFollowSubmit ||
-                            !facebookLinked ||
-                            !FACEBOOK_PAGE_URL ||
-                            !facebookScreenshot
-                          }
-                          style={[
-                            styles.primaryButton,
-                            styles.fullWidthButton,
-                            { backgroundColor: colors.tint },
-                            (loading.facebookFollowSubmit ||
-                              !facebookLinked ||
-                              !FACEBOOK_PAGE_URL ||
-                              !facebookScreenshot) && {
-                              opacity: 0.6,
-                            },
-                          ]}
-                        >
-                          {loading.facebookFollowSubmit ? (
-                            <ActivityIndicator color="#fff" />
-                          ) : (
-                            <ThemedText style={styles.primaryButtonText}>
-                              {t("facebookSubmitFollowProof")}
-                            </ThemedText>
-                          )}
-                        </Pressable>
-
-                        <View
-                          style={[
-                            styles.infoBox,
-                            { borderColor: colors.icon },
-                          ]}
-                        >
-                          <View style={styles.facebookStatusRow}>
-                            <ThemedText style={styles.infoLabel}>
-                              {t("facebookFollowLatestStatus")}
-                            </ThemedText>
-                            {latestFacebookFollowQuery.isFetching ? (
-                              <ActivityIndicator
-                                size="small"
-                                color={colors.tint}
-                              />
-                            ) : null}
-                          </View>
-                          <ThemedText
-                            style={[
-                              styles.infoValue,
-                              { color: facebookFollowStatusColor },
-                            ]}
-                          >
-                            {facebookFollowStatus ||
-                              t("facebookFollowNoSubmission")}
-                          </ThemedText>
-                          {latestFacebookFollow?.facebookPageUrl ? (
-                            <Pressable
-                              onPress={() =>
-                                handleOpenUrl(
-                                  latestFacebookFollow.facebookPageUrl,
-                                )
-                              }
-                              style={styles.inlineLinkButton}
-                            >
-                              <ThemedText
-                                style={{
-                                  color: colors.tint,
-                                  fontWeight: "700",
-                                }}
-                              >
-                                {t("facebookOpenPage")}
+                              <ThemedText style={styles.infoLabel}>
+                                {t("facebookNameLabel")}
                               </ThemedText>
+                              <ThemedText style={styles.infoValue}>
+                                {user?.facebookName || facebookName}
+                              </ThemedText>
+                            </View>
+                            {FACEBOOK_PAGE_URL ? (
+                              <Pressable
+                                onPress={() => handleOpenUrl(FACEBOOK_PAGE_URL)}
+                                style={styles.linkButton}
+                              >
+                                <ThemedText
+                                  style={{
+                                    color: colors.tint,
+                                    fontWeight: "700",
+                                  }}
+                                >
+                                  {t("facebookOpenPage")}
+                                </ThemedText>
+                              </Pressable>
+                            ) : (
+                              <ThemedText style={styles.profileSub}>
+                                {t("facebookMissingPageUrl")}
+                              </ThemedText>
+                            )}
+                            <Pressable
+                              onPress={handlePickFacebookScreenshot}
+                              disabled={
+                                !facebookLinked ||
+                                loading.facebookScreenshot ||
+                                loading.facebookFollowSubmit
+                              }
+                              style={[
+                                styles.outlineButton,
+                                { borderColor: colors.tint },
+                                (!facebookLinked ||
+                                  loading.facebookScreenshot ||
+                                  loading.facebookFollowSubmit) && {
+                                  opacity: 0.6,
+                                },
+                              ]}
+                            >
+                              {loading.facebookScreenshot ? (
+                                <ActivityIndicator color={colors.tint} />
+                              ) : (
+                                <ThemedText
+                                  style={[
+                                    styles.outlineButtonText,
+                                    { color: colors.tint },
+                                  ]}
+                                >
+                                  {facebookScreenshot
+                                    ? t("facebookScreenshotSelected")
+                                    : t("facebookScreenshotButton")}
+                                </ThemedText>
+                              )}
                             </Pressable>
-                          ) : null}
-                          {latestFacebookFollow?.adminNote ? (
-                            <ThemedText style={styles.profileSub}>
-                              {t("facebookFollowAdminNote")}:{" "}
-                              {latestFacebookFollow.adminNote}
-                            </ThemedText>
-                          ) : null}
-                        </View>
-                      </>
-                    </ProfileFadeIn>
-                  ) : null}
-                </ProfileAnimatedCard>
+                            {facebookScreenshot ? (
+                              <ThemedText style={styles.profileSub}>
+                                {facebookScreenshot.name}
+                              </ThemedText>
+                            ) : null}
+                            <Pressable
+                              onPress={handleSubmitFacebookFollow}
+                              disabled={
+                                loading.facebookFollowSubmit ||
+                                !facebookLinked ||
+                                !FACEBOOK_PAGE_URL ||
+                                !facebookScreenshot
+                              }
+                              style={[
+                                styles.primaryButton,
+                                styles.fullWidthButton,
+                                { backgroundColor: colors.tint },
+                                (loading.facebookFollowSubmit ||
+                                  !facebookLinked ||
+                                  !FACEBOOK_PAGE_URL ||
+                                  !facebookScreenshot) && {
+                                  opacity: 0.6,
+                                },
+                              ]}
+                            >
+                              {loading.facebookFollowSubmit ? (
+                                <ActivityIndicator color="#fff" />
+                              ) : (
+                                <ThemedText style={styles.primaryButtonText}>
+                                  {t("facebookSubmitFollowProof")}
+                                </ThemedText>
+                              )}
+                            </Pressable>
 
-                <ProfileAnimatedCard scheme={scheme} borderColor={colors.icon}>
+                            <View
+                              style={[
+                                styles.infoBox,
+                                { borderColor: colors.icon },
+                              ]}
+                            >
+                              <View style={styles.facebookStatusRow}>
+                                <ThemedText style={styles.infoLabel}>
+                                  {t("facebookFollowLatestStatus")}
+                                </ThemedText>
+                                {latestFacebookFollowQuery.isFetching ? (
+                                  <ActivityIndicator
+                                    size="small"
+                                    color={colors.tint}
+                                  />
+                                ) : null}
+                              </View>
+                              <ThemedText
+                                style={[
+                                  styles.infoValue,
+                                  { color: facebookFollowStatusColor },
+                                ]}
+                              >
+                                {facebookFollowStatus ||
+                                  t("facebookFollowNoSubmission")}
+                              </ThemedText>
+                              {latestFacebookFollow?.facebookPageUrl ? (
+                                <Pressable
+                                  onPress={() =>
+                                    handleOpenUrl(
+                                      latestFacebookFollow.facebookPageUrl,
+                                    )
+                                  }
+                                  style={styles.inlineLinkButton}
+                                >
+                                  <ThemedText
+                                    style={{
+                                      color: colors.tint,
+                                      fontWeight: "700",
+                                    }}
+                                  >
+                                    {t("facebookOpenPage")}
+                                  </ThemedText>
+                                </Pressable>
+                              ) : null}
+                              {latestFacebookFollow?.adminNote ? (
+                                <ThemedText style={styles.profileSub}>
+                                  {t("facebookFollowAdminNote")}:{" "}
+                                  {latestFacebookFollow.adminNote}
+                                </ThemedText>
+                              ) : null}
+                            </View>
+                      </>
+                      </ProfileFadeIn>
+                    ) : null}
+                  </ProfileAnimatedCard>
+                  */}
+
+                  <ProfileAnimatedCard scheme={scheme} borderColor={colors.icon}>
                   <View style={styles.cardHeader}>
                     <Pressable
                       onPress={() => setShowEmailVerification((prev) => !prev)}
@@ -2574,6 +2601,3 @@ const styles = StyleSheet.create({
   },
   signOutText: { fontSize: 14, fontWeight: "700" },
 });
-
-
-

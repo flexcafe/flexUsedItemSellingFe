@@ -12,7 +12,12 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.flexusedmarketfe",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": [
+          "fb",
+          "fbapi",
+          "fb-messenger-share-api"
+        ]
       }
     },
     "android": {
@@ -58,6 +63,18 @@
         "expo-image-picker",
         {
           "photosPermission": "Allow Flex Used Market to access your photos for profile avatars and Facebook follow proof screenshots."
+        }
+      ],
+      [
+        "react-native-fbsdk-next",
+        {
+          "appID": "874871261609348",
+          "clientToken": "c0c7165def84af13fe58bfa0df5bff30",
+          "displayName": "Flex Used Market",
+          "scheme": "fb874871261609348",
+          "advertiserIDCollectionEnabled": false,
+          "autoLogAppEventsEnabled": false,
+          "isAutoInitEnabled": true
         }
       ],
       "@react-native-community/datetimepicker"
