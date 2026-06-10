@@ -1577,8 +1577,6 @@ export function ProfileScreen() {
                     </ProfileFadeIn>
                   ) : null}
                 </ProfileAnimatedCard>
-
-                  {/*
                   <ProfileAnimatedCard scheme={scheme} borderColor={colors.icon}>
                     <View style={styles.cardHeader}>
                       <Pressable
@@ -1682,7 +1680,6 @@ export function ProfileScreen() {
                           </>
                         )}
 
-                            {/*
                             <View style={styles.divider} />
                             <ThemedText style={styles.cardTitle}>
                               {t("facebookFollowProof")}
@@ -1844,7 +1841,6 @@ export function ProfileScreen() {
                       </ProfileFadeIn>
                     ) : null}
                   </ProfileAnimatedCard>
-                  */}
 
                   <ProfileAnimatedCard scheme={scheme} borderColor={colors.icon}>
                   <View style={styles.cardHeader}>
