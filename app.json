@@ -10,9 +10,11 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.flexusedmarketfe",
+      "bundleIdentifier": "com.flexusedmarket.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Allow Flex Used Market to verify your registration region, find nearby listings, choose trade locations, and share your location during an active trade.",
+        "NSPhotoLibraryUsageDescription": "Allow Flex Used Market to select product photos, profile avatars, and Facebook verification screenshots.",
         "LSApplicationQueriesSchemes": [
           "fb",
           "fbapi",
@@ -77,7 +79,22 @@
           "isAutoInitEnabled": true
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.1"
+          },
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "minSdkVersion": 24,
+            "buildToolsVersion": "36.0.0"
+          }
+        }
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -3496,6 +3496,16 @@ const DICT: Dictionary = {
     my: "ဝင်ရန်မီ ဖုန်းနှင့် အီးမေးလ် အတည်ပြုရန်လိုအပ်သည်",
     zh: "登录前需要完成手机和邮箱验证",
   },
+  skipVerification: {
+    ko: "Skip verification",
+    my: "Skip verification",
+    zh: "Skip verification",
+  },
+  skipVerificationText: {
+    ko: "Skip verification and go to login.",
+    my: "Skip verification and go to login.",
+    zh: "Skip verification and go to login.",
+  },
   actionCancel: { ko: "취소", my: "မလုပ်တော့", zh: "取消" },
   actionVerify: { ko: "인증", my: "အတည်ပြု", zh: "验证" },
 };
@@ -3634,5 +3644,3 @@ export function useLocale(): LocaleContextValue {
   if (!ctx) throw new Error("useLocale must be used within a LocaleProvider");
   return ctx;
 }
-
-
