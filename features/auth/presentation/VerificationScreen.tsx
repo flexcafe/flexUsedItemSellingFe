@@ -136,6 +136,10 @@ export function VerificationScreen() {
     router.replace("/(auth)/login");
   };
 
+  const handleSkipVerification = () => {
+    router.replace("/(auth)/login");
+  };
+
   const inputStyle = {
     color: colors.text,
     borderColor: colors.icon,
@@ -188,7 +192,7 @@ export function VerificationScreen() {
               </ThemedText>
               {phoneVerified ? (
                 <ThemedText style={[styles.badge, { color: SUCCESS }]}>
-                  ✓ {t("otpVerified")}
+                  Verified {t("otpVerified")}
                 </ThemedText>
               ) : null}
             </View>
@@ -260,7 +264,7 @@ export function VerificationScreen() {
               </ThemedText>
               {emailVerified ? (
                 <ThemedText style={[styles.badge, { color: SUCCESS }]}>
-                  ✓ {t("emailVerified")}
+                  Verified {t("emailVerified")}
                 </ThemedText>
               ) : null}
             </View>
@@ -325,6 +329,25 @@ export function VerificationScreen() {
               )}
             </Pressable>
           </AuthAnimatedCard>
+
+          <AuthAnimatedSection delayMs={120} reduceMotion={reduceMotion}>
+            <View style={styles.skipSection}>
+              <ThemedText style={styles.skipText}>
+                {t("skipVerificationText")}
+              </ThemedText>
+              <Pressable
+                accessibilityRole="button"
+                onPress={handleSkipVerification}
+                style={[styles.skipButton, { borderColor: colors.tint + "66" }]}
+              >
+                <ThemedText
+                  style={[styles.skipButtonText, { color: colors.tint }]}
+                >
+                  {t("skipVerification")}
+                </ThemedText>
+              </Pressable>
+            </View>
+          </AuthAnimatedSection>
         </AppScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
@@ -378,9 +401,28 @@ const styles = StyleSheet.create({
   primaryButtonText: { color: "#fff", fontWeight: "700", fontSize: 14 },
   fullWidthButton: { width: "100%", minHeight: 48, borderRadius: 10 },
   linkButton: { alignItems: "center", paddingVertical: 6 },
+  skipSection: {
+    gap: 10,
+    alignItems: "center",
+    paddingTop: 2,
+  },
+  skipText: {
+    textAlign: "center",
+    opacity: 0.75,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  skipButton: {
+    alignSelf: "stretch",
+    minHeight: 46,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  skipButtonText: {
+    fontWeight: "700",
+    fontSize: 14,
+  },
 });
-
-
-
-
-
