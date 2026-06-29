@@ -2,7 +2,7 @@ export type UserRole = "admin" | "staff" | "customer";
 
 export type LoginCredentials =
   | { mode: "phone"; phone: string; password: string }
-  | { mode: "facebook"; facebookId: string; password: string };
+  | { mode: "email"; email: string; password: string };
 
 export type RegistrationType = "PHONE_AND_FACEBOOK" | "PHONE_ONLY";
 export type Gender = "MALE" | "FEMALE";
@@ -42,13 +42,14 @@ export interface AuthTokens {
   refreshToken?: string;
 }
 
-export interface ForgotPasswordInput {
-  phone: string;
-}
+export type AuthIdentifierInput =
+  | { phone: string; email?: never }
+  | { email: string; phone?: never };
 
-export interface ResetPasswordInput {
-  phone: string;
+export type ForgotPasswordInput = AuthIdentifierInput;
+
+export type ResetPasswordInput = AuthIdentifierInput & {
   code: string;
   newPassword: string;
   confirmNewPassword: string;
-}
+};

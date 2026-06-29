@@ -48,6 +48,7 @@ import {
 } from "./authAnimated";
 
 type Step = "phone" | "reset";
+type IdentifierMode = "phone" | "email";
 
 function normalizePhone(raw: string, countryCode: CountryCode): string {
   const trimmed = (raw ?? "").trim();
@@ -88,11 +89,15 @@ export function ForgotPasswordScreen() {
   const insets = useAppSafeAreaInsets();
 
   const [step, setStep] = useState<Step>("phone");
+  const [identifierMode, setIdentifierMode] = useState<IdentifierMode>("phone");
   const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>(
     PHONE_COUNTRIES[0]!,
   );
   const [phone, setPhone] = useState("");
-  const [normalizedPhone, setNormalizedPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [resetIdentifier, setResetIdentifier] = useState<
+    { phone: string } | { email: string } | null
+  >(null);
   const [otpCode, setOtpCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
@@ -133,6 +138,9 @@ export function ForgotPasswordScreen() {
         t("phoneInvalid"),
       ),
   });
+  const emailSchema = z.object({
+    email: z.string().trim().email(t("emailInvalid")),
+  });
 
   const resetSchema = z
     .object({
@@ -159,12 +167,20 @@ export function ForgotPasswordScreen() {
 
   const handleSendOtp = async () => {
     setErrors({});
-    const e164 = normalizePhone(phone, phoneCountry.code);
-    const parsed = phoneSchema.safeParse({ phone: e164 });
+    const parsed =
+      identifierMode === "phone"
+        ? phoneSchema.safeParse({
+            phone: normalizePhone(phone, phoneCountry.code),
+          })
+        : emailSchema.safeParse({
+            email: email.trim(),
+          });
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
       parsed.error.issues.forEach((issue) => {
-        const field = String(issue.path[0] ?? "phone");
+        const field = String(
+          issue.path[0] ?? (identifierMode === "phone" ? "phone" : "email"),
+        );
         fieldErrors[field] = issue.message;
       });
       setErrors(fieldErrors);
@@ -173,8 +189,12 @@ export function ForgotPasswordScreen() {
 
     setBusy("sendOtp", true);
     try {
-      await requestPasswordResetOtp({ phone: parsed.data.phone });
-      setNormalizedPhone(parsed.data.phone);
+      const input =
+        identifierMode === "phone"
+          ? { phone: parsed.data.phone }
+          : { email: parsed.data.email };
+      await requestPasswordResetOtp(input);
+      setResetIdentifier(input);
       setStep("reset");
       Alert.alert(t("forgotPasswordOtpSent"));
     } catch (err) {
@@ -189,10 +209,10 @@ export function ForgotPasswordScreen() {
   };
 
   const handleResendOtp = async () => {
-    if (!normalizedPhone) return;
+    if (!resetIdentifier) return;
     setBusy("resendOtp", true);
     try {
-      await requestPasswordResetOtp({ phone: normalizedPhone });
+      await requestPasswordResetOtp(resetIdentifier);
       Alert.alert(t("forgotPasswordOtpSent"));
     } catch (err) {
       const { status, message } = extractApiError(err);
@@ -224,8 +244,12 @@ export function ForgotPasswordScreen() {
 
     setBusy("reset", true);
     try {
+      if (!resetIdentifier) {
+        Alert.alert(t("errorTitle"), t("genericErrorBody"));
+        return;
+      }
       await resetPassword({
-        phone: normalizedPhone,
+        ...resetIdentifier,
         code: parsed.data.code,
         newPassword: parsed.data.newPassword,
         confirmNewPassword: parsed.data.confirmNewPassword,
@@ -304,20 +328,82 @@ export function ForgotPasswordScreen() {
               index={0}
               reduceMotion={reduceMotion}
             >
+              <View style={styles.segment}>
+                <Pressable
+                  disabled={isBusy}
+                  onPress={() => setIdentifierMode("phone")}
+                  style={[
+                    styles.segmentItem,
+                    {
+                      borderColor:
+                        identifierMode === "phone" ? colors.tint : colors.icon,
+                      backgroundColor:
+                        identifierMode === "phone"
+                          ? `${colors.tint}22`
+                          : "transparent",
+                    },
+                  ]}
+                >
+                  <ThemedText style={styles.segmentText}>{t("phone")}</ThemedText>
+                </Pressable>
+                <Pressable
+                  disabled={isBusy}
+                  onPress={() => setIdentifierMode("email")}
+                  style={[
+                    styles.segmentItem,
+                    {
+                      borderColor:
+                        identifierMode === "email" ? colors.tint : colors.icon,
+                      backgroundColor:
+                        identifierMode === "email"
+                          ? `${colors.tint}22`
+                          : "transparent",
+                    },
+                  ]}
+                >
+                  <ThemedText style={styles.segmentText}>{t("emailAddress")}</ThemedText>
+                </Pressable>
+              </View>
+
               <AuthStaggerItem index={0} reduceMotion={reduceMotion} style={styles.field}>
-                <ThemedText style={styles.label}>{t("phone")}</ThemedText>
-                <PhoneNumberInput
-                  value={phone}
-                  onChangeText={setPhone}
-                  selectedCountry={phoneCountry}
-                  onCountryChange={setPhoneCountry}
-                  placeholder={t("phoneNumberPlaceholder")}
-                  error={!!errors.phone}
-                  editable={!isBusy}
-                />
-                {errors.phone ? (
-                  <ThemedText style={styles.error}>{errors.phone}</ThemedText>
-                ) : null}
+                {identifierMode === "phone" ? (
+                  <>
+                    <ThemedText style={styles.label}>{t("phone")}</ThemedText>
+                    <PhoneNumberInput
+                      value={phone}
+                      onChangeText={setPhone}
+                      selectedCountry={phoneCountry}
+                      onCountryChange={setPhoneCountry}
+                      placeholder={t("phoneNumberPlaceholder")}
+                      error={!!errors.phone}
+                      editable={!isBusy}
+                    />
+                    {errors.phone ? (
+                      <ThemedText style={styles.error}>{errors.phone}</ThemedText>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <ThemedText style={styles.label}>{t("emailAddress")}</ThemedText>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        inputStyle,
+                        errors.email && styles.inputError,
+                      ]}
+                      value={email}
+                      onChangeText={setEmail}
+                      placeholder={t("emailPlaceholder")}
+                      placeholderTextColor={colors.icon}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      editable={!isBusy}
+                    />
+                    {errors.email ? (
+                      <ThemedText style={styles.error}>{errors.email}</ThemedText>
+                    ) : null}
+                  </>
+                )}
               </AuthStaggerItem>
 
               <AuthStaggerItem index={1} reduceMotion={reduceMotion}>
@@ -345,9 +431,17 @@ export function ForgotPasswordScreen() {
               reduceMotion={reduceMotion}
             >
               <View style={styles.phoneBadge}>
-                <MaterialIcons name="phone-iphone" size={16} color={colors.tint} />
+                <MaterialIcons
+                  name={"phone" in (resetIdentifier ?? {}) ? "phone-iphone" : "email"}
+                  size={16}
+                  color={colors.tint}
+                />
                 <ThemedText style={[styles.phoneBadgeText, { color: colors.tint }]}>
-                  {normalizedPhone}
+                  {resetIdentifier
+                    ? "phone" in resetIdentifier
+                      ? resetIdentifier.phone
+                      : resetIdentifier.email
+                    : ""}
                 </ThemedText>
               </View>
 
@@ -508,6 +602,21 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginTop: 6,
     paddingHorizontal: 8,
+  },
+  segment: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  segmentItem: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  segmentText: {
+    fontWeight: "600",
+    fontSize: 14,
   },
   field: {
     gap: 6,

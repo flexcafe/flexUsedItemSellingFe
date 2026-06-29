@@ -8,6 +8,7 @@ import {
   Platform,
   Pressable,
   StyleSheet,
+  TextInput,
   View,
 } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
@@ -65,30 +66,43 @@ export function LoginScreen() {
     phone: z.string().min(1, t("phoneRequired")),
     password: z.string().min(1, t("passwordRequired")),
   });
+  const emailSchema = z.object({
+    mode: z.literal("email"),
+    email: z.string().trim().email(t("emailInvalid")),
+    password: z.string().min(1, t("passwordRequired")),
+  });
+  const loginSchema = z.union([phoneSchema, emailSchema]);
 
-  // Facebook login disabled for now (phone-only).
-  const loginSchema = phoneSchema;
-
-  const mode = "phone" as const;
+  const [mode, setMode] = useState<"phone" | "email">("phone");
   const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>(
     PHONE_COUNTRIES[0]!,
   );
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{
     phone?: string;
+    email?: string;
     password?: string;
   }>({});
 
   const handleLogin = async () => {
     setErrors({});
     const normalizedPhone = normalizePhone(phone, phoneCountry.code);
-    const result = loginSchema.safeParse({
-      mode,
-      phone: normalizedPhone,
-      password,
-    });
+    const result = loginSchema.safeParse(
+      mode === "phone"
+        ? {
+            mode,
+            phone: normalizedPhone,
+            password,
+          }
+        : {
+            mode,
+            email: email.trim(),
+            password,
+          },
+    );
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((issue) => {
@@ -121,18 +135,7 @@ export function LoginScreen() {
           t("errorTitle"),
           typeof serverMessage === "string"
             ? serverMessage
-            : t("loginVerifyRequiredFallback"),
-          [
-            { text: t("actionCancel"), style: "cancel" },
-            {
-              text: t("actionVerify"),
-              onPress: () =>
-                router.push({
-                  pathname: "/(auth)/verify",
-                  params: { phone: result.data.phone },
-                } as unknown as Href),
-            },
-          ],
+            : t("forgotPasswordAdminAccount"),
         );
       } else {
         Alert.alert(t("errorTitle"), t("genericErrorBody"));
@@ -171,22 +174,82 @@ export function LoginScreen() {
 
           <View style={styles.form}>
             <AuthStaggerItem index={0} reduceMotion={reduceMotion} style={styles.field}>
-              <ThemedText style={styles.label}>{t("phone")}</ThemedText>
-              <PhoneNumberInput
-                value={phone}
-                onChangeText={setPhone}
-                selectedCountry={phoneCountry}
-                onCountryChange={setPhoneCountry}
-                placeholder={t("phoneNumberPlaceholder")}
-                error={!!errors.phone}
-                editable={!isSubmitting}
-              />
-              {errors.phone && (
-                <ThemedText style={styles.error}>{errors.phone}</ThemedText>
-              )}
+              <View style={styles.segment}>
+                <Pressable
+                  disabled={isSubmitting}
+                  onPress={() => setMode("phone")}
+                  style={[
+                    styles.segmentItem,
+                    {
+                      borderColor: mode === "phone" ? colors.tint : colors.icon,
+                      backgroundColor:
+                        mode === "phone" ? `${colors.tint}22` : "transparent",
+                    },
+                  ]}
+                >
+                  <ThemedText style={styles.segmentText}>{t("phone")}</ThemedText>
+                </Pressable>
+                <Pressable
+                  disabled={isSubmitting}
+                  onPress={() => setMode("email")}
+                  style={[
+                    styles.segmentItem,
+                    {
+                      borderColor: mode === "email" ? colors.tint : colors.icon,
+                      backgroundColor:
+                        mode === "email" ? `${colors.tint}22` : "transparent",
+                    },
+                  ]}
+                >
+                  <ThemedText style={styles.segmentText}>{t("emailAddress")}</ThemedText>
+                </Pressable>
+              </View>
             </AuthStaggerItem>
 
             <AuthStaggerItem index={1} reduceMotion={reduceMotion} style={styles.field}>
+              {mode === "phone" ? (
+                <>
+                  <ThemedText style={styles.label}>{t("phone")}</ThemedText>
+                  <PhoneNumberInput
+                    value={phone}
+                    onChangeText={setPhone}
+                    selectedCountry={phoneCountry}
+                    onCountryChange={setPhoneCountry}
+                    placeholder={t("phoneNumberPlaceholder")}
+                    error={!!errors.phone}
+                    editable={!isSubmitting}
+                  />
+                  {errors.phone && (
+                    <ThemedText style={styles.error}>{errors.phone}</ThemedText>
+                  )}
+                </>
+              ) : (
+                <>
+                  <ThemedText style={styles.label}>{t("emailAddress")}</ThemedText>
+                  <TextInput
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder={t("emailPlaceholder")}
+                    placeholderTextColor={colors.icon}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    editable={!isSubmitting}
+                    style={[
+                      styles.input,
+                      {
+                        color: colors.text,
+                        borderColor: errors.email ? "#e74c3c" : colors.icon,
+                      },
+                    ]}
+                  />
+                  {errors.email && (
+                    <ThemedText style={styles.error}>{errors.email}</ThemedText>
+                  )}
+                </>
+              )}
+            </AuthStaggerItem>
+
+            <AuthStaggerItem index={2} reduceMotion={reduceMotion} style={styles.field}>
               <ThemedText style={styles.label}>{t("loginPasswordLabel")}</ThemedText>
               <PasswordInput
                 value={password}
@@ -212,7 +275,7 @@ export function LoginScreen() {
               </Pressable>
             </AuthStaggerItem>
 
-            <AuthStaggerItem index={2} reduceMotion={reduceMotion}>
+            <AuthStaggerItem index={3} reduceMotion={reduceMotion}>
               <AuthPrimaryButton
                 onPress={handleLogin}
                 disabled={isSubmitting}
@@ -227,7 +290,7 @@ export function LoginScreen() {
               </AuthPrimaryButton>
             </AuthStaggerItem>
 
-            <AuthStaggerItem index={3} reduceMotion={reduceMotion} style={styles.signUpRow}>
+            <AuthStaggerItem index={4} reduceMotion={reduceMotion} style={styles.signUpRow}>
               <ThemedText style={styles.signUpText}>
                 {t("noAccount")}{" "}
               </ThemedText>

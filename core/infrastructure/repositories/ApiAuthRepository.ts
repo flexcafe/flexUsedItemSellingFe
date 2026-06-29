@@ -35,7 +35,7 @@ export class ApiAuthRepository implements IAuthRepository {
     );
     const user = toAuthUser(
       data,
-      credentials.mode === "phone" ? credentials.phone : credentials.facebookId,
+      credentials.mode === "email" ? credentials.email.trim() : undefined,
     );
     if (user?.accessToken) {
       await TokenStorage.setAccessToken(user.accessToken);
@@ -123,9 +123,13 @@ export class ApiAuthRepository implements IAuthRepository {
   async requestPasswordResetOtp(
     input: ForgotPasswordInput,
   ): Promise<VerificationActionResult> {
+    const payload =
+      "phone" in input
+        ? { phone: input.phone.trim() }
+        : { email: input.email.trim() };
     const res = await this.http.post<VerificationActionResultDto>(
       API_ENDPOINTS.AUTH.FORGOT_PASSWORD,
-      { phone: input.phone.trim() },
+      payload,
     );
     return this.mapVerificationResult(res);
   }
@@ -133,10 +137,14 @@ export class ApiAuthRepository implements IAuthRepository {
   async resetPassword(
     input: ResetPasswordInput,
   ): Promise<VerificationActionResult> {
+    const identifierPayload =
+      "phone" in input
+        ? { phone: input.phone.trim() }
+        : { email: input.email.trim() };
     const res = await this.http.post<VerificationActionResultDto>(
       API_ENDPOINTS.AUTH.RESET_PASSWORD,
       {
-        phone: input.phone.trim(),
+        ...identifierPayload,
         code: input.code.trim(),
         newPassword: input.newPassword,
         confirmNewPassword: input.confirmNewPassword,

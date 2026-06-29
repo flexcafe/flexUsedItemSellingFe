@@ -19,7 +19,7 @@ export function toLoginRequestDto(
   if (credentials.mode === "phone") {
     return { phone: credentials.phone, password: credentials.password };
   }
-  return { facebookId: credentials.facebookId, password: credentials.password };
+  return { email: credentials.email, password: credentials.password };
 }
 
 function normalizeRole(raw: string | null | undefined): UserRole {
