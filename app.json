@@ -11,6 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.flexusedmarket.app",
+      "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Allow Flex Used Market to verify your registration region, find nearby listings, choose trade locations, and share your location during an active trade.",
@@ -24,6 +25,7 @@
     },
     "android": {
       "usesCleartextTraffic": true,
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#FFF7ED",
         "foregroundImage": "./assets/images/android-icon-foreground.png"

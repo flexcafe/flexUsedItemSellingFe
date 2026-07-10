@@ -20,6 +20,7 @@ import { useReducedMotion } from "react-native-reanimated";
 import { WebView } from "react-native-webview";
 import { z } from "zod";
 
+import { AppVersionLabel } from "@/components/app-version-label";
 import { AuthLogo } from "@/components/auth-logo";
 import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import { AppScrollView } from "@/components/app-scroll-view";
@@ -897,6 +898,10 @@ export function RegisterScreen() {
               </ThemedText>
             </Pressable>
           </AuthStaggerItem>
+
+          <AuthStaggerItem index={14} reduceMotion={reduceMotion}>
+            <AppVersionLabel style={styles.versionLabel} />
+          </AuthStaggerItem>
         </AppScrollView>
         <AuthLanguageBar
           locale={locale}
@@ -1080,6 +1085,9 @@ const styles = StyleSheet.create({
   },
   footerText: { fontSize: 14, opacity: 0.7 },
   footerLink: { fontSize: 14, fontWeight: "700" },
+  versionLabel: {
+    marginTop: 8,
+  },
 });
 
 

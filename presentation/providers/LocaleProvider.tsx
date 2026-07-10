@@ -965,6 +965,11 @@ const DICT: Dictionary = {
     zh: "距离下一等级还差积分",
   },
   signOutButton: { ko: "로그아웃", my: "ထွက်မည်", zh: "退出登录" },
+  appVersionDisplay: {
+    ko: "버전 {version} (빌드 {build})",
+    my: "Version {version} (Build {build})",
+    zh: "版本 {version}（构建 {build}）",
+  },
   tabsHome: { ko: "홈", my: "ပင်မ", zh: "首页" },
   tabsProducts: { ko: "상품", my: "ပစ္စည်းများ", zh: "商品" },
   tabsExplore: { ko: "탐색", my: "စူးစမ်း", zh: "探索" },

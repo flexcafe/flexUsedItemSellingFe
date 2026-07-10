@@ -1,6 +1,7 @@
 import { useSegments } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 
+import { AppVersionLabel } from "@/components/app-version-label";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { AppLocale } from "@/core/domain/types/locale";
@@ -24,6 +25,7 @@ export function LanguageSwitcher() {
 
   return (
     <View pointerEvents="box-none" style={styles.wrap}>
+      <AppVersionLabel align="left" style={styles.version} />
       <View
         style={[
           styles.bar,
@@ -54,10 +56,20 @@ const styles = StyleSheet.create({
   wrap: {
     position: "absolute",
     top: 44,
+    left: 16,
     right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     zIndex: 50,
   },
+  version: {
+    flex: 1,
+    marginRight: 10,
+    fontSize: 11,
+  },
   bar: {
+    flexShrink: 0,
     flexDirection: "row",
     gap: 6,
     borderWidth: 1,

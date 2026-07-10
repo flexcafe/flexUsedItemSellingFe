@@ -19,6 +19,7 @@ import {
 import { useReducedMotion } from "react-native-reanimated";
 import { z } from "zod";
 
+import { AppVersionLabel } from "@/components/app-version-label";
 import { AuthLogo } from "@/components/auth-logo";
 import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import { AppScrollView } from "@/components/app-scroll-view";
@@ -555,6 +556,10 @@ export function ForgotPasswordScreen() {
               </ThemedText>
             </Pressable>
           </AuthStaggerItem>
+
+          <AuthStaggerItem index={5} reduceMotion={reduceMotion}>
+            <AppVersionLabel style={styles.versionLabel} />
+          </AuthStaggerItem>
         </AppScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
@@ -684,6 +689,9 @@ const styles = StyleSheet.create({
   signInLink: {
     fontWeight: "700",
     fontSize: 14,
+  },
+  versionLabel: {
+    marginTop: 8,
   },
 });
 

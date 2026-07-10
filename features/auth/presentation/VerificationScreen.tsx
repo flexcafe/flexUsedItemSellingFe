@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 
+import { AppVersionLabel } from "@/components/app-version-label";
 import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import { AppScrollView } from "@/components/app-scroll-view";
 import { ThemedText } from "@/components/themed-text";
@@ -348,6 +349,10 @@ export function VerificationScreen() {
               </Pressable>
             </View>
           </AuthAnimatedSection>
+
+          <AuthAnimatedSection delayMs={160} reduceMotion={reduceMotion}>
+            <AppVersionLabel style={styles.versionLabel} />
+          </AuthAnimatedSection>
         </AppScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
@@ -424,5 +429,8 @@ const styles = StyleSheet.create({
   skipButtonText: {
     fontWeight: "700",
     fontSize: 14,
+  },
+  versionLabel: {
+    marginTop: 8,
   },
 });
