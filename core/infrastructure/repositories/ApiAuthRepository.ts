@@ -124,7 +124,7 @@ export class ApiAuthRepository implements IAuthRepository {
     input: ForgotPasswordInput,
   ): Promise<VerificationActionResult> {
     const payload =
-      "phone" in input
+      typeof input.phone === "string"
         ? { phone: input.phone.trim() }
         : { email: input.email.trim() };
     const res = await this.http.post<VerificationActionResultDto>(
@@ -138,7 +138,7 @@ export class ApiAuthRepository implements IAuthRepository {
     input: ResetPasswordInput,
   ): Promise<VerificationActionResult> {
     const identifierPayload =
-      "phone" in input
+      typeof input.phone === "string"
         ? { phone: input.phone.trim() }
         : { email: input.email.trim() };
     const res = await this.http.post<VerificationActionResultDto>(

@@ -191,8 +191,8 @@ export function ForgotPasswordScreen() {
     try {
       const input =
         identifierMode === "phone"
-          ? { phone: parsed.data.phone }
-          : { email: parsed.data.email };
+          ? { phone: (parsed.data as z.infer<typeof phoneSchema>).phone }
+          : { email: (parsed.data as z.infer<typeof emailSchema>).email };
       await requestPasswordResetOtp(input);
       setResetIdentifier(input);
       setStep("reset");
