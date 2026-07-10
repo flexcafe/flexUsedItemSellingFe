@@ -53,7 +53,13 @@ export function formatListingDate(iso: string | undefined, locale: AppLocale): s
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   const tag =
-    locale === "ko" ? "ko-KR" : locale === "zh" ? "zh-CN" : "en-US";
+    locale === "ko"
+      ? "ko-KR"
+      : locale === "zh"
+        ? "zh-CN"
+        : locale === "my"
+          ? "my-MM"
+          : "en-US";
   return d.toLocaleString(tag, {
     year: "numeric",
     month: "short",

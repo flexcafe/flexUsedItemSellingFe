@@ -1,2 +1,1 @@
-export type AppLocale = "ko" | "my" | "zh";
-
+export type AppLocale = "ko" | "my" | "zh" | "en";

@@ -168,8 +168,8 @@ export const AuthPrimaryButton = memo(function AuthPrimaryButton({
 });
 
 type LanguageBarProps = {
-  locale: "ko" | "my" | "zh";
-  onSelect: (locale: "ko" | "my" | "zh") => void;
+  locale: "ko" | "my" | "zh" | "en";
+  onSelect: (locale: "ko" | "my" | "zh" | "en") => void;
   scheme: "light" | "dark";
   colors: (typeof Colors)["light"];
   disabled?: boolean;
@@ -184,12 +184,13 @@ export const AuthLanguageBar = memo(function AuthLanguageBar({
   disabled,
   reduceMotion,
 }: LanguageBarProps) {
-  const langIndex = locale === "ko" ? 0 : locale === "my" ? 1 : 2;
+  const langIndex =
+    locale === "ko" ? 0 : locale === "my" ? 1 : locale === "zh" ? 2 : 3;
   const [languageWidth, setLanguageWidth] = useState(0);
   const pillX = useSharedValue(0);
 
   const pillStyle = useAnimatedStyle(() => {
-    const w = languageWidth > 0 ? languageWidth / 3 : 0;
+    const w = languageWidth > 0 ? languageWidth / 4 : 0;
     return {
       width: w,
       transform: [{ translateX: pillX.value }],
@@ -198,7 +199,7 @@ export const AuthLanguageBar = memo(function AuthLanguageBar({
 
   useEffect(() => {
     if (languageWidth <= 0) return;
-    const w = languageWidth / 3;
+    const w = languageWidth / 4;
     const target = w * langIndex;
     pillX.value = withTiming(target, { duration: 420 });
   }, [langIndex, languageWidth, pillX]);
@@ -264,6 +265,17 @@ export const AuthLanguageBar = memo(function AuthLanguageBar({
             style={[styles.flag, locale === "zh" && styles.flagSelected]}
           >
             🇨🇳
+          </ThemedText>
+        </Pressable>
+        <Pressable
+          disabled={disabled}
+          style={styles.flagButton}
+          onPress={() => onSelect("en")}
+        >
+          <ThemedText
+            style={[styles.flag, locale === "en" && styles.flagSelected]}
+          >
+            🇺🇸
           </ThemedText>
         </Pressable>
       </View>

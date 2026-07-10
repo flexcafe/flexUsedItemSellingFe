@@ -12,6 +12,7 @@ const OPTIONS: { locale: AppLocale; flag: string }[] = [
   { locale: "ko", flag: "\uD83C\uDDF0\uD83C\uDDF7" },
   { locale: "my", flag: "\uD83C\uDDF2\uD83C\uDDF2" },
   { locale: "zh", flag: "\uD83C\uDDE8\uD83C\uDDF3" },
+  { locale: "en", flag: "\uD83C\uDDFA\uD83C\uDDF8" },
 ];
 
 export function LanguageSwitcher() {
@@ -77,16 +78,16 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   button: {
-    minWidth: 42,
+    minWidth: 34,
     height: 30,
     borderWidth: 1,
     borderColor: "transparent",
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
   },
   buttonText: {
-    fontSize: 18,
+    fontSize: 16,
   },
 });

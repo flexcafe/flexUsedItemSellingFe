@@ -42,7 +42,7 @@ async function readActionNotifyCooldowns(): Promise<Record<string, number>> {
 export const PreferencesStorage = {
   async getLocale(): Promise<AppLocale | null> {
     const raw = await getItem(LOCALE_KEY);
-    if (raw === "ko" || raw === "my" || raw === "zh") return raw;
+    if (raw === "ko" || raw === "my" || raw === "zh" || raw === "en") return raw;
     return null;
   },
 

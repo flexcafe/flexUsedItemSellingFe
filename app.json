@@ -2,7 +2,7 @@
   "expo": {
     "name": "Flex Used Market",
     "slug": "flex-used-market-fe",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "flexusedmarket",
@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.flexusedmarket.app",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Allow Flex Used Market to verify your registration region, find nearby listings, choose trade locations, and share your location during an active trade.",
@@ -25,7 +25,7 @@
     },
     "android": {
       "usesCleartextTraffic": true,
-      "versionCode": 1,
+      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#FFF7ED",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
