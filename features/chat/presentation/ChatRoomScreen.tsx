@@ -26,8 +26,9 @@ import Animated, {
 import { WebView } from "react-native-webview";
 
 import {
-  useAppSafeAreaInsets,
+  useAppliedSafeAreaInsets,
   useFloatingBackButtonTop,
+  useLanguageSwitcherSafeTop,
 } from "@/components/app-safe-area";
 import { AppScrollView } from "@/components/app-scroll-view";
 import { DateTimeField } from "@/components/date-time-field";
@@ -355,7 +356,7 @@ export function ChatRoomScreen({
   peerUserId: peerUserIdParam,
 }: Props) {
   const router = useRouter();
-  const insets = useAppSafeAreaInsets();
+  const insets = useAppliedSafeAreaInsets();
   const { t, tf } = useLocale();
   const { user } = useAuth();
   const colorScheme = useColorScheme();
@@ -372,10 +373,11 @@ export function ChatRoomScreen({
     Math.min(
       COMPLETION_MODAL_MAX_HEIGHT,
       Math.round(windowHeight * 0.48),
-      windowHeight - insets.top - insets.bottom - 180,
+      windowHeight - insets.window.top - insets.window.bottom - 180,
     ),
   );
   const backTop = useFloatingBackButtonTop();
+  const topInset = useLanguageSwitcherSafeTop();
   const queryClient = useQueryClient();
   const backPress = usePressScale();
   const sendPress = usePressScale();
@@ -2088,7 +2090,7 @@ export function ChatRoomScreen({
 
       <Animated.View
         entering={uiSectionEnter(0, reduceMotion)}
-        style={[styles.header, { paddingTop: backTop + 44 }]}
+        style={[styles.header, { paddingTop: topInset }]}
       >
         {resolvedListingImageUrl ? (
           <Image

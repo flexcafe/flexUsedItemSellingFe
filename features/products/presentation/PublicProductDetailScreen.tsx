@@ -2,6 +2,7 @@ import { ProductListingThumbnail } from "@/components/product-listing-thumbnail"
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
+  useAppliedSafeAreaInsets,
   useAppSafeAreaInsets,
   useFloatingBackButtonTop,
   useLanguageSwitcherSafeTop,
@@ -499,7 +500,7 @@ function ReviewsSheet({
 
 export function PublicProductDetailScreen({ productId }: Props) {
   const router = useRouter();
-  const insets = useAppSafeAreaInsets();
+  const insets = useAppliedSafeAreaInsets();
   const { t, tf, locale } = useLocale();
   const colorScheme = useColorScheme();
   const scheme = colorScheme ?? "light";

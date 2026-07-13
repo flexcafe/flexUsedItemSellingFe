@@ -19,7 +19,6 @@ import { z } from "zod";
 
 import { AppVersionLabel } from "@/components/app-version-label";
 import { AuthLogo } from "@/components/auth-logo";
-import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import {
   PHONE_COUNTRIES,
   PhoneNumberInput,
@@ -85,8 +84,6 @@ export function ForgotPasswordScreen() {
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
   const reduceMotion = useReducedMotion();
-  const insets = useAppSafeAreaInsets();
-
   const [step, setStep] = useState<Step>("phone");
   const [identifierMode, setIdentifierMode] = useState<IdentifierMode>("phone");
   const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>(
@@ -284,8 +281,8 @@ export function ForgotPasswordScreen() {
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingTop: Math.max(insets.top, 8),
-            paddingBottom: Math.max(insets.bottom, 24) + 40,
+            paddingTop: 8,
+            paddingBottom: 40,
           },
         ]}
       >
@@ -304,7 +301,7 @@ export function ForgotPasswordScreen() {
               </View>
               <View style={styles.backButton} />
             </View>
-            <ThemedText type="title" style={styles.title}>
+            <ThemedText type="screenTitle" style={styles.title}>
               {t("forgotPasswordTitle")}
             </ThemedText>
             <ThemedText style={styles.subtitle}>
@@ -584,9 +581,6 @@ const styles = StyleSheet.create({
   },
   title: {
     textAlign: "center",
-    fontSize: 24,
-    lineHeight: 28,
-    letterSpacing: -0.3,
   },
   subtitle: {
     textAlign: "center",

@@ -114,7 +114,7 @@ export const MyProductsListing = memo(function MyProductsListing({
         style={styles.headerBlock}
       >
         <View style={styles.titleBlock}>
-          <ThemedText type="title" style={styles.screenTitle}>
+          <ThemedText type="screenTitle">
             {t("productsMyTitle")}
           </ThemedText>
           <ThemedText style={styles.subtitle} numberOfLines={3}>
@@ -316,9 +316,6 @@ const styles = StyleSheet.create({
   titleBlock: {
     gap: 6,
     width: "100%",
-  },
-  screenTitle: {
-    letterSpacing: -0.4,
   },
   subtitle: {
     opacity: 0.62,

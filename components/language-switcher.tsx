@@ -1,54 +1,36 @@
 import { useSegments } from "expo-router";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
+import { AnimatedLanguageBar } from "@/components/animated-language-bar";
 import { AppVersionLabel } from "@/components/app-version-label";
-import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import type { AppLocale } from "@/core/domain/types/locale";
+import { useAppSafeAreaInsets } from "@/components/app-safe-area";
+import { languageSwitcherTopOffset } from "@/constants/language-switcher-layout";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
-import { ThemedText } from "./themed-text";
-
-const OPTIONS: { locale: AppLocale; flag: string }[] = [
-  { locale: "ko", flag: "\uD83C\uDDF0\uD83C\uDDF7" },
-  { locale: "my", flag: "\uD83C\uDDF2\uD83C\uDDF2" },
-  { locale: "zh", flag: "\uD83C\uDDE8\uD83C\uDDF3" },
-  { locale: "en", flag: "\uD83C\uDDFA\uD83C\uDDF8" },
-];
 
 export function LanguageSwitcher() {
   const segments = useSegments();
+  const insets = useAppSafeAreaInsets();
   const { locale, setLocale } = useLocale();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
   const isAuthScreen = segments[0] === "(auth)";
 
   if (isAuthScreen) return null;
 
   return (
-    <View pointerEvents="box-none" style={styles.wrap}>
-      <AppVersionLabel align="left" style={styles.version} />
-      <View
-        style={[
-          styles.bar,
-          { borderColor: colors.icon, backgroundColor: colors.background },
-        ]}>
-        {OPTIONS.map((option) => {
-          const selected = locale === option.locale;
-          return (
-            <Pressable
-              key={option.locale}
-              onPress={() => setLocale(option.locale)}
-              style={[
-                styles.button,
-                selected && { backgroundColor: colors.tint, borderColor: colors.tint },
-              ]}>
-              <ThemedText style={[styles.buttonText, selected && { color: "#fff" }]}>
-                {option.flag}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
-      </View>
+    <View
+      pointerEvents="box-none"
+      style={[styles.wrap, { top: languageSwitcherTopOffset(insets.top) }]}
+    >
+      <AppVersionLabel
+        align="left"
+        numberOfLines={1}
+        style={styles.version}
+      />
+      <AnimatedLanguageBar
+        locale={locale}
+        onSelect={setLocale}
+        variant="compact"
+        style={styles.bar}
+      />
     </View>
   );
 }
@@ -56,38 +38,24 @@ export function LanguageSwitcher() {
 const styles = StyleSheet.create({
   wrap: {
     position: "absolute",
-    top: 44,
-    left: 16,
-    right: 16,
+    left: 12,
+    right: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     zIndex: 50,
+    gap: 6,
   },
   version: {
-    flex: 1,
-    marginRight: 10,
-    fontSize: 11,
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    marginRight: 4,
+    fontSize: 9,
+    lineHeight: 12,
   },
   bar: {
     flexShrink: 0,
-    flexDirection: "row",
-    gap: 6,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 6,
-  },
-  button: {
-    minWidth: 34,
-    height: 30,
-    borderWidth: 1,
-    borderColor: "transparent",
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 6,
-  },
-  buttonText: {
-    fontSize: 16,
+    maxWidth: "58%",
   },
 });

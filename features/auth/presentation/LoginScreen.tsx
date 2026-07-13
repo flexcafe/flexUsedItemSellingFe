@@ -14,7 +14,6 @@ import { z } from "zod";
 
 import { AppVersionLabel } from "@/components/app-version-label";
 import { AuthLogo } from "@/components/auth-logo";
-import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import {
   PHONE_COUNTRIES,
   PhoneNumberInput,
@@ -58,7 +57,6 @@ export function LoginScreen() {
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
   const reduceMotion = useReducedMotion();
-  const insets = useAppSafeAreaInsets();
 
   const phoneSchema = z.object({
     mode: z.literal("phone"),
@@ -150,8 +148,8 @@ export function LoginScreen() {
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingTop: Math.max(insets.top, 24),
-            paddingBottom: Math.max(insets.bottom, 24) + 96,
+            paddingTop: 24,
+            paddingBottom: 96,
           },
         ]}
         footer={
@@ -167,7 +165,7 @@ export function LoginScreen() {
       >
           <AuthAnimatedSection delayMs={0} reduceMotion={reduceMotion} style={styles.header}>
             <AuthLogo variant="compact" />
-            <ThemedText numberOfLines={1} type="title" style={styles.appTitle}>
+            <ThemedText numberOfLines={1} type="screenTitle" style={styles.appTitle}>
               {t("appName")}
             </ThemedText>
             <ThemedText style={styles.subtitle}>
@@ -334,8 +332,6 @@ const styles = StyleSheet.create({
   },
   appTitle: {
     marginTop: 8,
-    fontSize: 26,
-    lineHeight: 30,
   },
   subtitle: {
     opacity: 0.6,

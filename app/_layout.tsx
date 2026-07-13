@@ -10,6 +10,7 @@ import { ActivityIndicator, View } from "react-native";
 import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { SafeAreaScreenWrapper } from "@/components/app-safe-area";
 import { AnimatedLaunchScreen } from "@/components/animated-launch-screen";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import type { IPreferencesRepository } from "@/core/domain/repositories/IPreferencesRepository";
@@ -49,9 +50,11 @@ function AuthGate() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
+      <SafeAreaScreenWrapper mode="full">
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" />
+        </View>
+      </SafeAreaScreenWrapper>
     );
   }
 

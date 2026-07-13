@@ -446,7 +446,7 @@ export function HomeReportsSection({
                 <MaterialIcons name="close" size={20} color="#fff" />
               </Pressable>
             </View>
-            <ThemedText style={styles.heroTitle}>
+            <ThemedText type="screenTitle" style={styles.heroTitle}>
               {t("homeSuggestionReportTitle")}
             </ThemedText>
             <ThemedText style={styles.heroSubtitle}>
@@ -833,9 +833,6 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: "#fff",
-    fontSize: 22,
-    fontWeight: "800",
-    letterSpacing: -0.4,
   },
   heroSubtitle: {
     color: "rgba(255,255,255,0.88)",

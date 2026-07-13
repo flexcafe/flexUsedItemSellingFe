@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
 import React from "react";
 
+import { SafeAreaScreenWrapper } from "@/components/app-safe-area";
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
@@ -18,12 +19,13 @@ export default function TabLayout() {
   const chatUnreadCount = useChatRoomsUnreadCount(50);
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+    <SafeAreaScreenWrapper mode="tab">
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+          headerShown: false,
+          tabBarButton: HapticTab,
+        }}>
       <Tabs.Screen
         name="index"
         options={{
@@ -78,5 +80,6 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </SafeAreaScreenWrapper>
   );
 }

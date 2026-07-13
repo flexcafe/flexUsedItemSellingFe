@@ -3,10 +3,10 @@ import { ProductListingThumbnail } from "@/components/product-listing-thumbnail"
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Category } from "@/core/domain/entities/Category";
 import type { Product } from "@/core/domain/entities/Product";
 import type { ClientCatalogRadiusSelection } from "@/core/domain/types/catalog";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useBuyerCatalogLocation } from "@/presentation/hooks/useBuyerCatalogLocation";
 import { useCategories } from "@/presentation/hooks/useCategories";
 import { useClientProductsCatalog } from "@/presentation/hooks/useClientProducts";

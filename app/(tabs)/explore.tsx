@@ -23,7 +23,7 @@ export default function TabTwoScreen() {
       }>
       <ThemedView style={styles.titleContainer}>
         <ThemedText
-          type="title"
+          type="screenTitle"
           style={{
             fontFamily: Fonts.rounded,
           }}>

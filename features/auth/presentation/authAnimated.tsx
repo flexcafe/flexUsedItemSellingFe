@@ -12,6 +12,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { AnimatedLanguageBar } from "@/components/animated-language-bar";
 import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import {
@@ -184,101 +185,24 @@ export const AuthLanguageBar = memo(function AuthLanguageBar({
   disabled,
   reduceMotion,
 }: LanguageBarProps) {
-  const langIndex =
-    locale === "ko" ? 0 : locale === "my" ? 1 : locale === "zh" ? 2 : 3;
-  const [languageWidth, setLanguageWidth] = useState(0);
-  const pillX = useSharedValue(0);
-
-  const pillStyle = useAnimatedStyle(() => {
-    const w = languageWidth > 0 ? languageWidth / 4 : 0;
-    return {
-      width: w,
-      transform: [{ translateX: pillX.value }],
-    };
-  }, [languageWidth]);
-
-  useEffect(() => {
-    if (languageWidth <= 0) return;
-    const w = languageWidth / 4;
-    const target = w * langIndex;
-    pillX.value = withTiming(target, { duration: 420 });
-  }, [langIndex, languageWidth, pillX]);
-
   return (
     <Animated.View
       entering={uiSectionEnter(120, reduceMotion)}
       pointerEvents="box-none"
       style={styles.languageDock}
     >
-      <View
-        style={[
-          styles.languageBar,
-          uiCardShadow(scheme, {
-            iosOffsetLight: 6,
-            iosOffsetDark: 6,
-            iosOpacityLight: 0.08,
-            iosOpacityDark: 0.28,
-            iosRadiusLight: 12,
-            iosRadiusDark: 12,
-            androidElevationLight: 3,
-            androidElevationDark: 4,
-          }),
-          { backgroundColor: colors.background, borderColor: colors.tint },
-        ]}
-        onLayout={(e) => setLanguageWidth(e.nativeEvent.layout.width - 16)}
-      >
-        <Animated.View
-          style={[
-            styles.languagePill,
-            { backgroundColor: colors.tint },
-            pillStyle,
-          ]}
-        />
-        <Pressable
-          disabled={disabled}
-          style={styles.flagButton}
-          onPress={() => onSelect("ko")}
-        >
-          <ThemedText
-            style={[styles.flag, locale === "ko" && styles.flagSelected]}
-          >
-            🇰🇷
-          </ThemedText>
-        </Pressable>
-        <Pressable
-          disabled={disabled}
-          style={styles.flagButton}
-          onPress={() => onSelect("my")}
-        >
-          <ThemedText
-            style={[styles.flag, locale === "my" && styles.flagSelected]}
-          >
-            🇲🇲
-          </ThemedText>
-        </Pressable>
-        <Pressable
-          disabled={disabled}
-          style={styles.flagButton}
-          onPress={() => onSelect("zh")}
-        >
-          <ThemedText
-            style={[styles.flag, locale === "zh" && styles.flagSelected]}
-          >
-            🇨🇳
-          </ThemedText>
-        </Pressable>
-        <Pressable
-          disabled={disabled}
-          style={styles.flagButton}
-          onPress={() => onSelect("en")}
-        >
-          <ThemedText
-            style={[styles.flag, locale === "en" && styles.flagSelected]}
-          >
-            🇺🇸
-          </ThemedText>
-        </Pressable>
-      </View>
+      <AnimatedLanguageBar
+        locale={locale}
+        onSelect={onSelect}
+        variant="comfortable"
+        disabled={disabled}
+        scheme={scheme}
+        tintColor={colors.tint}
+        borderColor={colors.tint}
+        backgroundColor={colors.background}
+        elevated
+        style={styles.languageBar}
+      />
     </Animated.View>
   );
 });
@@ -307,35 +231,7 @@ const styles = StyleSheet.create({
     bottom: 18,
   },
   languageBar: {
-    height: 56,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    position: "relative",
-  },
-  languagePill: {
-    position: "absolute",
-    left: 8,
-    top: 8,
-    bottom: 8,
-    borderRadius: 12,
-  },
-  flagButton: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  flag: {
-    fontSize: 22,
-    opacity: 0.95,
-  },
-  flagSelected: {
-    color: "#fff",
-    opacity: 1,
+    width: "100%",
   },
 });
 

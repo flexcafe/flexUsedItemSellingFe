@@ -300,7 +300,7 @@ export function NotificationsScreen() {
         entering={uiSectionEnter(0, reduceMotion)}
         style={[styles.header, { paddingTop: topInset }]}
       >
-        <ThemedText type="title">{t("notificationsTitle")}</ThemedText>
+        <ThemedText type="screenTitle">{t("notificationsTitle")}</ThemedText>
         {sectionUnread > 0 ? (
           <View style={[styles.badge, { backgroundColor: colors.tint }]}>
             <ThemedText style={styles.badgeText}>

@@ -1,6 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { AppSafeAreaView } from "@/components/app-safe-area";
+import { paddingTopInsideSafeAreaForLanguageSwitcher } from "@/constants/language-switcher-layout";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
@@ -134,9 +134,17 @@ export function PublicSellerProfileScreen({ userId }: Props) {
   }));
 
   return (
-    <AppSafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+    <ThemedView style={styles.safe}>
       <ThemedView style={styles.container}>
-        <View style={[styles.topBar, { backgroundColor: colors.tint }]}>
+        <View
+          style={[
+            styles.topBar,
+            {
+              backgroundColor: colors.tint,
+              paddingTop: paddingTopInsideSafeAreaForLanguageSwitcher(),
+            },
+          ]}
+        >
           <AnimatedPressable
             onPress={() => router.back()}
             onPressIn={() => {
@@ -154,7 +162,7 @@ export function PublicSellerProfileScreen({ userId }: Props) {
           >
             <MaterialIcons name="arrow-back" size={20} color="#FFF" />
           </AnimatedPressable>
-          <ThemedText style={styles.topTitle}>
+          <ThemedText type="screenTitle" style={styles.topTitle}>
             {t("publicProfileTitle")}
           </ThemedText>
           <View style={styles.backButton} />
@@ -465,7 +473,7 @@ export function PublicSellerProfileScreen({ userId }: Props) {
           </Animated.ScrollView>
         )}
       </ThemedView>
-    </AppSafeAreaView>
+    </ThemedView>
   );
 }
 
@@ -473,7 +481,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   container: { flex: 1 },
   topBar: {
-    height: 52,
+    minHeight: 52,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -486,7 +494,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  topTitle: { color: "#FFF", fontSize: 18, fontWeight: "800" },
+  topTitle: { color: "#FFF" },
   centeredFull: {
     flex: 1,
     alignItems: "center",

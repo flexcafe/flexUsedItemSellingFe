@@ -1,7 +1,8 @@
 import { Colors } from "@/constants/theme";
 import type { Category } from "@/core/domain/entities/Category";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useAppSafeAreaInsets } from "@/components/app-safe-area";
+import { paddingTopInsideSafeAreaForLanguageSwitcher } from "@/constants/language-switcher-layout";
+import { ScreenTitleTypography } from "@/constants/typography";
 import { AppScrollView } from "@/components/app-scroll-view";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
@@ -9,11 +10,6 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-
-/** Clears `LanguageSwitcher` (absolute `top: ~44` + bar height) from overlapping the hero. */
-const EXTRA_TOP_FOR_LANGUAGE_SWITCHER = 36;
-/** Extra breathing room below the switcher / title row. */
-const HERO_EXTRA_TOP_MARGIN = 14;
 
 /** Compact tiles to match reference (~square, many visible per row). */
 const CATEGORY_TILE_WIDTH = 68;
@@ -34,7 +30,6 @@ export function HomeHero({
   onSelectCategory,
   onOpenReports,
 }: HomeHeroProps) {
-  const insets = useAppSafeAreaInsets();
   const router = useRouter();
   const { logout } = useAuth();
   const { t, categorySecondLine } = useLocale();
@@ -47,10 +42,7 @@ export function HomeHero({
         styles.hero,
         {
           backgroundColor: tint,
-          paddingTop:
-            Math.max(insets.top, 6) +
-            EXTRA_TOP_FOR_LANGUAGE_SWITCHER +
-            HERO_EXTRA_TOP_MARGIN,
+          paddingTop: paddingTopInsideSafeAreaForLanguageSwitcher(),
         },
       ]}
     >
@@ -175,10 +167,8 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   marketTitle: {
+    ...ScreenTitleTypography,
     color: "#fff",
-    fontSize: 18,
-    fontWeight: "800",
-    letterSpacing: 0.15,
     paddingHorizontal: 12,
     marginTop: 0,
     marginBottom: 6,

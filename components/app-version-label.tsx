@@ -10,11 +10,13 @@ import { ThemedText } from "./themed-text";
 
 type AppVersionLabelProps = {
   align?: "left" | "center";
+  numberOfLines?: number;
   style?: StyleProp<TextStyle>;
 };
 
 export function AppVersionLabel({
   align = "center",
+  numberOfLines,
   style,
 }: AppVersionLabelProps) {
   const { tf } = useLocale();
@@ -27,6 +29,8 @@ export function AppVersionLabel({
 
   return (
     <ThemedText
+      numberOfLines={numberOfLines}
+      ellipsizeMode="tail"
       style={[
         styles.text,
         { color: colors.icon, textAlign: align },

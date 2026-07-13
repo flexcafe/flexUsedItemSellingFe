@@ -248,7 +248,7 @@ export function ChatInboxScreen() {
         entering={uiSectionEnter(0, reduceMotion)}
         style={[styles.header, { paddingTop: topInset }]}
       >
-        <ThemedText type="title">{t("chatInboxTitle")}</ThemedText>
+        <ThemedText type="screenTitle">{t("chatInboxTitle")}</ThemedText>
         <ThemedText style={styles.subtitle}>
           {t("chatInboxSubtitle")}
         </ThemedText>

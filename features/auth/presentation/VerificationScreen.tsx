@@ -13,7 +13,6 @@ import {
 import { useReducedMotion } from "react-native-reanimated";
 
 import { AppVersionLabel } from "@/components/app-version-label";
-import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
@@ -45,8 +44,6 @@ export function VerificationScreen() {
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
   const reduceMotion = useReducedMotion();
-  const insets = useAppSafeAreaInsets();
-
   const initialPhone = typeof params.phone === "string" ? params.phone : "";
   const initialEmail = typeof params.email === "string" ? params.email : "";
 
@@ -152,8 +149,8 @@ export function VerificationScreen() {
         contentContainerStyle={[
           styles.content,
           {
-            paddingTop: Math.max(insets.top, 24),
-            paddingBottom: Math.max(insets.bottom, 24) + 40,
+            paddingTop: 24,
+            paddingBottom: 40,
           },
         ]}
         keyboardShouldPersistTaps="always"
@@ -169,7 +166,7 @@ export function VerificationScreen() {
               >
                 <MaterialIcons name="arrow-back" size={24} color={colors.text} />
               </Pressable>
-              <ThemedText type="title" style={styles.title}>
+              <ThemedText type="screenTitle" style={styles.title}>
                 {t("verification")}
               </ThemedText>
               <View style={styles.backButton} />
@@ -371,7 +368,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  title: { fontSize: 22 },
+  title: {},
   cardHeader: {
     alignItems: "flex-start",
     gap: 4,

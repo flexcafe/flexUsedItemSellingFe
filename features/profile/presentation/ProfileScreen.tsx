@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { AccessToken, LoginManager, Settings, type LoginResult } from "react-native-fbsdk-next";
 
-import { useAppSafeAreaInsets } from "@/components/app-safe-area";
+import { useAppliedSafeAreaInsets, useLanguageSwitcherSafeTop } from "@/components/app-safe-area";
 import { KeyboardAwareFormScroll } from "@/components/keyboard-aware-form-scroll";
 import { PasswordInput } from "@/components/password-input";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
@@ -172,7 +172,8 @@ export function ProfileScreen() {
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
   const reduceMotion = useReducedMotion();
-  const insets = useAppSafeAreaInsets();
+  const insets = useAppliedSafeAreaInsets();
+  const topInset = useLanguageSwitcherSafeTop();
   const pointsQuery = useProfilePoints();
   const rankConfigsQuery = useRankConfigs();
   const statsQuery = useProfileTransactionStats();
@@ -866,7 +867,7 @@ export function ProfileScreen() {
         contentContainerStyle={[
           styles.content,
           {
-            paddingTop: Math.max(insets.top, 24),
+            paddingTop: topInset,
             paddingBottom: Math.max(insets.bottom, 24) + 42,
           },
         ]}
@@ -887,7 +888,7 @@ export function ProfileScreen() {
         keyboardShouldPersistTaps="handled"
       >
           <ProfileAnimatedSection delayMs={0} reduceMotion={reduceMotion}>
-            <ThemedText type="title" style={styles.title}>
+            <ThemedText type="screenTitle" style={styles.title}>
               {t("profileTitle")}
             </ThemedText>
           </ProfileAnimatedSection>
@@ -2279,7 +2280,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 16,
   },
-  title: { fontSize: 24, marginBottom: 4 },
+  title: { marginBottom: 4 },
   tabs: {
     flexDirection: "row",
     borderWidth: 1,

@@ -21,7 +21,6 @@ import { z } from "zod";
 
 import { AppVersionLabel } from "@/components/app-version-label";
 import { AuthLogo } from "@/components/auth-logo";
-import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import { PasswordInput } from "@/components/password-input";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
 import { PhoneNumberInput } from "@/components/phone-number-input";
@@ -138,8 +137,6 @@ export function RegisterScreen() {
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
   const reduceMotion = useReducedMotion();
-  const insets = useAppSafeAreaInsets();
-
   // Registration method toggle removed for now (phone-only).
   const registrationType = "PHONE_ONLY" as const;
   const [nickname, setNickname] = useState("");
@@ -487,8 +484,8 @@ export function RegisterScreen() {
         contentContainerStyle={[
           styles.content,
           {
-            paddingTop: Math.max(insets.top, 24) + 42,
-            paddingBottom: Math.max(insets.bottom, 24) + 96,
+            paddingTop: 24 + 42,
+            paddingBottom: 96,
           },
         ]}
         footer={
@@ -522,7 +519,7 @@ export function RegisterScreen() {
             >
               <ThemedText style={{ fontSize: 22 }}>‹</ThemedText>
             </Pressable>
-            <ThemedText type="title" style={styles.title}>
+            <ThemedText type="screenTitle" style={styles.title}>
               {t("signUp")}
             </ThemedText>
             <View style={styles.backButton} />
@@ -933,7 +930,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  title: { fontSize: 22 },
+  title: {},
   field: { gap: 6 },
   label: { fontWeight: "600", fontSize: 14 },
   input: {
