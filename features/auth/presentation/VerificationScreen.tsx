@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
@@ -15,7 +14,6 @@ import { useReducedMotion } from "react-native-reanimated";
 
 import { AppVersionLabel } from "@/components/app-version-label";
 import { useAppSafeAreaInsets } from "@/components/app-safe-area";
-import { AppScrollView } from "@/components/app-scroll-view";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
@@ -23,6 +21,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 
+import { AuthKeyboardScreen } from "./AuthKeyboardScreen";
 import {
   AuthAnimatedCard,
   AuthAnimatedSection,
@@ -149,20 +148,16 @@ export function VerificationScreen() {
 
   return (
     <ThemedView style={styles.screen}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}
+      <AuthKeyboardScreen
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: Math.max(insets.top, 24),
+            paddingBottom: Math.max(insets.bottom, 24) + 40,
+          },
+        ]}
+        keyboardShouldPersistTaps="always"
       >
-        <AppScrollView
-          contentContainerStyle={[
-            styles.content,
-            {
-              paddingTop: Math.max(insets.top, 24),
-              paddingBottom: Math.max(insets.bottom, 24) + 40,
-            },
-          ]}
-          keyboardShouldPersistTaps="always"
-        >
           <AuthAnimatedSection delayMs={0} reduceMotion={reduceMotion}>
             <View style={styles.headerRow}>
               <Pressable
@@ -353,8 +348,7 @@ export function VerificationScreen() {
           <AuthAnimatedSection delayMs={160} reduceMotion={reduceMotion}>
             <AppVersionLabel style={styles.versionLabel} />
           </AuthAnimatedSection>
-        </AppScrollView>
-      </KeyboardAvoidingView>
+      </AuthKeyboardScreen>
     </ThemedView>
   );
 }

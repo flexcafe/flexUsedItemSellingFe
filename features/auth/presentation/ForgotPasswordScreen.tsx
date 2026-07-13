@@ -9,8 +9,6 @@ import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
   TextInput,
@@ -22,7 +20,6 @@ import { z } from "zod";
 import { AppVersionLabel } from "@/components/app-version-label";
 import { AuthLogo } from "@/components/auth-logo";
 import { useAppSafeAreaInsets } from "@/components/app-safe-area";
-import { AppScrollView } from "@/components/app-scroll-view";
 import {
   PHONE_COUNTRIES,
   PhoneNumberInput,
@@ -41,6 +38,7 @@ import {
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 
+import { AuthKeyboardScreen } from "./AuthKeyboardScreen";
 import {
   AuthAnimatedCard,
   AuthAnimatedSection,
@@ -282,21 +280,15 @@ export function ForgotPasswordScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.keyboardView}
+      <AuthKeyboardScreen
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top, 8),
+            paddingBottom: Math.max(insets.bottom, 24) + 40,
+          },
+        ]}
       >
-        <AppScrollView
-          contentContainerStyle={[
-            styles.scrollContent,
-            {
-              paddingTop: Math.max(insets.top, 8),
-              paddingBottom: Math.max(insets.bottom, 24) + 40,
-            },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
           <AuthAnimatedSection delayMs={0} reduceMotion={reduceMotion}>
             <View style={styles.headerRow}>
               <Pressable
@@ -560,8 +552,7 @@ export function ForgotPasswordScreen() {
           <AuthStaggerItem index={5} reduceMotion={reduceMotion}>
             <AppVersionLabel style={styles.versionLabel} />
           </AuthStaggerItem>
-        </AppScrollView>
-      </KeyboardAvoidingView>
+      </AuthKeyboardScreen>
     </ThemedView>
   );
 }
@@ -570,9 +561,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 24,
-  },
-  keyboardView: {
-    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,

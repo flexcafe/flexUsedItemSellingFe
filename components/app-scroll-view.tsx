@@ -1,5 +1,12 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentRef,
+} from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -33,19 +40,25 @@ type AppScrollViewProps = Omit<ScrollViewProps, "style"> & {
 
 const SCROLL_HINT_BOTTOM_GAP = 12;
 
-export function AppScrollView({
-  style,
-  scrollViewStyle,
-  showScrollHint = true,
-  hintBottomOffset = 12,
-  horizontal,
-  onLayout,
-  onContentSizeChange,
-  onScroll,
-  scrollEventThrottle,
-  children,
-  ...rest
-}: AppScrollViewProps) {
+export const AppScrollView = forwardRef<
+  ComponentRef<typeof ScrollView>,
+  AppScrollViewProps
+>(function AppScrollView(
+  {
+    style,
+    scrollViewStyle,
+    showScrollHint = true,
+    hintBottomOffset = 12,
+    horizontal,
+    onLayout,
+    onContentSizeChange,
+    onScroll,
+    scrollEventThrottle,
+    children,
+    ...rest
+  },
+  ref,
+) {
   const colorScheme = useColorScheme();
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
@@ -57,8 +70,11 @@ export function AppScrollView({
   const hintOffset = useSharedValue(0);
 
   const canScroll = contentHeight > viewportHeight + 8;
-  const atBottom = scrollY >= Math.max(0, contentHeight - viewportHeight - SCROLL_HINT_BOTTOM_GAP);
-  const shouldShowHint = Boolean(showScrollHint && !horizontal && canScroll && !atBottom);
+  const atBottom =
+    scrollY >= Math.max(0, contentHeight - viewportHeight - SCROLL_HINT_BOTTOM_GAP);
+  const shouldShowHint = Boolean(
+    showScrollHint && !horizontal && canScroll && !atBottom,
+  );
 
   useEffect(() => {
     if (!shouldShowHint || reduceMotion) {
@@ -104,14 +120,12 @@ export function AppScrollView({
     [onScroll],
   );
 
-  const hintTint = useMemo(
-    () => colors.tint,
-    [colors.tint],
-  );
+  const hintTint = useMemo(() => colors.tint, [colors.tint]);
 
   return (
     <View style={[styles.container, style]}>
       <ScrollView
+        ref={ref}
         {...rest}
         horizontal={horizontal}
         style={scrollViewStyle}
@@ -144,7 +158,7 @@ export function AppScrollView({
       ) : null}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

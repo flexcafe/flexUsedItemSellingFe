@@ -4,8 +4,6 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
   TextInput,
@@ -17,7 +15,6 @@ import { z } from "zod";
 import { AppVersionLabel } from "@/components/app-version-label";
 import { AuthLogo } from "@/components/auth-logo";
 import { useAppSafeAreaInsets } from "@/components/app-safe-area";
-import { AppScrollView } from "@/components/app-scroll-view";
 import {
   PHONE_COUNTRIES,
   PhoneNumberInput,
@@ -31,6 +28,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 
+import { AuthKeyboardScreen } from "./AuthKeyboardScreen";
 import {
   AuthAnimatedSection,
   AuthLanguageBar,
@@ -148,21 +146,25 @@ export function LoginScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.keyboardView}
+      <AuthKeyboardScreen
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top, 24),
+            paddingBottom: Math.max(insets.bottom, 24) + 96,
+          },
+        ]}
+        footer={
+          <AuthLanguageBar
+            locale={locale}
+            onSelect={setLocale}
+            scheme={scheme}
+            colors={colors}
+            disabled={isSubmitting}
+            reduceMotion={reduceMotion}
+          />
+        }
       >
-        <AppScrollView
-          contentContainerStyle={[
-            styles.scrollContent,
-            {
-              paddingTop: Math.max(insets.top, 24),
-              paddingBottom: Math.max(insets.bottom, 24) + 96,
-            },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
           <AuthAnimatedSection delayMs={0} reduceMotion={reduceMotion} style={styles.header}>
             <AuthLogo variant="compact" />
             <ThemedText numberOfLines={1} type="title" style={styles.appTitle}>
@@ -309,17 +311,7 @@ export function LoginScreen() {
               <AppVersionLabel style={styles.versionLabel} />
             </AuthStaggerItem>
           </View>
-        </AppScrollView>
-
-        <AuthLanguageBar
-          locale={locale}
-          onSelect={setLocale}
-          scheme={scheme}
-          colors={colors}
-          disabled={isSubmitting}
-          reduceMotion={reduceMotion}
-        />
-      </KeyboardAvoidingView>
+      </AuthKeyboardScreen>
     </ThemedView>
   );
 }
@@ -329,16 +321,15 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
   },
-  keyboardView: {
-    flex: 1,
-  },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center",
+    justifyContent: "flex-start",
+    paddingTop: 12,
   },
   header: {
     alignItems: "center",
     marginBottom: 32,
+    marginTop: 24,
     gap: 8,
   },
   appTitle: {

@@ -9,7 +9,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
@@ -23,7 +22,6 @@ import { z } from "zod";
 import { AppVersionLabel } from "@/components/app-version-label";
 import { AuthLogo } from "@/components/auth-logo";
 import { useAppSafeAreaInsets } from "@/components/app-safe-area";
-import { AppScrollView } from "@/components/app-scroll-view";
 import { PasswordInput } from "@/components/password-input";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
 import { PhoneNumberInput } from "@/components/phone-number-input";
@@ -44,6 +42,7 @@ import {
 } from "@/presentation/lib/referral";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 
+import { AuthKeyboardScreen } from "./AuthKeyboardScreen";
 import {
   AuthAnimatedSection,
   AuthLanguageBar,
@@ -484,20 +483,25 @@ export function RegisterScreen() {
 
   return (
     <ThemedView style={styles.screen}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}
+      <AuthKeyboardScreen
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: Math.max(insets.top, 24) + 42,
+            paddingBottom: Math.max(insets.bottom, 24) + 96,
+          },
+        ]}
+        footer={
+          <AuthLanguageBar
+            locale={locale}
+            onSelect={setLocale}
+            scheme={scheme}
+            colors={colors}
+            disabled={isSubmitting}
+            reduceMotion={reduceMotion}
+          />
+        }
       >
-        <AppScrollView
-          contentContainerStyle={[
-            styles.content,
-            {
-              paddingTop: Math.max(insets.top, 24) + 42,
-              paddingBottom: Math.max(insets.bottom, 24) + 96,
-            },
-          ]}
-          keyboardShouldPersistTaps="handled"
-        >
           <AuthAnimatedSection
             delayMs={0}
             reduceMotion={reduceMotion}
@@ -902,16 +906,7 @@ export function RegisterScreen() {
           <AuthStaggerItem index={14} reduceMotion={reduceMotion}>
             <AppVersionLabel style={styles.versionLabel} />
           </AuthStaggerItem>
-        </AppScrollView>
-        <AuthLanguageBar
-          locale={locale}
-          onSelect={setLocale}
-          scheme={scheme}
-          colors={colors}
-          disabled={isSubmitting}
-          reduceMotion={reduceMotion}
-        />
-      </KeyboardAvoidingView>
+      </AuthKeyboardScreen>
     </ThemedView>
   );
 }

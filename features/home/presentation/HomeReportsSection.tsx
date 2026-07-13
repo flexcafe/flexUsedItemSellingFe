@@ -1,6 +1,6 @@
 import { DateTimeField } from "@/components/date-time-field";
 import { useAppSafeAreaInsets } from "@/components/app-safe-area";
-import { AppScrollView } from "@/components/app-scroll-view";
+import { KeyboardAwareFormScroll } from "@/components/keyboard-aware-form-scroll";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
@@ -41,9 +41,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   StyleSheet,
   TextInput,
@@ -418,10 +416,6 @@ export function HomeReportsSection({
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <ThemedView style={styles.screen}>
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
           <Animated.View
             entering={headerEntering}
             style={[
@@ -486,7 +480,8 @@ export function HomeReportsSection({
             />
           </View>
 
-          <AppScrollView
+          <KeyboardAwareFormScroll
+            fill
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={[
@@ -792,8 +787,7 @@ export function HomeReportsSection({
                 )}
               </ProfileTabPanel>
             )}
-          </AppScrollView>
-        </KeyboardAvoidingView>
+          </KeyboardAwareFormScroll>
       </ThemedView>
     </Modal>
   );

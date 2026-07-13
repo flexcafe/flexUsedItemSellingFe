@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  KeyboardAvoidingView,
+  Keyboard,
   Modal,
   Platform,
   Pressable,
@@ -345,6 +345,7 @@ type Props = {
 
 const LIVE_MAP_MODAL_MAX_HEIGHT = 400;
 const COMPLETION_MODAL_MAX_HEIGHT = 390;
+const CHAT_COMPOSER_KEYBOARD_GAP = 36;
 
 export function ChatRoomScreen({
   chatRoomId,
@@ -485,6 +486,7 @@ export function ChatRoomScreen({
     latitude: number;
     longitude: number;
   } | null>(null);
+  const [keyboardOverlap, setKeyboardOverlap] = useState(0);
   const safePaymentStatusQuery = useSafePaymentStatus(chatRoomId);
   const listRef = useRef<FlatListType<ChatMessage>>(null);
   const messages = useMemo(() => {
@@ -1029,6 +1031,32 @@ export function ChatRoomScreen({
       listRef.current?.scrollToEnd({ animated: true });
     });
   }, [chronological.length, latestMessageId]);
+
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (event) => {
+      const overlap = Math.max(
+        0,
+        Math.round(windowHeight - event.endCoordinates.screenY),
+      );
+      setKeyboardOverlap(overlap);
+      requestAnimationFrame(() => {
+        listRef.current?.scrollToEnd({ animated: true });
+      });
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardOverlap(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [windowHeight]);
 
   const onSend = useCallback(() => {
     const content = draft.trim();
@@ -2667,11 +2695,7 @@ export function ChatRoomScreen({
         </Animated.View>
       ) : null}
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
-      >
+      <View style={styles.chatStack}>
         {messagesQuery.isLoading ? (
           <View style={styles.center}>
             <ActivityIndicator color={colors.tint} />
@@ -2682,7 +2706,16 @@ export function ChatRoomScreen({
             data={chronological}
             keyExtractor={(item) => item.id}
             renderItem={renderMessage}
-            contentContainerStyle={styles.messagesContent}
+            contentContainerStyle={[
+              styles.messagesContent,
+              {
+                paddingBottom:
+                  96 +
+                  Math.max(insets.bottom, 10) +
+                  keyboardOverlap +
+                  (keyboardOverlap > 0 ? CHAT_COMPOSER_KEYBOARD_GAP : 0),
+              },
+            ]}
             onScroll={(event) =>
               onMessagesScroll(event.nativeEvent.contentOffset.y)
             }
@@ -2721,6 +2754,9 @@ export function ChatRoomScreen({
             {
               borderTopColor: colors.icon + "33",
               backgroundColor: colors.background,
+              bottom:
+                keyboardOverlap +
+                (keyboardOverlap > 0 ? CHAT_COMPOSER_KEYBOARD_GAP : 0),
               paddingBottom: Math.max(insets.bottom, 10),
             },
           ]}
@@ -2765,7 +2801,7 @@ export function ChatRoomScreen({
             )}
           </AnimatedPressable>
         </Animated.View>
-      </KeyboardAvoidingView>
+      </View>
 
       <Modal
         transparent
@@ -3920,6 +3956,10 @@ function DirectTradeRequestCard({
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   flex: { flex: 1 },
+  chatStack: {
+    flex: 1,
+    position: "relative",
+  },
   backBtn: {
     position: "absolute",
     left: 16,
@@ -4373,6 +4413,9 @@ const styles = StyleSheet.create({
   },
   emptyThreadText: { opacity: 0.7, fontSize: 14 },
   composer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
     flexDirection: "row",
     alignItems: "flex-end",
     gap: 8,

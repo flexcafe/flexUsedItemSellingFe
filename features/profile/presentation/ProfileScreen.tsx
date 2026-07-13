@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Linking,
   NativeModules,
   Platform,
@@ -18,7 +17,7 @@ import {
 import { AccessToken, LoginManager, Settings, type LoginResult } from "react-native-fbsdk-next";
 
 import { useAppSafeAreaInsets } from "@/components/app-safe-area";
-import { AppScrollView } from "@/components/app-scroll-view";
+import { KeyboardAwareFormScroll } from "@/components/keyboard-aware-form-scroll";
 import { PasswordInput } from "@/components/password-input";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
 import { ThemedText } from "@/components/themed-text";
@@ -862,34 +861,31 @@ export function ProfileScreen() {
 
   return (
     <ThemedView style={styles.screen}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}
+      <KeyboardAwareFormScroll
+        fill
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: Math.max(insets.top, 24),
+            paddingBottom: Math.max(insets.bottom, 24) + 42,
+          },
+        ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={profileRefreshing}
+            onRefresh={() => {
+              void refreshProfile();
+              void pointsQuery.refetch();
+              void rankConfigsQuery.refetch();
+              void statsQuery.refetch();
+              void withdrawalsQuery.refetch();
+              void latestFacebookFollowQuery.refetch();
+            }}
+            tintColor={colors.tint}
+          />
+        }
+        keyboardShouldPersistTaps="handled"
       >
-        <AppScrollView
-          contentContainerStyle={[
-            styles.content,
-            {
-              paddingTop: Math.max(insets.top, 24),
-              paddingBottom: Math.max(insets.bottom, 24) + 42,
-            },
-          ]}
-          refreshControl={
-            <RefreshControl
-              refreshing={profileRefreshing}
-              onRefresh={() => {
-                void refreshProfile();
-                void pointsQuery.refetch();
-                void rankConfigsQuery.refetch();
-                void statsQuery.refetch();
-                void withdrawalsQuery.refetch();
-                void latestFacebookFollowQuery.refetch();
-              }}
-              tintColor={colors.tint}
-            />
-          }
-          keyboardShouldPersistTaps="handled"
-        >
           <ProfileAnimatedSection delayMs={0} reduceMotion={reduceMotion}>
             <ThemedText type="title" style={styles.title}>
               {t("profileTitle")}
@@ -2272,8 +2268,7 @@ export function ProfileScreen() {
               </ThemedText>
             </ProfilePressableScale>
           </ProfileAnimatedSection>
-        </AppScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareFormScroll>
     </ThemedView>
   );
 }

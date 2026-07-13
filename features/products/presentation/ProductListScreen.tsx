@@ -1,4 +1,5 @@
 import { AppScrollView } from "@/components/app-scroll-view";
+import { KeyboardAwareFormScroll } from "@/components/keyboard-aware-form-scroll";
 import * as ImagePicker from "expo-image-picker";
 import type { LocationGeocodedAddress } from "expo-location";
 import * as Location from "expo-location";
@@ -1206,10 +1207,12 @@ export function ProductListScreen() {
                     ? t("productsComposerStepHint3")
                     : t("productsComposerStepHint4")}
             </ThemedText>
-            <AppScrollView
+            <KeyboardAwareFormScroll
               style={styles.formBody}
+              contentContainerStyle={styles.formBodyContent}
               keyboardShouldPersistTaps="handled"
               nestedScrollEnabled
+              showScrollHint
             >
               {composerStep === 0 ? (
                 <>
@@ -1974,7 +1977,7 @@ export function ProductListScreen() {
                   ) : null}
                 </>
               ) : null}
-            </AppScrollView>
+            </KeyboardAwareFormScroll>
             <View style={styles.composerFooter}>
               {composerStep > 0 ? (
                 <Pressable
@@ -2226,6 +2229,10 @@ const styles = StyleSheet.create({
   },
   formBody: {
     maxHeight: 520,
+  },
+  formBodyContent: {
+    paddingBottom: 16,
+    gap: 0,
   },
   composerFooter: {
     flexDirection: "row",
