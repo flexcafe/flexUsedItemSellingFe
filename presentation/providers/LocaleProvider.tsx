@@ -4183,10 +4183,10 @@ const DICT: Dictionary = {
     en: "e.g. Near Sule Pagoda traffic light",
   },
   productsPlaceholderPreferredTradeTime: {
-    ko: "예: 평일 오후 6시 이후",
-    my: "ဥပမာ အပတ်စဉ် ညနေ ၆ နာရီနောက်ပိုင်း",
-    zh: "例如：工作日晚上6点后",
-    en: "e.g. Weekdays after 6 PM",
+    ko: "HH:mm (24시간)",
+    my: "HH:mm (၂၄ နာရီ)",
+    zh: "HH:mm（24小时）",
+    en: "HH:mm (24-hour)",
   },
   productsPlaceholderMapScreenshotUrl: {
     ko: "https://.../map-shot.jpg",

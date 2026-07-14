@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 
+import { DateTimeField } from "@/components/date-time-field";
 import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { toAbsoluteMediaUrl } from "@/core/application/mappers/mediaUrl";
@@ -1116,10 +1117,49 @@ export function ProductListScreen() {
           ? t("productsSuccessCreated")
           : t("productsSuccessUpdated"),
       );
-    } catch {
+    } catch (error) {
+      const response =
+        error && typeof error === "object" && "response" in error
+          ? (
+              error as {
+                response?: {
+                  status?: unknown;
+                  data?: unknown;
+                };
+              }
+            ).response
+          : undefined;
+      const status = Number(response?.status);
+      const apiData = response?.data;
+      let apiMessage = "";
+      if (apiData && typeof apiData === "object" && "message" in apiData) {
+        const raw = (apiData as { message?: unknown }).message;
+        if (typeof raw === "string") apiMessage = raw.trim();
+        else if (Array.isArray(raw)) apiMessage = raw.map(String).join("; ");
+      }
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const apiDataText =
+        typeof apiData === "string"
+          ? apiData
+          : apiData != null
+            ? JSON.stringify(apiData)
+            : "";
+      const isEntityTooLarge =
+        status === 413 ||
+        /413|request entity too large|entity too large/i.test(
+          `${errorMessage} ${apiDataText} ${apiMessage}`,
+        );
+      if (isEntityTooLarge) {
+        Alert.alert(
+          t("productsAlertImageSizeTitle"),
+          t("productsAlertImageSizeBody"),
+        );
+        return;
+      }
       Alert.alert(
         t("productsErrorRequestTitle"),
-        t("productsErrorRequestBody"),
+        apiMessage || t("productsErrorRequestBody"),
       );
     }
   };
@@ -1608,20 +1648,14 @@ export function ProductListScreen() {
                     placeholderTextColor={colors.icon}
                   />
 
-                  <ThemedText style={styles.fieldLabel}>
-                    {t("productsFieldPreferredTradeTime")}
-                  </ThemedText>
-                  <TextInput
+                  <DateTimeField
+                    mode="time"
                     value={form.preferredTradeTime}
-                    onChangeText={(preferredTradeTime) =>
+                    onChange={(preferredTradeTime) =>
                       setForm((prev) => ({ ...prev, preferredTradeTime }))
                     }
-                    style={[
-                      styles.input,
-                      { color: colors.text, borderColor: colors.icon + "66" },
-                    ]}
+                    label={t("productsFieldPreferredTradeTime")}
                     placeholder={t("productsPlaceholderPreferredTradeTime")}
-                    placeholderTextColor={colors.icon}
                   />
 
                   <ThemedText style={styles.fieldLabel}>
