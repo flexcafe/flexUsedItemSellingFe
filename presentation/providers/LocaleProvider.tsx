@@ -298,6 +298,30 @@ const DICT: Dictionary = {
     zh: "错误",
     en: "Error",
   },
+  commonLoading: {
+    ko: "불러오는 중…",
+    my: "ဖွင့်နေသည်…",
+    zh: "加载中…",
+    en: "Loading…",
+  },
+  flexLoaderTrade: {
+    ko: "거래",
+    my: "ရောင်းဝယ်",
+    zh: "交易",
+    en: "TRADE",
+  },
+  flexLoaderList: {
+    ko: "등록",
+    my: "တင်ရန်",
+    zh: "上架",
+    en: "LIST",
+  },
+  flexLoaderMeet: {
+    ko: "만남",
+    my: "တွေ့ဆုံ",
+    zh: "面交",
+    en: "MEET",
+  },
   genericErrorBody: {
     ko: "문제가 발생했습니다. 다시 시도하세요.",
     my: "တစ်ခုခု မှားသွားပါသည်။ ပြန်လည်ကြိုးစားပါ။",

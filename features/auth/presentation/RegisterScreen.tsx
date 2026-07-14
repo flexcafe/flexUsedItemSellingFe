@@ -7,7 +7,6 @@ import {
 } from "libphonenumber-js";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Platform,
   Pressable,
@@ -20,6 +19,7 @@ import { WebView } from "react-native-webview";
 import { z } from "zod";
 
 import { AppVersionLabel } from "@/components/app-version-label";
+import { FlexMarketLoader } from "@/components/flex-market-loader";
 import { AuthLogo } from "@/components/auth-logo";
 import { PasswordInput } from "@/components/password-input";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
@@ -876,7 +876,7 @@ export function RegisterScreen() {
               style={[styles.submitButton, isSubmitting && { opacity: 0.7 }]}
             >
               {isSubmitting ? (
-                <ActivityIndicator color="#fff" />
+                <FlexMarketLoader variant="inline" size="xs" showText={false} />
               ) : (
                 <ThemedText style={styles.submitText}>
                   {t("signUpCta")}

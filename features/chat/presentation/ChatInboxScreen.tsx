@@ -3,7 +3,6 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { memo, useMemo } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
@@ -20,6 +19,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { FlexMarketLoader } from "@/components/flex-market-loader";
 import { useLanguageSwitcherSafeTop } from "@/components/app-safe-area";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -259,7 +259,7 @@ export function ChatInboxScreen() {
           entering={uiFadeEnter(reduceMotion)}
           style={styles.center}
         >
-          <ActivityIndicator size="large" color={colors.tint} />
+          <FlexMarketLoader size="md" />
         </Animated.View>
       ) : roomsQuery.isError ? (
         <Animated.View
@@ -317,7 +317,7 @@ export function ChatInboxScreen() {
           ListFooterComponent={
             roomsQuery.isFetchingNextPage ? (
               <View style={styles.footerLoader}>
-                <ActivityIndicator color={colors.tint} />
+                <FlexMarketLoader variant="inline" size="xs" showText={false} />
               </View>
             ) : null
           }

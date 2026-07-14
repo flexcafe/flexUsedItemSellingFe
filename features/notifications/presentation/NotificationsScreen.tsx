@@ -1,7 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { memo, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
@@ -10,6 +9,7 @@ import {
 } from "react-native";
 import Animated, { useReducedMotion } from "react-native-reanimated";
 
+import { FlexMarketLoader } from "@/components/flex-market-loader";
 import { useLanguageSwitcherSafeTop } from "@/components/app-safe-area";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -358,7 +358,7 @@ export function NotificationsScreen() {
           entering={uiFadeEnter(reduceMotion)}
           style={styles.center}
         >
-          <ActivityIndicator size="large" color={colors.tint} />
+          <FlexMarketLoader size="md" />
         </Animated.View>
       ) : (
         <FlatList

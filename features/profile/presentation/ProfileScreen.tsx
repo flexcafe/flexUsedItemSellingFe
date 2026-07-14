@@ -3,7 +3,6 @@ import { Image, type ImageSource } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Linking,
   NativeModules,
@@ -17,6 +16,7 @@ import {
 import { AccessToken, LoginManager, Settings, type LoginResult } from "react-native-fbsdk-next";
 
 import { useAppliedSafeAreaInsets, useLanguageSwitcherSafeTop } from "@/components/app-safe-area";
+import { FlexMarketLoader } from "@/components/flex-market-loader";
 import { KeyboardAwareFormScroll } from "@/components/keyboard-aware-form-scroll";
 import { PasswordInput } from "@/components/password-input";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
@@ -1036,7 +1036,7 @@ export function ProfileScreen() {
 
                 {rewardLoading ? (
                   <View style={styles.rewardLoading}>
-                    <ActivityIndicator color={colors.tint} />
+                    <FlexMarketLoader variant="inline" size="xs" showText={false} />
                   </View>
                 ) : rewardError ? (
                   <Pressable
@@ -1208,7 +1208,7 @@ export function ProfileScreen() {
                         ]}
                       >
                         {requestWithdrawal.isPending ? (
-                          <ActivityIndicator color="#fff" />
+                          <FlexMarketLoader variant="inline" size="xs" showText={false} />
                         ) : (
                           <View style={styles.buttonContent}>
                             <MaterialIcons
@@ -1302,7 +1302,7 @@ export function ProfileScreen() {
                             {rankConfigsQuery.isLoading &&
                             rankLadder.length === 0 ? (
                               <View style={styles.rankLoading}>
-                                <ActivityIndicator color={colors.tint} />
+                                <FlexMarketLoader variant="inline" size="xs" showText={false} />
                               </View>
                             ) : rankLadder.length === 0 ? (
                               <ThemedText style={styles.profileSub}>
@@ -1386,10 +1386,7 @@ export function ProfileScreen() {
                             {t("rewardWithdrawalHistory")}
                           </ThemedText>
                           {withdrawalsQuery.isFetching ? (
-                            <ActivityIndicator
-                              color={colors.tint}
-                              size="small"
-                            />
+                            <FlexMarketLoader variant="inline" size="xs" showText={false} />
                           ) : null}
                         </View>
                         <MaterialIcons
@@ -1532,10 +1529,7 @@ export function ProfileScreen() {
                                 ]}
                               >
                                 {loading.verifyOtp ? (
-                                  <ActivityIndicator
-                                    color="#fff"
-                                    size="small"
-                                  />
+                                  <FlexMarketLoader variant="inline" size="xs" showText={false} />
                                 ) : (
                                   <ThemedText style={styles.primaryButtonText}>
                                     {t("verify")}
@@ -1549,10 +1543,7 @@ export function ProfileScreen() {
                               style={styles.linkButton}
                             >
                               {loading.sendOtp ? (
-                                <ActivityIndicator
-                                  color={colors.tint}
-                                  size="small"
-                                />
+                                <FlexMarketLoader variant="inline" size="xs" showText={false} />
                               ) : (
                                 <ThemedText
                                   style={{
@@ -1667,7 +1658,7 @@ export function ProfileScreen() {
                               ]}
                             >
                               {loading.facebookLink ? (
-                                <ActivityIndicator color="#fff" />
+                                <FlexMarketLoader variant="inline" size="xs" showText={false} />
                               ) : (
                                 <ThemedText style={styles.primaryButtonText}>
                                   {t("facebookOAuthButton")}
@@ -1734,7 +1725,7 @@ export function ProfileScreen() {
                               ]}
                             >
                               {loading.facebookScreenshot ? (
-                                <ActivityIndicator color={colors.tint} />
+                                <FlexMarketLoader variant="inline" size="xs" showText={false} />
                               ) : (
                                 <ThemedText
                                   style={[
@@ -1774,7 +1765,7 @@ export function ProfileScreen() {
                               ]}
                             >
                               {loading.facebookFollowSubmit ? (
-                                <ActivityIndicator color="#fff" />
+                                <FlexMarketLoader variant="inline" size="xs" showText={false} />
                               ) : (
                                 <ThemedText style={styles.primaryButtonText}>
                                   {t("facebookSubmitFollowProof")}
@@ -1793,10 +1784,7 @@ export function ProfileScreen() {
                                   {t("facebookFollowLatestStatus")}
                                 </ThemedText>
                                 {latestFacebookFollowQuery.isFetching ? (
-                                  <ActivityIndicator
-                                    size="small"
-                                    color={colors.tint}
-                                  />
+                                  <FlexMarketLoader variant="inline" size="xs" showText={false} />
                                 ) : null}
                               </View>
                               <ThemedText
@@ -1898,7 +1886,7 @@ export function ProfileScreen() {
                               ]}
                             >
                               {loading.sendEmail ? (
-                                <ActivityIndicator color={colors.tint} />
+                                <FlexMarketLoader variant="inline" size="xs" showText={false} />
                               ) : (
                                 <ThemedText
                                   style={[
@@ -1941,7 +1929,7 @@ export function ProfileScreen() {
                               ]}
                             >
                               {loading.verifyEmail ? (
-                                <ActivityIndicator color="#fff" />
+                                <FlexMarketLoader variant="inline" size="xs" showText={false} />
                               ) : (
                                 <ThemedText style={styles.primaryButtonText}>
                                   {t("verifyEmailButton")}
@@ -2033,7 +2021,7 @@ export function ProfileScreen() {
                               ]}
                             >
                               {loading.kbz ? (
-                                <ActivityIndicator color="#fff" />
+                                <FlexMarketLoader variant="inline" size="xs" showText={false} />
                               ) : (
                                 <ThemedText style={styles.primaryButtonText}>
                                   {t("requestVerification")}
@@ -2156,7 +2144,7 @@ export function ProfileScreen() {
                               ]}
                             >
                               {loading.kbzSubmit ? (
-                                <ActivityIndicator color="#fff" />
+                                <FlexMarketLoader variant="inline" size="xs" showText={false} />
                               ) : (
                                 <ThemedText style={styles.primaryButtonText}>
                                   {t("submitTransaction")}
@@ -2239,7 +2227,7 @@ export function ProfileScreen() {
                   ]}
                 >
                   {loading.changePassword ? (
-                    <ActivityIndicator color="#fff" />
+                                <FlexMarketLoader variant="inline" size="xs" showText={false} />
                   ) : (
                     <ThemedText style={styles.primaryButtonText}>
                       Update Password

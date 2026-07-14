@@ -2,7 +2,6 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Platform,
   Pressable,
@@ -13,6 +12,7 @@ import {
 import { useReducedMotion } from "react-native-reanimated";
 
 import { AppVersionLabel } from "@/components/app-version-label";
+import { FlexMarketLoader } from "@/components/flex-market-loader";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
@@ -222,7 +222,7 @@ export function VerificationScreen() {
                 ]}
               >
                 {loading.verifyOtp ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  <FlexMarketLoader variant="inline" size="xs" showText={false} />
                 ) : (
                   <ThemedText style={styles.primaryButtonText}>
                     {t("verify")}
@@ -236,7 +236,7 @@ export function VerificationScreen() {
               style={styles.linkButton}
             >
               {loading.sendOtp ? (
-                <ActivityIndicator color={colors.tint} size="small" />
+                <FlexMarketLoader variant="inline" size="xs" showText={false} />
               ) : (
                 <ThemedText style={{ color: colors.tint, fontWeight: "600" }}>
                   {t("resend")}
@@ -300,7 +300,7 @@ export function VerificationScreen() {
                 ]}
               >
                 {loading.verifyEmail ? (
-                  <ActivityIndicator color="#fff" />
+                  <FlexMarketLoader variant="inline" size="xs" showText={false} />
                 ) : (
                   <ThemedText style={styles.primaryButtonText}>
                     {t("verifyEmailButton")}
@@ -314,7 +314,7 @@ export function VerificationScreen() {
               style={styles.linkButton}
             >
               {loading.sendEmail ? (
-                <ActivityIndicator color={colors.tint} size="small" />
+                <FlexMarketLoader variant="inline" size="xs" showText={false} />
               ) : (
                 <ThemedText style={{ color: colors.tint, fontWeight: "600" }}>
                   {t("resend")}

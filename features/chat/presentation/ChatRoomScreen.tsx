@@ -5,7 +5,6 @@ import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   Keyboard,
@@ -25,6 +24,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { WebView } from "react-native-webview";
 
+import { FlexMarketLoader } from "@/components/flex-market-loader";
 import {
   useAppliedSafeAreaInsets,
   useFloatingBackButtonTop,
@@ -2223,7 +2223,7 @@ export function ChatRoomScreen({
                 ]}
               >
                 {setActiveDealMutation.isPending ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <FlexMarketLoader variant="inline" size="xs" showText={false} />
                 ) : (
                   <MaterialIcons name="check-circle" size={16} color="#FFFFFF" />
                 )}
@@ -2416,7 +2416,7 @@ export function ChatRoomScreen({
                       ]}
                     >
                       {isFetchingCoords || startLocationMutation.isPending ? (
-                        <ActivityIndicator size="small" color={colors.tint} />
+                        <FlexMarketLoader variant="inline" size="xs" showText={false} />
                       ) : (
                         <MaterialIcons
                           name="my-location"
@@ -2458,7 +2458,7 @@ export function ChatRoomScreen({
                       >
                         {isFetchingCoords ||
                         updateLocationMutation.isPending ? (
-                          <ActivityIndicator size="small" color={colors.tint} />
+                          <FlexMarketLoader variant="inline" size="xs" showText={false} />
                         ) : (
                           <MaterialIcons
                             name="sync"
@@ -2495,7 +2495,7 @@ export function ChatRoomScreen({
                         ]}
                       >
                         {stopLocationMutation.isPending ? (
-                          <ActivityIndicator size="small" color={colors.icon} />
+                          <FlexMarketLoader variant="inline" size="xs" showText={false} />
                         ) : (
                           <MaterialIcons
                             name="location-off"
@@ -2700,7 +2700,7 @@ export function ChatRoomScreen({
       <View style={styles.chatStack}>
         {messagesQuery.isLoading ? (
           <View style={styles.center}>
-            <ActivityIndicator color={colors.tint} />
+            <FlexMarketLoader size="md" />
           </View>
         ) : (
           <FlatList
@@ -2728,7 +2728,7 @@ export function ChatRoomScreen({
                   entering={uiFadeEnter(reduceMotion)}
                   style={styles.historyLoader}
                 >
-                  <ActivityIndicator color={colors.tint} />
+                  <FlexMarketLoader variant="inline" size="xs" showText={false} />
                   <ThemedText style={styles.historyLoaderText}>
                     {t("chatLoadingOlder")}
                   </ThemedText>
@@ -2797,7 +2797,7 @@ export function ChatRoomScreen({
             ]}
           >
             {sendMessage.isPending ? (
-              <ActivityIndicator color="#FFF" size="small" />
+              <FlexMarketLoader variant="inline" size="xs" showText={false} />
             ) : (
               <MaterialIcons name="send" size={20} color="#FFF" />
             )}
@@ -2867,7 +2867,7 @@ export function ChatRoomScreen({
               ]}
             >
               {directTradeMutation.isPending ? (
-                <ActivityIndicator color="#FFF" size="small" />
+                <FlexMarketLoader variant="inline" size="xs" showText={false} />
               ) : (
                 <ThemedText style={styles.modalSaveBtnText}>
                   {t("chatDirectTradeSave")}
@@ -3290,7 +3290,7 @@ export function ChatRoomScreen({
               ]}
             >
               {changeRequestIsLocating ? (
-                <ActivityIndicator size={16} color={colors.tint} />
+                <FlexMarketLoader variant="inline" size="xs" showText={false} />
               ) : (
                 <MaterialIcons
                   name="my-location"
@@ -3328,7 +3328,7 @@ export function ChatRoomScreen({
               ]}
             >
               {requestLocationChangeMutation.isPending ? (
-                <ActivityIndicator color="#FFF" size="small" />
+                <FlexMarketLoader variant="inline" size="xs" showText={false} />
               ) : (
                 <ThemedText style={styles.modalSaveBtnText}>
                   {t("chatDirectTradeRequestChangeSubmit")}
@@ -3387,7 +3387,7 @@ export function ChatRoomScreen({
 
             {safePaymentStatusQuery.isLoading ? (
               <View style={styles.center}>
-                <ActivityIndicator color={colors.tint} />
+                <FlexMarketLoader size="md" />
               </View>
             ) : !activeTransaction ? (
               <ThemedText style={styles.safeMutedText}>
@@ -3451,7 +3451,7 @@ export function ChatRoomScreen({
                     ]}
                   >
                     {cancelTransactionMutation.isPending ? (
-                      <ActivityIndicator color="#FFF" size="small" />
+                      <FlexMarketLoader variant="inline" size="xs" showText={false} />
                     ) : (
                       <ThemedText style={styles.modalSaveBtnText}>
                         {t("chatCancelTradeAction")}
@@ -3474,7 +3474,7 @@ export function ChatRoomScreen({
                     ]}
                   >
                     {completeTransactionMutation.isPending ? (
-                      <ActivityIndicator color="#FFF" size="small" />
+                      <FlexMarketLoader variant="inline" size="xs" showText={false} />
                     ) : (
                       <ThemedText style={styles.modalSaveBtnText}>
                         {t("chatCompleteTradeAction")}
@@ -3544,7 +3544,7 @@ export function ChatRoomScreen({
                       ]}
                     >
                       {submitReviewMutation.isPending ? (
-                        <ActivityIndicator color="#FFF" size="small" />
+                        <FlexMarketLoader variant="inline" size="xs" showText={false} />
                       ) : (
                         <ThemedText style={styles.modalSaveBtnText}>
                           {reviewSubmitted
@@ -3610,7 +3610,7 @@ export function ChatRoomScreen({
               </ThemedText>
             ) : safePaymentStatusQuery.isLoading ? (
               <View style={styles.center}>
-                <ActivityIndicator color={colors.tint} />
+                <FlexMarketLoader size="md" />
               </View>
             ) : safePaymentStatusQuery.isError ? (
               <ThemedText style={styles.errorText}>
@@ -3635,7 +3635,7 @@ export function ChatRoomScreen({
                   ]}
                 >
                   {requestSafePaymentMutation.isPending ? (
-                    <ActivityIndicator color="#FFF" size="small" />
+                    <FlexMarketLoader variant="inline" size="xs" showText={false} />
                   ) : (
                     <ThemedText style={styles.modalSaveBtnText}>
                       {t("chatSafePaymentRequest")}
@@ -3736,7 +3736,7 @@ export function ChatRoomScreen({
                       ]}
                     >
                       {submitSafePaymentMutation.isPending ? (
-                        <ActivityIndicator color="#FFF" size="small" />
+                        <FlexMarketLoader variant="inline" size="xs" showText={false} />
                       ) : (
                         <ThemedText style={styles.modalSaveBtnText}>
                           {t("chatSafePaymentSubmit")}

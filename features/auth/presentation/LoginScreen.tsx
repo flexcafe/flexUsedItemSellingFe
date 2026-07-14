@@ -2,7 +2,6 @@ import { useRouter, type Href } from "expo-router";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 import { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   StyleSheet,
@@ -13,6 +12,7 @@ import { useReducedMotion } from "react-native-reanimated";
 import { z } from "zod";
 
 import { AppVersionLabel } from "@/components/app-version-label";
+import { FlexMarketLoader } from "@/components/flex-market-loader";
 import { AuthLogo } from "@/components/auth-logo";
 import {
   PHONE_COUNTRIES,
@@ -284,7 +284,7 @@ export function LoginScreen() {
                 style={[styles.button, isSubmitting && styles.buttonDisabled]}
               >
                 {isSubmitting ? (
-                  <ActivityIndicator color="#fff" />
+                  <FlexMarketLoader variant="inline" size="xs" showText={false} />
                 ) : (
                   <ThemedText style={styles.buttonText}>{t("signIn")}</ThemedText>
                 )}

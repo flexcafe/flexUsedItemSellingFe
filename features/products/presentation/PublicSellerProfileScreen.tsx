@@ -1,3 +1,4 @@
+import { FlexMarketLoader } from "@/components/flex-market-loader";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { paddingTopInsideSafeAreaForLanguageSwitcher } from "@/constants/language-switcher-layout";
@@ -18,7 +19,7 @@ import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { memo, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   Extrapolation,
   FadeIn,
@@ -173,7 +174,7 @@ export function PublicSellerProfileScreen({ userId }: Props) {
             entering={reduceMotion ? undefined : FadeIn.duration(280)}
             style={styles.centeredFull}
           >
-            <ActivityIndicator color={colors.tint} size="large" />
+            <FlexMarketLoader size="md" showText={false} />
             <ThemedText style={styles.loadingText}>
               {t("productsDetailLoading")}
             </ThemedText>
@@ -363,7 +364,7 @@ export function PublicSellerProfileScreen({ userId }: Props) {
 
             {reviewsQuery.isLoading ? (
               <View style={styles.centered}>
-                <ActivityIndicator color={colors.tint} />
+                <FlexMarketLoader size="md" />
               </View>
             ) : (
               <View style={styles.reviewsList}>

@@ -1,4 +1,5 @@
 import { AppScrollView } from "@/components/app-scroll-view";
+import { FlexMarketLoader } from "@/components/flex-market-loader";
 import { ProductListingThumbnail } from "@/components/product-listing-thumbnail";
 import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
@@ -18,7 +19,6 @@ import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Modal,
   NativeScrollEvent,
@@ -389,7 +389,7 @@ export const MyProductDetailSheet = memo(function MyProductDetailSheet({
 
           {detailQuery.isLoading ? (
             <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(280)} style={styles.centered}>
-              <ActivityIndicator size="large" color={colors.tint} />
+              <FlexMarketLoader size="md" showText={false} />
               <ThemedText style={styles.loadingText}>{t("productsDetailLoading")}</ThemedText>
             </Animated.View>
           ) : !product ? (
@@ -657,7 +657,7 @@ export const MyProductDetailSheet = memo(function MyProductDetailSheet({
                   </ThemedText>
                   {chatRoomsQuery.isLoading ? (
                     <View style={styles.activeDealLoading}>
-                      <ActivityIndicator size="small" color={colors.tint} />
+                      <FlexMarketLoader size="sm" showText={false} />
                       <ThemedText style={styles.activeDealHint}>
                         {t("productsDetailLoading")}
                       </ThemedText>

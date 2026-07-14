@@ -7,7 +7,6 @@ import {
 } from "libphonenumber-js";
 import { useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   StyleSheet,
@@ -18,6 +17,7 @@ import { useReducedMotion } from "react-native-reanimated";
 import { z } from "zod";
 
 import { AppVersionLabel } from "@/components/app-version-label";
+import { FlexMarketLoader } from "@/components/flex-market-loader";
 import { AuthLogo } from "@/components/auth-logo";
 import {
   PHONE_COUNTRIES,
@@ -404,7 +404,7 @@ export function ForgotPasswordScreen() {
                   style={[styles.button, isBusy && styles.buttonDisabled]}
                 >
                   {loading.sendOtp ? (
-                    <ActivityIndicator color="#fff" />
+                    <FlexMarketLoader variant="inline" size="xs" showText={false} />
                   ) : (
                     <ThemedText style={styles.buttonText}>
                       {t("forgotPasswordSendOtp")}
@@ -509,7 +509,7 @@ export function ForgotPasswordScreen() {
                   style={[styles.button, isBusy && styles.buttonDisabled]}
                 >
                   {loading.reset ? (
-                    <ActivityIndicator color="#fff" />
+                    <FlexMarketLoader variant="inline" size="xs" showText={false} />
                   ) : (
                     <ThemedText style={styles.buttonText}>
                       {t("forgotPasswordResetSubmit")}
@@ -524,7 +524,7 @@ export function ForgotPasswordScreen() {
                 style={styles.linkButton}
               >
                 {loading.resendOtp ? (
-                  <ActivityIndicator color={colors.tint} size="small" />
+                  <FlexMarketLoader variant="inline" size="xs" showText={false} />
                 ) : (
                   <ThemedText style={{ color: colors.tint, fontWeight: "700" }}>
                     {t("resend")}

@@ -1,3 +1,4 @@
+import { FlexMarketLoader } from "@/components/flex-market-loader";
 import { ProductListingThumbnail } from "@/components/product-listing-thumbnail";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -42,7 +43,6 @@ import {
   type ReactNode,
 } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Modal,
   NativeScrollEvent,
@@ -696,7 +696,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
           entering={reduceMotion ? undefined : FadeIn.duration(300)}
           style={styles.centered}
         >
-        <ActivityIndicator size="large" color={colors.tint} />
+        <FlexMarketLoader size="md" showText={false} />
           <ThemedText style={styles.loadingText}>
             {t("productsDetailLoading")}
           </ThemedText>
@@ -816,7 +816,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
               ]}
               pointerEvents="none"
             >
-              <ActivityIndicator size="large" color={colors.tint} />
+              <FlexMarketLoader size="md" showText={false} />
               <ThemedText
                 style={[styles.mapLoadingText, { color: colors.icon }]}
               >
@@ -1349,7 +1349,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
           ]}
         >
           {openChatRoom.isPending ? (
-            <ActivityIndicator size="small" color="#FFF" />
+            <FlexMarketLoader variant="inline" size="xs" showText={false} />
           ) : (
             <MaterialIcons name="chat-bubble-outline" size={20} color="#FFF" />
           )}
@@ -1381,7 +1381,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
 
         {reviewsQuery.isLoading ? (
           <View style={styles.centeredBlock}>
-            <ActivityIndicator color={colors.tint} />
+            <FlexMarketLoader size="md" />
           </View>
         ) : reviewsQuery.data ? (
           <AppScrollView
@@ -1441,7 +1441,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
                 ]}
               >
                 {reviewsQuery.isFetching ? (
-                  <ActivityIndicator color={colors.tint} size="small" />
+                  <FlexMarketLoader variant="inline" size="xs" showText={false} />
                 ) : (
                   <ThemedText
                     style={[styles.loadMoreText, { color: colors.tint }]}

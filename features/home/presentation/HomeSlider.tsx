@@ -1,3 +1,4 @@
+import { FlexMarketLoader } from "@/components/flex-market-loader";
 import { Colors } from "@/constants/theme";
 import type { SliderAd } from "@/core/domain/entities/SliderAd";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -6,7 +7,6 @@ import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Linking,
   type ListRenderItem,
@@ -273,7 +273,7 @@ export function HomeSlider() {
             ]}
           >
             <View style={styles.loaderInner}>
-              <ActivityIndicator size="small" color={tint} />
+              <FlexMarketLoader variant="inline" size="xs" showText={false} />
             </View>
           </View>
         </View>

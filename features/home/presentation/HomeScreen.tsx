@@ -1,4 +1,5 @@
 import { AddProductListingButton } from "@/components/add-product-listing-button";
+import { FlexMarketLoader } from "@/components/flex-market-loader";
 import { ProductListingThumbnail } from "@/components/product-listing-thumbnail";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -21,7 +22,6 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -179,7 +179,7 @@ function CatalogSkeleton({ tint }: { tint: string }) {
   if (reduceMotion) {
     return (
       <View style={styles.skeletonWrap}>
-        <ActivityIndicator color={tint} />
+        <FlexMarketLoader size="sm" showText={false} />
       </View>
     );
   }
@@ -492,7 +492,7 @@ export function HomeScreen() {
           entering={FadeIn.duration(280)}
           style={styles.footerLoading}
         >
-          <ActivityIndicator color={colors.tint} />
+          <FlexMarketLoader variant="inline" size="xs" showText={false} />
           <ThemedText style={styles.footerLoadingText}>
             {t("homeProductsLoadingMore")}
           </ThemedText>

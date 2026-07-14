@@ -1,3 +1,4 @@
+import { FlexMarketLoader } from "@/components/flex-market-loader";
 import { DateTimeField } from "@/components/date-time-field";
 import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import { KeyboardAwareFormScroll } from "@/components/keyboard-aware-form-scroll";
@@ -39,7 +40,6 @@ import { useLocale } from "@/presentation/providers/LocaleProvider";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useMemo, useState, type ReactNode } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Modal,
   Pressable,
@@ -560,7 +560,7 @@ export function HomeReportsSection({
                     ]}
                   >
                     {submitSuggestion.isPending ? (
-                      <ActivityIndicator color="#fff" />
+                      <FlexMarketLoader variant="inline" size="xs" showText={false} />
                     ) : (
                       <>
                         <MaterialIcons name="send" size={18} color="#fff" />
@@ -578,7 +578,12 @@ export function HomeReportsSection({
                   tint={colors.tint}
                 />
                 {suggestionsQuery.isPending ? (
-                  <ActivityIndicator color={colors.tint} style={styles.loader} />
+                  <FlexMarketLoader
+                    variant="inline"
+                    size="xs"
+                    showText={false}
+                    style={styles.loader}
+                  />
                 ) : (suggestionsQuery.data ?? []).length === 0 ? (
                   <EmptyHistory
                     message={t("homeReportsEmptySuggestions")}
@@ -743,7 +748,7 @@ export function HomeReportsSection({
                     ]}
                   >
                     {submitFraudReport.isPending ? (
-                      <ActivityIndicator color="#fff" />
+                      <FlexMarketLoader variant="inline" size="xs" showText={false} />
                     ) : (
                       <>
                         <MaterialIcons name="gavel" size={18} color="#fff" />
@@ -761,7 +766,12 @@ export function HomeReportsSection({
                   tint={colors.tint}
                 />
                 {fraudReportsQuery.isPending ? (
-                  <ActivityIndicator color={colors.tint} style={styles.loader} />
+                  <FlexMarketLoader
+                    variant="inline"
+                    size="xs"
+                    showText={false}
+                    style={styles.loader}
+                  />
                 ) : (fraudReportsQuery.data ?? []).length === 0 ? (
                   <EmptyHistory
                     message={t("homeReportsEmptyFraud")}

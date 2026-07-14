@@ -1,4 +1,5 @@
 import { AddProductListingButton } from "@/components/add-product-listing-button";
+import { FlexMarketLoader } from "@/components/flex-market-loader";
 import { useLanguageSwitcherSafeTop } from "@/components/app-safe-area";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -15,7 +16,6 @@ import { useLocale } from "@/presentation/providers/LocaleProvider";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { memo, useCallback, useMemo } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -71,7 +71,7 @@ function ListingSkeleton({
           </View>
         </Animated.View>
       ))}
-      <ActivityIndicator color={tint} style={{ marginTop: 8 }} />
+      <FlexMarketLoader size="sm" style={{ marginTop: 8 }} />
     </View>
   );
 }
@@ -265,7 +265,7 @@ export const MyProductsListing = memo(function MyProductsListing({
           entering={uiFadeEnter(reduceMotion, 220)}
           style={styles.footerLoading}
         >
-          <ActivityIndicator color={colors.tint} />
+          <FlexMarketLoader variant="inline" size="xs" showText={false} />
           <ThemedText style={styles.footerText}>{t("productsLoadingMore")}</ThemedText>
         </Animated.View>
       );
