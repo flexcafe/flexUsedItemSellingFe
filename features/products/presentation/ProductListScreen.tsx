@@ -1,5 +1,8 @@
 import { AppScrollView } from "@/components/app-scroll-view";
+import { FlexMarketLoader } from "@/components/flex-market-loader";
 import { KeyboardAwareFormScroll } from "@/components/keyboard-aware-form-scroll";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import type { LocationGeocodedAddress } from "expo-location";
 import * as Location from "expo-location";
@@ -15,7 +18,9 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 
+import { useAppSafeAreaInsets } from "@/components/app-safe-area";
 import { DateTimeField } from "@/components/date-time-field";
+import { PriceField } from "@/components/price-field";
 import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { toAbsoluteMediaUrl } from "@/core/application/mappers/mediaUrl";
@@ -28,6 +33,10 @@ import type {
   ProductUpdateInput,
   UploadFile,
 } from "@/core/domain/types/product";
+import {
+  parsePriceInputDigits,
+  priceDigitsToNumber,
+} from "@/core/domain/value-objects/Money";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useCategories } from "@/presentation/hooks/useCategories";
 import {
@@ -84,6 +93,24 @@ type PreferredLocationForm = {
 };
 const MAX_PREFERRED_LOCATIONS = 3;
 const COMPOSER_STEP_COUNT = 4;
+const COMPOSER_STEPS = [
+  {
+    titleKey: "productsComposerStepTitle1",
+    hintKey: "productsComposerStepHint1",
+  },
+  {
+    titleKey: "productsComposerStepTitle2",
+    hintKey: "productsComposerStepHint2",
+  },
+  {
+    titleKey: "productsComposerStepTitle3",
+    hintKey: "productsComposerStepHint3",
+  },
+  {
+    titleKey: "productsComposerStepTitle4",
+    hintKey: "productsComposerStepHint4",
+  },
+] as const;
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 const MAX_PRODUCT_IMAGES = 5;
 const ALLOWED_UPLOAD_TYPES = new Set<UploadFile["type"]>([
@@ -289,6 +316,7 @@ export function ProductListScreen() {
   const { t, tf } = useLocale();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+  const insets = useAppSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const params = useLocalSearchParams<{ openCreate?: string }>();
   const chipSelected = (on: boolean) =>
@@ -906,7 +934,7 @@ export function ProductListScreen() {
         return;
       }
       if (composerMode === "create") {
-        const price = Number(form.price);
+        const price = priceDigitsToNumber(form.price);
         if (!Number.isFinite(price) || price <= 0) {
           Alert.alert(
             t("productsAlertPriceTitle"),
@@ -928,7 +956,17 @@ export function ProductListScreen() {
       }
     }
     setComposerStep((s) => Math.min(s + 1, COMPOSER_STEP_COUNT - 1));
+    void Haptics.selectionAsync();
   }, [composerMode, composerStep, form, t]);
+
+  const jumpToComposerStep = useCallback(
+    (step: number) => {
+      if (step < 0 || step > composerStep) return;
+      setComposerStep(step);
+      void Haptics.selectionAsync();
+    },
+    [composerStep],
+  );
 
   const onSave = async () => {
     const title = form.title.trim();
@@ -1035,7 +1073,7 @@ export function ProductListScreen() {
 
     try {
       if (composerMode === "create") {
-        const price = Number(form.price);
+        const price = priceDigitsToNumber(form.price);
         if (!Number.isFinite(price) || price <= 0) {
           Alert.alert(
             t("productsAlertPriceTitle"),
@@ -1214,39 +1252,101 @@ export function ProductListScreen() {
       >
         <View style={styles.modalBackdrop}>
           <View
-            style={[styles.modalCard, { backgroundColor: colors.background }]}
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: colors.background,
+                paddingBottom: Math.max(16, insets.bottom + 10),
+              },
+            ]}
           >
+            <View style={styles.sheetHandleWrap}>
+              <View
+                style={[
+                  styles.sheetHandle,
+                  { backgroundColor: colors.icon + "55" },
+                ]}
+              />
+            </View>
+
             <View style={styles.modalHeader}>
-              <ThemedText type="subtitle">
-                {composerMode === "create"
-                  ? t("productsModalCreateTitle")
-                  : t("productsModalEditTitle")}
-        </ThemedText>
-              <Pressable onPress={() => setComposerVisible(false)}>
-                <ThemedText style={[styles.closeText, { color: colors.tint }]}>
-                  {t("productsModalClose")}
-        </ThemedText>
+              <View style={styles.modalHeaderText}>
+                <ThemedText type="subtitle">
+                  {composerMode === "create"
+                    ? t("productsModalCreateTitle")
+                    : t("productsModalEditTitle")}
+                </ThemedText>
+                <ThemedText
+                  style={[styles.composerProgress, { color: colors.icon }]}
+                >
+                  {tf("productsComposerProgress", {
+                    current: String(composerStep + 1),
+                    total: String(COMPOSER_STEP_COUNT),
+                  })}
+                </ThemedText>
+              </View>
+              <Pressable
+                onPress={() => setComposerVisible(false)}
+                hitSlop={10}
+                style={[
+                  styles.modalCloseBtn,
+                  { backgroundColor: colors.icon + "18" },
+                ]}
+              >
+                <MaterialIcons name="close" size={20} color={colors.icon} />
               </Pressable>
             </View>
-            <ThemedText
-              style={[styles.composerProgress, { color: colors.text }]}
-            >
-              {tf("productsComposerProgress", {
-                current: String(composerStep + 1),
-                total: String(COMPOSER_STEP_COUNT),
+
+            <View style={styles.composerStepsRow}>
+              {COMPOSER_STEPS.map((step, index) => {
+                const active = index === composerStep;
+                const done = index < composerStep;
+                const canJump = index < composerStep;
+                return (
+                  <Pressable
+                    key={step.titleKey}
+                    disabled={!canJump}
+                    onPress={() => jumpToComposerStep(index)}
+                    style={styles.composerStepItem}
+                  >
+                    <View
+                      style={[
+                        styles.composerStepRail,
+                        {
+                          backgroundColor: done || active
+                            ? colors.tint
+                            : colors.icon + "33",
+                        },
+                      ]}
+                    />
+                    <ThemedText
+                      numberOfLines={1}
+                      style={[
+                        styles.composerStepLabel,
+                        {
+                          color: active || done ? colors.tint : colors.icon,
+                          fontWeight: active ? "800" : "600",
+                        },
+                      ]}
+                    >
+                      {t(step.titleKey)}
+                    </ThemedText>
+                  </Pressable>
+                );
               })}
-          </ThemedText>
-            <ThemedText
-              style={[styles.composerStepHint, { color: colors.text }]}
-            >
-              {composerStep === 0
-                ? t("productsComposerStepHint1")
-                : composerStep === 1
-                  ? t("productsComposerStepHint2")
-                  : composerStep === 2
-                    ? t("productsComposerStepHint3")
-                    : t("productsComposerStepHint4")}
-            </ThemedText>
+            </View>
+
+            <View style={styles.composerStepIntro}>
+              <ThemedText style={styles.composerStepTitle}>
+                {t(COMPOSER_STEPS[composerStep].titleKey)}
+              </ThemedText>
+              <ThemedText
+                style={[styles.composerStepHint, { color: colors.icon }]}
+              >
+                {t(COMPOSER_STEPS[composerStep].hintKey)}
+              </ThemedText>
+            </View>
+
             <KeyboardAwareFormScroll
               style={styles.formBody}
               contentContainerStyle={styles.formBodyContent}
@@ -1318,23 +1418,22 @@ export function ProductListScreen() {
                     placeholderTextColor={colors.icon}
                   />
 
-                  <ThemedText style={styles.fieldLabel}>
-                    {t("productsFieldPriceCreateOnly")}
-                  </ThemedText>
-                  <TextInput
-                    editable={composerMode === "create"}
+                  <PriceField
+                    label={t("productsFieldPrice")}
                     value={form.price}
-                    onChangeText={(price) =>
-                      setForm((prev) => ({ ...prev, price }))
+                    onChange={(price) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        price: parsePriceInputDigits(price),
+                      }))
                     }
-                    keyboardType="numeric"
-                    style={[
-                      styles.input,
-                      { color: colors.text, borderColor: colors.icon + "66" },
-                      composerMode !== "create" && styles.inputDisabled,
-                    ]}
+                    editable={composerMode === "create"}
                     placeholder={t("productsPlaceholderPrice")}
-                    placeholderTextColor={colors.icon}
+                    hint={
+                      composerMode === "edit"
+                        ? t("productsPriceLockedHint")
+                        : undefined
+                    }
                   />
 
                   <ThemedText style={styles.fieldLabel}>
@@ -2015,7 +2114,10 @@ export function ProductListScreen() {
             <View style={styles.composerFooter}>
               {composerStep > 0 ? (
                 <Pressable
-                  onPress={() => setComposerStep((s) => Math.max(0, s - 1))}
+                  onPress={() => {
+                    setComposerStep((s) => Math.max(0, s - 1));
+                    void Haptics.selectionAsync();
+                  }}
                   style={({ pressed }) => [
                     styles.composerNavButton,
                     styles.composerNavSecondary,
@@ -2023,6 +2125,11 @@ export function ProductListScreen() {
                     pressed && styles.archiveButtonPressed,
                   ]}
                 >
+                  <MaterialIcons
+                    name="arrow-back"
+                    size={18}
+                    color={colors.text}
+                  />
                   <ThemedText
                     style={[
                       styles.composerNavButtonText,
@@ -2048,10 +2155,16 @@ export function ProductListScreen() {
                   <ThemedText style={styles.composerNavButtonTextPrimary}>
                     {t("productsComposerNext")}
                   </ThemedText>
+                  <MaterialIcons name="arrow-forward" size={18} color="#fff" />
                 </Pressable>
               ) : (
                 <Pressable
-                  onPress={onSave}
+                  onPress={() => {
+                    void Haptics.impactAsync(
+                      Haptics.ImpactFeedbackStyle.Medium,
+                    );
+                    void onSave();
+                  }}
                   disabled={
                     createMutation.isPending || updateMutation.isPending
                   }
@@ -2064,13 +2177,22 @@ export function ProductListScreen() {
                       styles.archiveButtonDisabled,
                   ]}
                 >
-                  <ThemedText style={styles.composerNavButtonTextPrimary}>
-                    {createMutation.isPending || updateMutation.isPending
-                      ? t("productsSaving")
-                      : composerMode === "create"
-                        ? t("productsSaveCreate")
-                        : t("productsSaveUpdate")}
-                  </ThemedText>
+                  {createMutation.isPending || updateMutation.isPending ? (
+                    <FlexMarketLoader
+                      variant="inline"
+                      size="xs"
+                      showText={false}
+                    />
+                  ) : (
+                    <>
+                      <MaterialIcons name="check" size={18} color="#fff" />
+                      <ThemedText style={styles.composerNavButtonTextPrimary}>
+                        {composerMode === "create"
+                          ? t("productsSaveCreate")
+                          : t("productsSaveUpdate")}
+                      </ThemedText>
+                    </>
+                  )}
                 </Pressable>
               )}
             </View>
@@ -2216,35 +2338,75 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalCard: {
-    maxHeight: "88%",
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    paddingTop: 12,
+    maxHeight: "92%",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 8,
     paddingHorizontal: 16,
-    paddingBottom: 20,
+  },
+  sheetHandleWrap: {
+    alignItems: "center",
+    paddingBottom: 8,
+  },
+  sheetHandle: {
+    width: 42,
+    height: 4,
+    borderRadius: 999,
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 12,
+    gap: 12,
+  },
+  modalHeaderText: {
+    flex: 1,
+    gap: 2,
+  },
+  modalCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
   },
   closeText: {
     fontWeight: "700",
   },
   composerProgress: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  composerStepsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  composerStepItem: {
+    flex: 1,
+    gap: 6,
+    minWidth: 0,
+  },
+  composerStepRail: {
+    height: 4,
+    borderRadius: 999,
+  },
+  composerStepLabel: {
+    fontSize: 11,
     textAlign: "center",
-    marginBottom: 4,
+  },
+  composerStepIntro: {
+    marginBottom: 8,
+    gap: 4,
+  },
+  composerStepTitle: {
+    fontSize: 17,
+    fontWeight: "800",
   },
   composerStepHint: {
-    fontSize: 12,
-    opacity: 0.72,
-    textAlign: "center",
-    marginBottom: 10,
-    lineHeight: 17,
-    paddingHorizontal: 4,
+    fontSize: 13,
+    lineHeight: 18,
   },
   centeredBlock: {
     paddingVertical: 24,
@@ -2262,7 +2424,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   formBody: {
-    maxHeight: 520,
+    maxHeight: 480,
   },
   formBodyContent: {
     paddingBottom: 16,
@@ -2282,14 +2444,20 @@ const styles = StyleSheet.create({
     minWidth: 100,
   },
   composerNavButton: {
-    borderRadius: 10,
+    borderRadius: 12,
     paddingVertical: 12,
-    paddingHorizontal: 18,
-    minWidth: 104,
+    paddingHorizontal: 16,
+    minWidth: 112,
+    minHeight: 48,
     alignItems: "center",
     justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
   },
-  composerNavPrimary: {},
+  composerNavPrimary: {
+    flexGrow: 1,
+    maxWidth: "62%",
+  },
   composerNavSecondary: {
     borderWidth: 1,
   },
