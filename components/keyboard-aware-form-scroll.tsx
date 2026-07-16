@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  Dimensions,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -59,6 +60,23 @@ export function KeyboardAwareFormScroll({
   const scrollYRef = useRef(0);
   const [keyboardPad, setKeyboardPad] = useState(0);
 
+  const resolveKeyboardTopY = useCallback((event: { endCoordinates?: { height?: number; screenY?: number } }) => {
+    const windowHeight = Dimensions.get("window").height;
+    const keyboardHeight = Math.max(
+      0,
+      Number(event.endCoordinates?.height ?? Keyboard.metrics()?.height ?? 0),
+    );
+    const screenY = Number(event.endCoordinates?.screenY);
+    if (
+      Number.isFinite(screenY) &&
+      screenY > 0 &&
+      screenY <= windowHeight
+    ) {
+      return screenY;
+    }
+    return Math.max(0, windowHeight - keyboardHeight);
+  }, []);
+
   const scrollFocusedFieldAboveKeyboard = useCallback((keyboardTopY: number) => {
     const focused = TextInput.State.currentlyFocusedInput();
     if (!focused || !scrollRef.current) return;
@@ -83,15 +101,20 @@ export function KeyboardAwareFormScroll({
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
 
     const onShow = Keyboard.addListener(showEvent, (event) => {
-      setKeyboardPad(
-        Math.max(120, Math.round(event.endCoordinates.height * 0.35)),
+      const keyboardHeight = Math.max(
+        0,
+        Number(event.endCoordinates?.height ?? Keyboard.metrics()?.height ?? 0),
       );
-      const keyboardTopY = event.endCoordinates.screenY;
+      setKeyboardPad(
+        Math.max(120, Math.round(keyboardHeight + FIELD_GAP_ABOVE_KEYBOARD)),
+      );
+      const keyboardTopY = resolveKeyboardTopY(event);
       requestAnimationFrame(() => {
         scrollFocusedFieldAboveKeyboard(keyboardTopY);
       });
       setTimeout(() => scrollFocusedFieldAboveKeyboard(keyboardTopY), 100);
       setTimeout(() => scrollFocusedFieldAboveKeyboard(keyboardTopY), 280);
+      setTimeout(() => scrollFocusedFieldAboveKeyboard(keyboardTopY), 520);
     });
 
     const onHide = Keyboard.addListener(hideEvent, () => {
@@ -102,7 +125,7 @@ export function KeyboardAwareFormScroll({
       onShow.remove();
       onHide.remove();
     };
-  }, [scrollFocusedFieldAboveKeyboard]);
+  }, [resolveKeyboardTopY, scrollFocusedFieldAboveKeyboard]);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
