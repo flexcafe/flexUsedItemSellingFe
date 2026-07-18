@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.flexusedmarket.app",
-      "buildNumber": "7",
+      "buildNumber": "8",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Allow Flex Used Market to verify your registration region, find nearby listings, choose trade locations, and share your location during an active trade.",
