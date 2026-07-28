@@ -2,7 +2,7 @@
   "expo": {
     "name": "Flex Used Market",
     "slug": "flex-used-market-fe",
-    "version": "1.3.2",
+    "version": "1.3.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "flexusedmarket",
@@ -26,7 +26,7 @@
     "android": {
       "softwareKeyboardLayoutMode": "resize",
       "usesCleartextTraffic": true,
-      "versionCode": 7,
+      "versionCode": 8,
       "adaptiveIcon": {
         "backgroundColor": "#FFF7ED",
         "foregroundImage": "./assets/images/android-icon-foreground.png"

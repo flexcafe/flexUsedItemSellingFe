@@ -1,4 +1,5 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import * as Clipboard from "expo-clipboard";
 import { Image, type ImageSource } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useEffect, useMemo, useState } from "react";
@@ -192,7 +193,7 @@ export function ProfileScreen() {
   const [showWithdrawalHistory, setShowWithdrawalHistory] = useState(true);
   const [showPhoneVerification, setShowPhoneVerification] = useState(true);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
-  const [showKbzPayVerification, setShowKbzPayVerification] = useState(false);
+  const [showKbzPayVerification, setShowKbzPayVerification] = useState(true);
   const [showFacebookVerification, setShowFacebookVerification] =
     useState(false);
 
@@ -213,9 +214,6 @@ export function ProfileScreen() {
   const [kbzTransactionError, setKbzTransactionError] = useState("");
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
   const [withdrawalError, setWithdrawalError] = useState("");
-  const [kbzMessage, setKbzMessage] = useState(
-    "Please verify my KBZPay quickly. I already transferred.",
-  );
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
@@ -617,10 +615,7 @@ export function ProfileScreen() {
     }
     setBusy("kbz", true);
     try {
-      await requestKbzPayVerification(
-        kbzMessage.trim() ||
-          "Please verify my KBZPay quickly. I already transferred.",
-      );
+      await requestKbzPayVerification();
       await refreshProfile();
       await adminCooldown.recordSuccess("kbzPayVerificationRequest");
       Alert.alert(t("kbzPayRequested"));
@@ -639,7 +634,7 @@ export function ProfileScreen() {
   };
 
   const handleSubmitKbzTransaction = async () => {
-    if (!kbzHasAdminInstruction) {
+    if (!kbzHasTransferDetails) {
       Alert.alert(t("errorTitle"), t("kbzPayWaitInstructionHint"));
       return;
     }
@@ -658,8 +653,15 @@ export function ProfileScreen() {
     } catch (err) {
       const status = getHttpStatus(err);
       if (status === 409) {
-        await refreshProfile();
-        Alert.alert(t("errorTitle"), t("kbzPayWaitInstructionHint"));
+        const latest = await refreshProfile();
+        Alert.alert(
+          latest?.isKbzPayVerified
+            ? t("profileStatusVerified")
+            : t("kbzPayAlreadySubmittedTitle"),
+          latest?.isKbzPayVerified
+            ? t("profileVerifiedHint")
+            : t("kbzPayAlreadySubmittedBody"),
+        );
         return;
       }
       if (status === 400 || status === 422) {
@@ -670,6 +672,23 @@ export function ProfileScreen() {
     } finally {
       setBusy("kbzSubmit", false);
     }
+  };
+
+  const handleRefreshKbzPay = async () => {
+    setBusy("kbzRefresh", true);
+    try {
+      await refreshProfile();
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setBusy("kbzRefresh", false);
+    }
+  };
+
+  const handleCopyKbzPhone = async () => {
+    if (!kbzAdminPhone) return;
+    await Clipboard.setStringAsync(kbzAdminPhone);
+    Alert.alert(t("kbzPayPhoneCopied"));
   };
 
   const handleRequestWithdrawal = async () => {
@@ -750,13 +769,17 @@ export function ProfileScreen() {
   const kbzAdminNote = user?.kbzPayAdminNote?.trim() ?? "";
   const kbzSubmittedTransaction = user?.kbzPayTransactionId?.trim() ?? "";
   const kbzRequestedAt = user?.kbzPayRequestedAt?.trim() ?? "";
-  const kbzHasAdminInstruction =
-    kbzAdminPhone.length > 0 || kbzAdminInstructionSentAt.length > 0;
+  const kbzInstructionMarkedSent =
+    kbzStatus === "INSTRUCTION_SENT" ||
+    kbzAdminPhone.length > 0 ||
+    kbzAdminInstructionSentAt.length > 0 ||
+    kbzAdminNote.length > 0;
+  const kbzHasTransferDetails = kbzAdminPhone.length > 0;
   const kbzHasSubmittedTransaction =
     kbzSubmittedTransaction.length > 0 || kbzStatus === "IN_REVIEW";
   const kbzVerificationStarted = Boolean(
     kbzRequestedAt ||
-    kbzHasAdminInstruction ||
+    kbzInstructionMarkedSent ||
     kbzHasSubmittedTransaction ||
     (kbzStatus && kbzStatus !== "PENDING"),
   );
@@ -766,12 +789,18 @@ export function ProfileScreen() {
     kbzIsPending &&
     !user?.isKbzPayVerified &&
     kbzVerificationStarted &&
-    !kbzHasAdminInstruction &&
+    !kbzInstructionMarkedSent &&
+    !kbzHasSubmittedTransaction;
+  const kbzWaitingForTransferDetails =
+    kbzIsPending &&
+    !user?.isKbzPayVerified &&
+    kbzInstructionMarkedSent &&
+    !kbzHasTransferDetails &&
     !kbzHasSubmittedTransaction;
   const kbzCanSubmitTransaction =
     kbzIsPending &&
     !user?.isKbzPayVerified &&
-    kbzHasAdminInstruction &&
+    kbzHasTransferDetails &&
     !kbzHasSubmittedTransaction;
   const kbzWaitingForAdminVerification =
     kbzIsPending && !user?.isKbzPayVerified && kbzHasSubmittedTransaction;
@@ -791,6 +820,15 @@ export function ProfileScreen() {
     : kbzIsPending && kbzVerificationStarted
       ? WARNING
       : colors.icon;
+  const kbzFlowStep = user?.isKbzPayVerified
+    ? 4
+    : kbzHasSubmittedTransaction
+      ? 3
+      : kbzHasTransferDetails
+        ? 2
+        : kbzVerificationStarted
+          ? 1
+          : 0;
   const pointsSummary = pointsQuery.data;
   const rankLadder = rankConfigsQuery.data ?? [];
   const statsSummary = statsQuery.data;
@@ -1948,54 +1986,172 @@ export function ProfileScreen() {
                 </ProfileAnimatedCard>
 
                 <ProfileAnimatedCard scheme={scheme} borderColor={colors.icon}>
-                  <View style={styles.cardHeader}>
-                    <Pressable
-                      onPress={() => setShowKbzPayVerification((prev) => !prev)}
-                      style={styles.collapsibleHeader}
+                  <Pressable
+                    onPress={() => setShowKbzPayVerification((prev) => !prev)}
+                    style={styles.collapsibleHeader}
+                  >
+                    <View
+                      style={[
+                        styles.kbzHeaderIcon,
+                        { backgroundColor: colors.tint + "18" },
+                      ]}
                     >
-                      <View style={styles.verificationHeaderLeft}>
-                        <ThemedText style={styles.cardTitle}>
-                          {t("kbzPayVerification")}
-                        </ThemedText>
-                        <ThemedText
-                          style={[
-                            styles.badgeInline,
-                            { color: kbzStatusColor },
-                          ]}
-                        >
-                          {kbzStatusText}
-                        </ThemedText>
-                      </View>
                       <MaterialIcons
-                        name={
-                          showKbzPayVerification ? "expand-less" : "expand-more"
-                        }
-                        color={colors.icon}
+                        name="account-balance-wallet"
+                        color={colors.tint}
                         size={22}
                       />
-                    </Pressable>
-                  </View>
+                    </View>
+                    <View style={styles.verificationHeaderLeft}>
+                      <ThemedText style={styles.cardTitle}>
+                        {t("kbzPayVerification")}
+                      </ThemedText>
+                      <ThemedText
+                        style={[styles.badgeInline, { color: kbzStatusColor }]}
+                      >
+                        {kbzStatusText}
+                      </ThemedText>
+                    </View>
+                    <MaterialIcons
+                      name={
+                        showKbzPayVerification ? "expand-less" : "expand-more"
+                      }
+                      color={colors.icon}
+                      size={22}
+                    />
+                  </Pressable>
+
                   {showKbzPayVerification ? (
                     <ProfileFadeIn reduceMotion={reduceMotion}>
-                      <>
+                      <View style={styles.kbzFlow}>
+                        <View style={styles.kbzStepRow}>
+                          {[
+                            t("kbzPayFlowRequest"),
+                            t("kbzPayFlowInstruction"),
+                            t("kbzPayFlowTransfer"),
+                            t("kbzPayFlowReview"),
+                          ].map((label, index) => {
+                            const done = index < kbzFlowStep;
+                            const active = index === kbzFlowStep;
+                            return (
+                              <View key={label} style={styles.kbzStep}>
+                                <View
+                                  style={[
+                                    styles.kbzStepCircle,
+                                    {
+                                      backgroundColor: done
+                                        ? SUCCESS
+                                        : active
+                                          ? colors.tint
+                                          : colors.icon + "22",
+                                      borderColor:
+                                        done || active
+                                          ? "transparent"
+                                          : colors.icon + "55",
+                                    },
+                                  ]}
+                                >
+                                  {done ? (
+                                    <MaterialIcons
+                                      name="check"
+                                      size={14}
+                                      color="#fff"
+                                    />
+                                  ) : (
+                                    <ThemedText
+                                      style={[
+                                        styles.kbzStepNumber,
+                                        {
+                                          color: active
+                                            ? "#fff"
+                                            : colors.icon,
+                                        },
+                                      ]}
+                                    >
+                                      {index + 1}
+                                    </ThemedText>
+                                  )}
+                                </View>
+                                <ThemedText
+                                  numberOfLines={2}
+                                  style={[
+                                    styles.kbzStepLabel,
+                                    {
+                                      color:
+                                        done || active
+                                          ? colors.text
+                                          : colors.icon,
+                                    },
+                                  ]}
+                                >
+                                  {label}
+                                </ThemedText>
+                                {index < 3 ? (
+                                  <View
+                                    style={[
+                                      styles.kbzStepConnector,
+                                      {
+                                        backgroundColor:
+                                          index < kbzFlowStep
+                                            ? SUCCESS
+                                            : colors.icon + "33",
+                                      },
+                                    ]}
+                                  />
+                                ) : null}
+                              </View>
+                            );
+                          })}
+                        </View>
+
                         {kbzCanRequest ? (
-                          <>
+                          <View style={styles.kbzStateContent}>
+                            <ThemedText style={styles.kbzStateTitle}>
+                              {t("kbzPayStartTitle")}
+                            </ThemedText>
                             <ThemedText style={styles.profileSub}>
                               {t("kbzPayRequestIntro")}
                             </ThemedText>
-                            <TextInput
+
+                            <View
                               style={[
-                                styles.input,
-                                inputStyle,
-                                { minHeight: 92, textAlignVertical: "top" },
+                                styles.kbzPrerequisiteBox,
+                                { borderColor: colors.icon + "44" },
                               ]}
-                              value={kbzMessage}
-                              onChangeText={setKbzMessage}
-                              placeholder={t("kbzPayMessagePlaceholder")}
-                              placeholderTextColor={colors.icon}
-                              multiline
-                              editable={!loading.kbz && !kbzRequestCoolingDown}
-                            />
+                            >
+                              <ThemedText style={styles.kbzPrerequisiteTitle}>
+                                {t("kbzPayBeforeStart")}
+                              </ThemedText>
+                              {[
+                                {
+                                  label: t("kbzPayPhoneRequirement"),
+                                  ready: phoneVerified,
+                                },
+                                {
+                                  label: t("kbzPayEmailRequirement"),
+                                  ready: emailVerified,
+                                },
+                              ].map((item) => (
+                                <View
+                                  key={item.label}
+                                  style={styles.kbzRequirementRow}
+                                >
+                                  <MaterialIcons
+                                    name={
+                                      item.ready
+                                        ? "check-circle"
+                                        : "radio-button-unchecked"
+                                    }
+                                    size={18}
+                                    color={item.ready ? SUCCESS : colors.icon}
+                                  />
+                                  <ThemedText style={styles.kbzRequirementText}>
+                                    {item.label}
+                                  </ThemedText>
+                                </View>
+                              ))}
+                            </View>
+
                             {kbzRequestCoolingDown ? (
                               <ThemedText style={styles.profileSub}>
                                 {tf(
@@ -2010,109 +2166,283 @@ export function ProfileScreen() {
                             ) : null}
                             <Pressable
                               onPress={handleRequestKbzPay}
-                              disabled={loading.kbz || kbzRequestCoolingDown}
+                              disabled={
+                                loading.kbz ||
+                                kbzRequestCoolingDown ||
+                                !phoneVerified ||
+                                !emailVerified
+                              }
                               style={[
                                 styles.primaryButton,
                                 styles.fullWidthButton,
                                 { backgroundColor: colors.tint },
-                                (loading.kbz || kbzRequestCoolingDown) && {
-                                  opacity: 0.6,
-                                },
+                                (loading.kbz ||
+                                  kbzRequestCoolingDown ||
+                                  !phoneVerified ||
+                                  !emailVerified) && { opacity: 0.5 },
                               ]}
                             >
                               {loading.kbz ? (
-                                <FlexMarketLoader variant="inline" size="xs" showText={false} />
+                                <FlexMarketLoader
+                                  variant="inline"
+                                  size="xs"
+                                  showText={false}
+                                />
                               ) : (
                                 <ThemedText style={styles.primaryButtonText}>
                                   {t("requestVerification")}
                                 </ThemedText>
                               )}
                             </Pressable>
-                          </>
+                          </View>
                         ) : null}
 
-                        {kbzWaitingForInstruction ? (
-                          <ThemedText style={styles.profileSub}>
-                            {t("kbzPayWaitInstructionHint")}
-                          </ThemedText>
+                        {kbzWaitingForInstruction ||
+                        kbzWaitingForTransferDetails ? (
+                          <View
+                            style={[
+                              styles.kbzStatusPanel,
+                              {
+                                backgroundColor: WARNING + "12",
+                                borderColor: WARNING + "55",
+                              },
+                            ]}
+                          >
+                            <View
+                              style={[
+                                styles.kbzStatusIcon,
+                                { backgroundColor: WARNING + "20" },
+                              ]}
+                            >
+                              <MaterialIcons
+                                name="schedule"
+                                size={24}
+                                color={WARNING}
+                              />
+                            </View>
+                            <ThemedText style={styles.kbzStateTitle}>
+                              {t("kbzPayWaitingTitle")}
+                            </ThemedText>
+                            <ThemedText
+                              style={[
+                                styles.kbzCenteredText,
+                                { color: colors.icon },
+                              ]}
+                            >
+                              {kbzWaitingForTransferDetails
+                                ? t("kbzPayInstructionDetailsPending")
+                                : t("kbzPayWaitInstructionHint")}
+                            </ThemedText>
+                            <Pressable
+                              onPress={handleRefreshKbzPay}
+                              disabled={loading.kbzRefresh}
+                              style={[
+                                styles.kbzSecondaryButton,
+                                { borderColor: colors.tint },
+                              ]}
+                            >
+                              {loading.kbzRefresh ? (
+                                <FlexMarketLoader
+                                  variant="inline"
+                                  size="xs"
+                                  showText={false}
+                                />
+                              ) : (
+                                <>
+                                  <MaterialIcons
+                                    name="refresh"
+                                    size={18}
+                                    color={colors.tint}
+                                  />
+                                  <ThemedText
+                                    style={[
+                                      styles.kbzSecondaryButtonText,
+                                      { color: colors.tint },
+                                    ]}
+                                  >
+                                    {t("kbzPayCheckStatus")}
+                                  </ThemedText>
+                                </>
+                              )}
+                            </Pressable>
+                          </View>
                         ) : null}
 
                         {kbzCanSubmitTransaction ? (
-                          <>
-                            <ThemedText style={styles.profileSub}>
-                              {t("kbzPayPendingHint")}
-                            </ThemedText>
+                          <View style={styles.kbzStateContent}>
                             <View
                               style={[
-                                styles.infoBox,
-                                { borderColor: colors.icon },
+                                styles.kbzImportantBanner,
+                                {
+                                  backgroundColor: colors.tint + "12",
+                                  borderColor: colors.tint + "55",
+                                },
                               ]}
                             >
-                              <ThemedText style={styles.infoLabel}>
-                                {t("kbzPayAmountLabel")}
-                              </ThemedText>
-                              <ThemedText style={styles.infoValue}>
-                                {t("kbzPayAmountValue")}
-                              </ThemedText>
-                            </View>
-                            <View
-                              style={[
-                                styles.infoBox,
-                                { borderColor: colors.icon },
-                              ]}
-                            >
-                              <ThemedText style={styles.infoLabel}>
-                                {t("kbzPayAdminPhoneLabel")}
-                              </ThemedText>
-                              <ThemedText style={styles.infoValue}>
-                                {kbzAdminPhone}
+                              <MaterialIcons
+                                name="info"
+                                size={20}
+                                color={colors.tint}
+                              />
+                              <ThemedText
+                                style={[
+                                  styles.kbzImportantText,
+                                  { color: colors.text },
+                                ]}
+                              >
+                                {t("kbzPayPendingHint")}
                               </ThemedText>
                             </View>
+
+                            <View style={styles.kbzInstructionRow}>
+                              <View
+                                style={[
+                                  styles.kbzInstructionNumber,
+                                  { backgroundColor: colors.tint },
+                                ]}
+                              >
+                                <ThemedText style={styles.kbzInstructionNumberText}>
+                                  1
+                                </ThemedText>
+                              </View>
+                              <View style={styles.kbzInstructionBody}>
+                                <ThemedText style={styles.infoLabel}>
+                                  {t("kbzPayAmountLabel")}
+                                </ThemedText>
+                                <ThemedText
+                                  style={[
+                                    styles.kbzAmountValue,
+                                    { color: colors.tint },
+                                  ]}
+                                >
+                                  {t("kbzPayAmountValue")}
+                                </ThemedText>
+                              </View>
+                            </View>
+
+                            <View style={styles.kbzInstructionRow}>
+                              <View
+                                style={[
+                                  styles.kbzInstructionNumber,
+                                  { backgroundColor: colors.tint },
+                                ]}
+                              >
+                                <ThemedText style={styles.kbzInstructionNumberText}>
+                                  2
+                                </ThemedText>
+                              </View>
+                              <View style={styles.kbzInstructionBody}>
+                                <ThemedText style={styles.infoLabel}>
+                                  {t("kbzPayAdminPhoneLabel")}
+                                </ThemedText>
+                                <View style={styles.kbzCopyRow}>
+                                  <ThemedText style={styles.kbzPhoneValue}>
+                                    {kbzAdminPhone}
+                                  </ThemedText>
+                                  <Pressable
+                                    onPress={handleCopyKbzPhone}
+                                    style={[
+                                      styles.kbzCopyButton,
+                                      { backgroundColor: colors.tint + "18" },
+                                    ]}
+                                  >
+                                    <MaterialIcons
+                                      name="content-copy"
+                                      size={16}
+                                      color={colors.tint}
+                                    />
+                                    <ThemedText
+                                      style={[
+                                        styles.kbzCopyText,
+                                        { color: colors.tint },
+                                      ]}
+                                    >
+                                      {t("actionCopy")}
+                                    </ThemedText>
+                                  </Pressable>
+                                </View>
+                              </View>
+                            </View>
+
                             {kbzAdminNote ? (
                               <View
                                 style={[
-                                  styles.infoBox,
-                                  { borderColor: colors.icon },
+                                  styles.kbzAdminNote,
+                                  {
+                                    backgroundColor: colors.icon + "0D",
+                                    borderColor: colors.icon + "33",
+                                  },
                                 ]}
                               >
-                                <ThemedText style={styles.infoLabel}>
-                                  {t("kbzPayAdminNoteLabel")}
-                                </ThemedText>
-                                <ThemedText style={styles.infoValue}>
-                                  {kbzAdminNote}
-                                </ThemedText>
+                                <MaterialIcons
+                                  name="notes"
+                                  size={18}
+                                  color={colors.icon}
+                                />
+                                <View style={styles.kbzInstructionBody}>
+                                  <ThemedText style={styles.infoLabel}>
+                                    {t("kbzPayAdminNoteLabel")}
+                                  </ThemedText>
+                                  <ThemedText style={styles.infoValue}>
+                                    {kbzAdminNote}
+                                  </ThemedText>
+                                </View>
                               </View>
                             ) : null}
-                            <ThemedText style={styles.label}>
-                              {t("kbzPayTxnIdLabel")}
-                            </ThemedText>
-                            <TextInput
-                              style={[
-                                styles.input,
-                                inputStyle,
-                                kbzTransactionError
-                                  ? { borderColor: DANGER }
-                                  : null,
-                              ]}
-                              value={kbzTransactionId}
-                              onChangeText={(value) => {
-                                setKbzTransactionId(value);
-                                if (kbzTransactionError)
-                                  setKbzTransactionError("");
-                              }}
-                              placeholder={t("kbzPayTxnIdPlaceholder")}
-                              placeholderTextColor={colors.icon}
-                              autoCapitalize="characters"
-                              autoCorrect={false}
-                              editable={
-                                !loading.kbzSubmit && !kbzSubmitCoolingDown
-                              }
-                            />
-                            {kbzTransactionError ? (
-                              <ThemedText style={styles.error}>
-                                {kbzTransactionError}
-                              </ThemedText>
-                            ) : null}
+
+                            <View style={styles.kbzInstructionRow}>
+                              <View
+                                style={[
+                                  styles.kbzInstructionNumber,
+                                  { backgroundColor: colors.tint },
+                                ]}
+                              >
+                                <ThemedText style={styles.kbzInstructionNumberText}>
+                                  3
+                                </ThemedText>
+                              </View>
+                              <View style={styles.kbzInstructionBody}>
+                                <ThemedText style={styles.label}>
+                                  {t("kbzPayTxnIdLabel")}
+                                </ThemedText>
+                                <ThemedText
+                                  style={[
+                                    styles.kbzInputHint,
+                                    { color: colors.icon },
+                                  ]}
+                                >
+                                  {t("kbzPayTxnIdHelp")}
+                                </ThemedText>
+                                <TextInput
+                                  style={[
+                                    styles.input,
+                                    inputStyle,
+                                    kbzTransactionError
+                                      ? { borderColor: DANGER }
+                                      : null,
+                                  ]}
+                                  value={kbzTransactionId}
+                                  onChangeText={(value) => {
+                                    setKbzTransactionId(value);
+                                    if (kbzTransactionError)
+                                      setKbzTransactionError("");
+                                  }}
+                                  placeholder={t("kbzPayTxnIdPlaceholder")}
+                                  placeholderTextColor={colors.icon}
+                                  autoCapitalize="characters"
+                                  autoCorrect={false}
+                                  editable={
+                                    !loading.kbzSubmit && !kbzSubmitCoolingDown
+                                  }
+                                />
+                                {kbzTransactionError ? (
+                                  <ThemedText style={styles.error}>
+                                    {kbzTransactionError}
+                                  </ThemedText>
+                                ) : null}
+                              </View>
+                            </View>
+
                             {kbzSubmitCoolingDown ? (
                               <ThemedText style={styles.profileSub}>
                                 {tf(
@@ -2139,31 +2469,63 @@ export function ProfileScreen() {
                                 (loading.kbzSubmit ||
                                   kbzSubmitCoolingDown ||
                                   !kbzTransactionId.trim()) && {
-                                  opacity: 0.6,
+                                  opacity: 0.5,
                                 },
                               ]}
                             >
                               {loading.kbzSubmit ? (
-                                <FlexMarketLoader variant="inline" size="xs" showText={false} />
+                                <FlexMarketLoader
+                                  variant="inline"
+                                  size="xs"
+                                  showText={false}
+                                />
                               ) : (
                                 <ThemedText style={styles.primaryButtonText}>
                                   {t("submitTransaction")}
                                 </ThemedText>
                               )}
                             </Pressable>
-                          </>
+                          </View>
                         ) : null}
 
                         {kbzWaitingForAdminVerification ? (
-                          <>
-                            <ThemedText style={styles.profileSub}>
+                          <View
+                            style={[
+                              styles.kbzStatusPanel,
+                              {
+                                backgroundColor: colors.tint + "0D",
+                                borderColor: colors.tint + "44",
+                              },
+                            ]}
+                          >
+                            <View
+                              style={[
+                                styles.kbzStatusIcon,
+                                { backgroundColor: colors.tint + "18" },
+                              ]}
+                            >
+                              <MaterialIcons
+                                name="fact-check"
+                                size={24}
+                                color={colors.tint}
+                              />
+                            </View>
+                            <ThemedText style={styles.kbzStateTitle}>
+                              {t("kbzPayReviewTitle")}
+                            </ThemedText>
+                            <ThemedText
+                              style={[
+                                styles.kbzCenteredText,
+                                { color: colors.icon },
+                              ]}
+                            >
                               {t("kbzPaySubmittedHint")}
                             </ThemedText>
                             {kbzSubmittedTransaction ? (
                               <View
                                 style={[
-                                  styles.infoBox,
-                                  { borderColor: colors.icon },
+                                  styles.kbzSubmittedId,
+                                  { borderColor: colors.icon + "44" },
                                 ]}
                               >
                                 <ThemedText style={styles.infoLabel}>
@@ -2174,15 +2536,77 @@ export function ProfileScreen() {
                                 </ThemedText>
                               </View>
                             ) : null}
-                          </>
+                            <Pressable
+                              onPress={handleRefreshKbzPay}
+                              disabled={loading.kbzRefresh}
+                              style={[
+                                styles.kbzSecondaryButton,
+                                { borderColor: colors.tint },
+                              ]}
+                            >
+                              {loading.kbzRefresh ? (
+                                <FlexMarketLoader
+                                  variant="inline"
+                                  size="xs"
+                                  showText={false}
+                                />
+                              ) : (
+                                <>
+                                  <MaterialIcons
+                                    name="refresh"
+                                    size={18}
+                                    color={colors.tint}
+                                  />
+                                  <ThemedText
+                                    style={[
+                                      styles.kbzSecondaryButtonText,
+                                      { color: colors.tint },
+                                    ]}
+                                  >
+                                    {t("kbzPayCheckStatus")}
+                                  </ThemedText>
+                                </>
+                              )}
+                            </Pressable>
+                          </View>
                         ) : null}
 
                         {user?.isKbzPayVerified ? (
-                          <ThemedText style={styles.profileSub}>
-                            {t("profileVerifiedHint")}
-                          </ThemedText>
+                          <View
+                            style={[
+                              styles.kbzStatusPanel,
+                              {
+                                backgroundColor: SUCCESS + "12",
+                                borderColor: SUCCESS + "55",
+                              },
+                            ]}
+                          >
+                            <View
+                              style={[
+                                styles.kbzStatusIcon,
+                                { backgroundColor: SUCCESS + "20" },
+                              ]}
+                            >
+                              <MaterialIcons
+                                name="verified"
+                                size={26}
+                                color={SUCCESS}
+                              />
+                            </View>
+                            <ThemedText style={styles.kbzStateTitle}>
+                              {t("kbzPayVerifiedTitle")}
+                            </ThemedText>
+                            <ThemedText
+                              style={[
+                                styles.kbzCenteredText,
+                                { color: colors.icon },
+                              ]}
+                            >
+                              {t("kbzPayVerifiedBody")}
+                            </ThemedText>
+                          </View>
                         ) : null}
-                      </>
+                      </View>
                     </ProfileFadeIn>
                   ) : null}
                 </ProfileAnimatedCard>
@@ -2381,6 +2805,210 @@ const styles = StyleSheet.create({
   },
   infoLabel: { fontSize: 12, opacity: 0.72 },
   infoValue: { fontSize: 14, fontWeight: "600" },
+  kbzHeaderIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  kbzFlow: {
+    gap: 16,
+  },
+  kbzStepRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingHorizontal: 2,
+  },
+  kbzStep: {
+    flex: 1,
+    alignItems: "center",
+    gap: 5,
+    position: "relative",
+  },
+  kbzStepCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
+  },
+  kbzStepNumber: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: "800",
+    includeFontPadding: false,
+  },
+  kbzStepLabel: {
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: "600",
+    textAlign: "center",
+    minHeight: 26,
+  },
+  kbzStepConnector: {
+    position: "absolute",
+    top: 13,
+    left: "65%",
+    width: "70%",
+    height: 2,
+    zIndex: 1,
+  },
+  kbzStateContent: {
+    gap: 12,
+  },
+  kbzStateTitle: {
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: "800",
+  },
+  kbzPrerequisiteBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    gap: 9,
+  },
+  kbzPrerequisiteTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  kbzRequirementRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  kbzRequirementText: {
+    flex: 1,
+    fontSize: 13,
+  },
+  kbzStatusPanel: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 16,
+    alignItems: "center",
+    gap: 9,
+  },
+  kbzStatusIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 2,
+  },
+  kbzCenteredText: {
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+  },
+  kbzSecondaryButton: {
+    minHeight: 42,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    marginTop: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+  },
+  kbzSecondaryButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  kbzImportantBanner: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 9,
+  },
+  kbzImportantText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: "600",
+  },
+  kbzInstructionRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+  kbzInstructionNumber: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  kbzInstructionNumberText: {
+    color: "#fff",
+    fontSize: 12,
+    lineHeight: 15,
+    fontWeight: "800",
+    includeFontPadding: false,
+  },
+  kbzInstructionBody: {
+    flex: 1,
+    gap: 5,
+    minWidth: 0,
+  },
+  kbzAmountValue: {
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: "900",
+  },
+  kbzCopyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  kbzPhoneValue: {
+    flex: 1,
+    fontSize: 19,
+    lineHeight: 25,
+    fontWeight: "800",
+  },
+  kbzCopyButton: {
+    minHeight: 34,
+    borderRadius: 9,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+  },
+  kbzCopyText: {
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  kbzAdminNote: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 9,
+  },
+  kbzInputHint: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 2,
+  },
+  kbzSubmittedId: {
+    width: "100%",
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    gap: 4,
+    marginVertical: 2,
+  },
   divider: {
     height: 1,
     width: "100%",
