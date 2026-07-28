@@ -2,7 +2,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Clipboard from "expo-clipboard";
 import { Image, type ImageSource } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ComponentProps } from "react";
 import {
   Alert,
   Linking,
@@ -130,6 +130,187 @@ function formatDate(value: string): string {
   return `${year}-${month}-${day}`;
 }
 
+function VerificationStepRail({
+  labels,
+  activeStep,
+  colors,
+}: {
+  labels: string[];
+  activeStep: number;
+  colors: (typeof Colors)["light"];
+}) {
+  return (
+    <View style={styles.kbzStepRow}>
+      {labels.map((label, index) => {
+        const done = index < activeStep;
+        const active = index === activeStep;
+        return (
+          <View key={`${label}-${index}`} style={styles.kbzStep}>
+            <View
+              style={[
+                styles.kbzStepCircle,
+                {
+                  backgroundColor: done
+                    ? SUCCESS
+                    : active
+                      ? colors.tint
+                      : colors.icon + "22",
+                  borderColor:
+                    done || active ? "transparent" : colors.icon + "55",
+                },
+              ]}
+            >
+              {done ? (
+                <MaterialIcons name="check" size={14} color="#fff" />
+              ) : (
+                <ThemedText
+                  style={[
+                    styles.kbzStepNumber,
+                    { color: active ? "#fff" : colors.icon },
+                  ]}
+                >
+                  {index + 1}
+                </ThemedText>
+              )}
+            </View>
+            <ThemedText
+              numberOfLines={3}
+              style={[
+                styles.kbzStepLabel,
+                { color: done || active ? colors.text : colors.icon },
+              ]}
+            >
+              {label}
+            </ThemedText>
+            {index < labels.length - 1 ? (
+              <View
+                style={[
+                  styles.kbzStepConnector,
+                  {
+                    backgroundColor:
+                      index < activeStep ? SUCCESS : colors.icon + "33",
+                  },
+                ]}
+              />
+            ) : null}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+type VerificationTone = "done" | "pending" | "todo";
+
+function verificationToneColor(tone: VerificationTone, tint: string) {
+  if (tone === "done") return SUCCESS;
+  if (tone === "pending") return WARNING;
+  return tint;
+}
+
+function VerificationStatusPill({
+  tone,
+  label,
+  tint,
+}: {
+  tone: VerificationTone;
+  label: string;
+  tint: string;
+}) {
+  const color = verificationToneColor(tone, tint);
+  return (
+    <View
+      style={[
+        styles.verificationStatusPill,
+        { backgroundColor: color + "18", borderColor: color + "44" },
+      ]}
+    >
+      <View style={[styles.verificationStatusDot, { backgroundColor: color }]} />
+      <ThemedText
+        numberOfLines={1}
+        style={[styles.verificationStatusPillText, { color }]}
+      >
+        {label}
+      </ThemedText>
+    </View>
+  );
+}
+
+function VerificationItemHeader({
+  step,
+  icon,
+  title,
+  tone,
+  statusLabel,
+  expanded,
+  onPress,
+  colors,
+}: {
+  step: number;
+  icon: ComponentProps<typeof MaterialIcons>["name"];
+  title: string;
+  tone: VerificationTone;
+  statusLabel: string;
+  expanded: boolean;
+  onPress: () => void;
+  colors: (typeof Colors)["light"];
+}) {
+  const accent = verificationToneColor(tone, colors.tint);
+  return (
+    <Pressable onPress={onPress} style={styles.verificationItemHeader}>
+      <View style={styles.verificationItemHeaderLeft}>
+        <View
+          style={[
+            styles.kbzHeaderIcon,
+            {
+              backgroundColor:
+                tone === "done" ? SUCCESS + "18" : accent + "18",
+            },
+          ]}
+        >
+          {tone === "done" ? (
+            <MaterialIcons name="check" color={SUCCESS} size={22} />
+          ) : (
+            <MaterialIcons name={icon} color={accent} size={22} />
+          )}
+        </View>
+        <View style={styles.verificationHeaderCopy}>
+          <View style={styles.verificationHeaderTitleRow}>
+            <ThemedText
+              style={[
+                styles.verificationStepIndex,
+                { color: colors.icon },
+              ]}
+            >
+              {step}.
+            </ThemedText>
+            <ThemedText numberOfLines={2} style={styles.verificationHeaderTitle}>
+              {title}
+            </ThemedText>
+          </View>
+          <VerificationStatusPill
+            tone={tone}
+            label={statusLabel}
+            tint={colors.tint}
+          />
+        </View>
+      </View>
+      <View
+        style={[
+          styles.verificationChevron,
+          { backgroundColor: colors.icon + "14" },
+        ]}
+      >
+        <MaterialIcons
+          name={expanded ? "expand-less" : "expand-more"}
+          color={colors.icon}
+          size={20}
+        />
+      </View>
+    </Pressable>
+  );
+}
+
 function cooldownHhMm(ms: number): { hours: string; minutes: string } {
   const totalSec = Math.max(0, Math.ceil(ms / 1000));
   const hours = Math.floor(totalSec / 3600);
@@ -191,11 +372,17 @@ export function ProfileScreen() {
   >("rewards");
   const [showRankSystem, setShowRankSystem] = useState(false);
   const [showWithdrawalHistory, setShowWithdrawalHistory] = useState(true);
-  const [showPhoneVerification, setShowPhoneVerification] = useState(true);
-  const [showEmailVerification, setShowEmailVerification] = useState(false);
-  const [showKbzPayVerification, setShowKbzPayVerification] = useState(true);
+  const [showPhoneVerification, setShowPhoneVerification] = useState(
+    () => !Boolean(user?.isPhoneVerified),
+  );
+  const [showEmailVerification, setShowEmailVerification] = useState(
+    () => !Boolean(user?.isEmailVerified),
+  );
+  const [showKbzPayVerification, setShowKbzPayVerification] = useState(
+    () => !Boolean(user?.isKbzPayVerified),
+  );
   const [showFacebookVerification, setShowFacebookVerification] =
-    useState(false);
+    useState(true);
 
   const sampleName = user?.name?.trim()
     ? user.name.trim()
@@ -210,6 +397,8 @@ export function ProfileScreen() {
   const [otpCode, setOtpCode] = useState("");
   const [email, setEmail] = useState(sampleEmail);
   const [emailToken, setEmailToken] = useState("");
+  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
+  const [emailCodeSent, setEmailCodeSent] = useState(false);
   const [kbzTransactionId, setKbzTransactionId] = useState("");
   const [kbzTransactionError, setKbzTransactionError] = useState("");
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
@@ -247,6 +436,11 @@ export function ProfileScreen() {
     void refreshProfile();
   }, [refreshProfile]);
 
+  useEffect(() => {
+    const status = latestFacebookFollowQuery.data?.status?.toUpperCase();
+    if (status === "APPROVED") setShowFacebookVerification(false);
+  }, [latestFacebookFollowQuery.data?.status]);
+
   const avatarImageSource = useMemo<ImageSource | null>(() => {
     if (!avatarUrl) return null;
     if (user?.accessToken && mediaUrlSharesApiOrigin(avatarUrl)) {
@@ -263,7 +457,7 @@ export function ProfileScreen() {
     try {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert(t("errorTitle"), "Media library permission is required.");
+        Alert.alert(t("errorTitle"), t("mediaLibraryPermissionRequired"));
         return;
       }
 
@@ -390,6 +584,7 @@ export function ProfileScreen() {
     try {
       await sendPhoneOtp(normalized);
       setPhone(normalized);
+      setPhoneOtpSent(true);
       Alert.alert(t("otpSent"));
     } catch (err) {
       handleError(err);
@@ -406,6 +601,8 @@ export function ProfileScreen() {
       await verifyPhoneOtp(normalized, otpCode.trim());
       const latest = await refreshProfile();
       setPhoneVerified(Boolean(latest?.isPhoneVerified));
+      setPhoneOtpSent(false);
+      setOtpCode("");
       Alert.alert(t("otpVerified"));
     } catch (err) {
       handleError(err);
@@ -419,6 +616,7 @@ export function ProfileScreen() {
     setBusy("sendEmail", true);
     try {
       await sendEmailVerification(email.trim());
+      setEmailCodeSent(true);
       Alert.alert(t("emailSent"));
     } catch (err) {
       handleError(err);
@@ -434,6 +632,8 @@ export function ProfileScreen() {
       await verifyEmail(email.trim(), emailToken.trim());
       const latest = await refreshProfile();
       setEmailVerified(Boolean(latest?.isEmailVerified));
+      setEmailCodeSent(false);
+      setEmailToken("");
       Alert.alert(t("emailVerified"));
     } catch (err) {
       handleError(err);
@@ -524,10 +724,7 @@ export function ProfileScreen() {
       Alert.alert(t("profileTitle"), t("facebookLinkedSuccess"));
     } catch (err) {
       console.warn("[Facebook Login Error]", err);
-      handleError(
-        err,
-        "Facebook login failed. Rebuild the EAS development app after adding the Facebook SDK, then try again.",
-      );
+      handleError(err, t("facebookLoginFailed"));
     } finally {
       setBusy("facebookLink", false);
     }
@@ -538,7 +735,7 @@ export function ProfileScreen() {
     try {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert(t("errorTitle"), "Media library permission is required.");
+        Alert.alert(t("errorTitle"), t("mediaLibraryPermissionRequired"));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -732,18 +929,9 @@ export function ProfileScreen() {
     backgroundColor: colors.background,
   } as const;
 
-  const phoneStatusText = phoneVerified
-    ? t("profileStatusVerified")
-    : t("profileStatusNotVerified");
-  const emailStatusText = emailVerified
-    ? t("profileStatusVerified")
-    : t("profileStatusNotVerified");
   const facebookLinked = Boolean(
     user?.facebookLinkedAt?.trim() || user?.facebookProfileUrl?.trim(),
   );
-  const facebookStatusText = facebookLinked
-    ? t("profileStatusVerified")
-    : t("profileStatusNotVerified");
   const latestFacebookFollow = latestFacebookFollowQuery.data;
   const facebookFollowStatus =
     latestFacebookFollow?.status?.toUpperCase() ?? "";
@@ -755,6 +943,16 @@ export function ProfileScreen() {
         : facebookFollowStatus
           ? WARNING
           : colors.icon;
+  const facebookFlowStep =
+    facebookFollowStatus === "APPROVED"
+      ? 3
+      : facebookFollowStatus === "PENDING"
+        ? 2
+        : facebookLinked
+          ? 1
+          : 0;
+  const phoneFlowStep = phoneVerified ? 2 : phoneOtpSent ? 1 : 0;
+  const emailFlowStep = emailVerified ? 2 : emailCodeSent ? 1 : 0;
   const kbzStatus = user?.kbzPayVerificationStatus?.toUpperCase() ?? null;
   const kbzPendingStatuses = new Set([
     "PENDING",
@@ -804,22 +1002,6 @@ export function ProfileScreen() {
     !kbzHasSubmittedTransaction;
   const kbzWaitingForAdminVerification =
     kbzIsPending && !user?.isKbzPayVerified && kbzHasSubmittedTransaction;
-  const kbzStatusText = user?.isKbzPayVerified
-    ? t("profileStatusVerified")
-    : kbzWaitingForAdminVerification
-      ? t("kbzPayStatusTransactionSubmitted")
-      : kbzCanSubmitTransaction
-        ? t("kbzPayStatusInstructionReady")
-        : kbzWaitingForInstruction
-          ? t("kbzPayStatusPendingInstruction")
-          : kbzIsPending && kbzVerificationStarted
-            ? t("profileStatusRequested")
-            : t("profileStatusNotVerified");
-  const kbzStatusColor = user?.isKbzPayVerified
-    ? SUCCESS
-    : kbzIsPending && kbzVerificationStarted
-      ? WARNING
-      : colors.icon;
   const kbzFlowStep = user?.isKbzPayVerified
     ? 4
     : kbzHasSubmittedTransaction
@@ -829,6 +1011,101 @@ export function ProfileScreen() {
         : kbzVerificationStarted
           ? 1
           : 0;
+  const facebookFullyVerified = facebookFollowStatus === "APPROVED";
+  const phoneTone: VerificationTone = phoneVerified
+    ? "done"
+    : phoneOtpSent
+      ? "pending"
+      : "todo";
+  const emailTone: VerificationTone = emailVerified
+    ? "done"
+    : emailCodeSent
+      ? "pending"
+      : "todo";
+  const facebookTone: VerificationTone = facebookFullyVerified
+    ? "done"
+    : facebookFollowStatus === "PENDING" || facebookLinked
+      ? "pending"
+      : "todo";
+  const kbzTone: VerificationTone = user?.isKbzPayVerified
+    ? "done"
+    : kbzIsPending && kbzVerificationStarted
+      ? "pending"
+      : "todo";
+  const toneLabel = (tone: VerificationTone) =>
+    tone === "done"
+      ? t("verificationStatusComplete")
+      : tone === "pending"
+        ? t("verificationStatusPending")
+        : t("verificationStatusTodo");
+  const verificationOverviewItems = [
+    {
+      key: "phone" as const,
+      step: 1,
+      title: t("phoneVerification"),
+      icon: "phone-iphone" as const,
+      tone: phoneTone,
+      expanded: showPhoneVerification,
+      onPress: () => {
+        setShowPhoneVerification(true);
+        setShowEmailVerification(false);
+        setShowFacebookVerification(false);
+        setShowKbzPayVerification(false);
+      },
+    },
+    {
+      key: "email" as const,
+      step: 2,
+      title: t("emailVerification"),
+      icon: "alternate-email" as const,
+      tone: emailTone,
+      expanded: showEmailVerification,
+      onPress: () => {
+        setShowPhoneVerification(false);
+        setShowEmailVerification(true);
+        setShowFacebookVerification(false);
+        setShowKbzPayVerification(false);
+      },
+    },
+    {
+      key: "facebook" as const,
+      step: 3,
+      title: t("facebookVerification"),
+      icon: "groups" as const,
+      tone: facebookTone,
+      expanded: showFacebookVerification,
+      onPress: () => {
+        setShowPhoneVerification(false);
+        setShowEmailVerification(false);
+        setShowFacebookVerification(true);
+        setShowKbzPayVerification(false);
+      },
+    },
+    {
+      key: "kbz" as const,
+      step: 4,
+      title: t("kbzPayVerification"),
+      icon: "account-balance-wallet" as const,
+      tone: kbzTone,
+      expanded: showKbzPayVerification,
+      onPress: () => {
+        setShowPhoneVerification(false);
+        setShowEmailVerification(false);
+        setShowFacebookVerification(false);
+        setShowKbzPayVerification(true);
+      },
+    },
+  ];
+  const verificationDoneCount = verificationOverviewItems.filter(
+    (item) => item.tone === "done",
+  ).length;
+  const verificationNextItem = verificationOverviewItems.find(
+    (item) => item.tone !== "done",
+  );
+  const verificationProgress =
+    verificationOverviewItems.length > 0
+      ? verificationDoneCount / verificationOverviewItems.length
+      : 0;
   const pointsSummary = pointsQuery.data;
   const rankLadder = rankConfigsQuery.data ?? [];
   const statsSummary = statsQuery.data;
@@ -1499,610 +1776,1169 @@ export function ProfileScreen() {
               </ProfileAnimatedCard>
             ) : activeTab === "verifications" ? (
               <>
-                <ProfileAnimatedCard scheme={scheme} borderColor={colors.icon}>
-                  <View style={styles.cardHeader}>
-                    <Pressable
-                      onPress={() => setShowPhoneVerification((prev) => !prev)}
-                      style={styles.collapsibleHeader}
-                    >
-                      <View style={styles.verificationHeaderLeft}>
-                        <ThemedText style={styles.cardTitle}>
-                          {t("phoneVerification")}
-                        </ThemedText>
-                        <ThemedText
-                          style={[
-                            styles.badgeInline,
-                            { color: phoneVerified ? SUCCESS : colors.icon },
-                          ]}
-                        >
-                          {phoneStatusText}
-                        </ThemedText>
-                      </View>
-                      <MaterialIcons
-                        name={
-                          showPhoneVerification ? "expand-less" : "expand-more"
-                        }
-                        color={colors.icon}
-                        size={22}
-                      />
-                    </Pressable>
-                  </View>
-                  {showPhoneVerification ? (
-                    <ProfileFadeIn reduceMotion={reduceMotion}>
-                      <>
-                        <TextInput
-                          style={[styles.input, inputStyle]}
-                          value={phone}
-                          onChangeText={setPhone}
-                          placeholder={t("phoneNumberPlaceholder")}
-                          placeholderTextColor={colors.icon}
-                          keyboardType="phone-pad"
-                          autoCapitalize="none"
-                          editable={!phoneVerified}
-                        />
-                        {!phoneVerified ? (
-                          <>
-                            <View style={styles.inlineRow}>
-                              <TextInput
-                                style={[styles.input, inputStyle, { flex: 1 }]}
-                                value={otpCode}
-                                onChangeText={(v) =>
-                                  setOtpCode(v.replace(/\D/g, ""))
-                                }
-                                placeholder={t("otpPlaceholder")}
-                                placeholderTextColor={colors.icon}
-                                keyboardType="number-pad"
-                                maxLength={6}
-                                editable={!phoneVerified}
-                              />
-                              <Pressable
-                                onPress={handleVerifyOtp}
-                                disabled={loading.verifyOtp || phoneVerified}
-                                style={[
-                                  styles.primaryButton,
-                                  { backgroundColor: colors.tint },
-                                  (loading.verifyOtp || phoneVerified) && {
-                                    opacity: 0.6,
-                                  },
-                                ]}
-                              >
-                                {loading.verifyOtp ? (
-                                  <FlexMarketLoader variant="inline" size="xs" showText={false} />
-                                ) : (
-                                  <ThemedText style={styles.primaryButtonText}>
-                                    {t("verify")}
-                                  </ThemedText>
-                                )}
-                              </Pressable>
-                            </View>
-                            <Pressable
-                              onPress={handleSendOtp}
-                              disabled={loading.sendOtp || phoneVerified}
-                              style={styles.linkButton}
-                            >
-                              {loading.sendOtp ? (
-                                <FlexMarketLoader variant="inline" size="xs" showText={false} />
-                              ) : (
-                                <ThemedText
-                                  style={{
-                                    color: colors.tint,
-                                    fontWeight: "600",
-                                  }}
-                                >
-                                  {t("resend")}
-                                </ThemedText>
-                              )}
-                            </Pressable>
-                          </>
-                        ) : (
-                          <ThemedText style={styles.profileSub}>
-                            {t("profileVerifiedHint")}
-                          </ThemedText>
-                        )}
-                      </>
-                    </ProfileFadeIn>
-                  ) : null}
-                </ProfileAnimatedCard>
-                  <ProfileAnimatedCard scheme={scheme} borderColor={colors.icon}>
-                    <View style={styles.cardHeader}>
-                      <Pressable
-                        onPress={() =>
-                          setShowFacebookVerification((prev) => !prev)
-                      }
-                      style={styles.collapsibleHeader}
-                    >
-                      <View style={styles.verificationHeaderLeft}>
-                        <ThemedText style={styles.cardTitle}>
-                          {t("facebookVerification")}
-                        </ThemedText>
-                        <ThemedText
-                          style={[
-                            styles.badgeInline,
-                            { color: facebookLinked ? SUCCESS : colors.icon },
-                          ]}
-                        >
-                          {facebookStatusText}
-                        </ThemedText>
-                      </View>
-                      <MaterialIcons
-                        name={
-                          showFacebookVerification
-                            ? "expand-less"
-                            : "expand-more"
-                        }
-                        color={colors.icon}
-                        size={22}
-                      />
-                    </Pressable>
-                  </View>
-                    {showFacebookVerification ? (
-                      <ProfileFadeIn reduceMotion={reduceMotion}>
-                        <>
-                        {facebookLinked ? (
-                          <>
-                            <ThemedText style={styles.profileSub}>
-                              {t("profileVerifiedHint")}
-                            </ThemedText>
-                            {user?.facebookName ? (
-                              <View
-                                style={[
-                                  styles.infoBox,
-                                  { borderColor: colors.icon },
-                                ]}
-                              >
-                                <ThemedText style={styles.infoLabel}>
-                                  {t("facebookNameLabel")}
-                                </ThemedText>
-                                <ThemedText style={styles.infoValue}>
-                                  {user.facebookName}
-                                </ThemedText>
-                              </View>
-                            ) : null}
-                            {user?.facebookProfileUrl ? (
-                              <Pressable
-                                onPress={() =>
-                                  handleOpenUrl(user.facebookProfileUrl ?? "")
-                                }
-                                style={styles.linkButton}
-                              >
-                                <ThemedText
-                                  style={{
-                                    color: colors.tint,
-                                    fontWeight: "700",
-                                  }}
-                                >
-                                  {t("facebookOpenProfile")}
-                                </ThemedText>
-                              </Pressable>
-                            ) : null}
-                          </>
-                        ) : (
-                          <>
-                            <ThemedText style={styles.profileSub}>
-                              {t("facebookLinkIntro")}
-                            </ThemedText>
-                            <Pressable
-                              onPress={handleStartFacebookOAuth}
-                              disabled={
-                                loading.facebookLink ||
-                                !FACEBOOK_APP_ID
-                              }
-                              style={[
-                                styles.primaryButton,
-                                styles.fullWidthButton,
-                                { backgroundColor: "#1877F2" },
-                                (loading.facebookLink ||
-                                  !FACEBOOK_APP_ID) && { opacity: 0.6 },
-                              ]}
-                            >
-                              {loading.facebookLink ? (
-                                <FlexMarketLoader variant="inline" size="xs" showText={false} />
-                              ) : (
-                                <ThemedText style={styles.primaryButtonText}>
-                                  {t("facebookOAuthButton")}
-                                </ThemedText>
-                              )}
-                            </Pressable>
-                          </>
-                        )}
-
-                            <View style={styles.divider} />
-                            <ThemedText style={styles.cardTitle}>
-                              {t("facebookFollowProof")}
-                            </ThemedText>
-                            <ThemedText style={styles.profileSub}>
-                              {t("facebookFollowIntro")}
-                            </ThemedText>
-                            <View
-                              style={[
-                                styles.infoBox,
-                                { borderColor: colors.icon },
-                              ]}
-                            >
-                              <ThemedText style={styles.infoLabel}>
-                                {t("facebookNameLabel")}
-                              </ThemedText>
-                              <ThemedText style={styles.infoValue}>
-                                {user?.facebookName || facebookName}
-                              </ThemedText>
-                            </View>
-                            {FACEBOOK_PAGE_URL ? (
-                              <Pressable
-                                onPress={() => handleOpenUrl(FACEBOOK_PAGE_URL)}
-                                style={styles.linkButton}
-                              >
-                                <ThemedText
-                                  style={{
-                                    color: colors.tint,
-                                    fontWeight: "700",
-                                  }}
-                                >
-                                  {t("facebookOpenPage")}
-                                </ThemedText>
-                              </Pressable>
-                            ) : (
-                              <ThemedText style={styles.profileSub}>
-                                {t("facebookMissingPageUrl")}
-                              </ThemedText>
-                            )}
-                            <Pressable
-                              onPress={handlePickFacebookScreenshot}
-                              disabled={
-                                !facebookLinked ||
-                                loading.facebookScreenshot ||
-                                loading.facebookFollowSubmit
-                              }
-                              style={[
-                                styles.outlineButton,
-                                { borderColor: colors.tint },
-                                (!facebookLinked ||
-                                  loading.facebookScreenshot ||
-                                  loading.facebookFollowSubmit) && {
-                                  opacity: 0.6,
-                                },
-                              ]}
-                            >
-                              {loading.facebookScreenshot ? (
-                                <FlexMarketLoader variant="inline" size="xs" showText={false} />
-                              ) : (
-                                <ThemedText
-                                  style={[
-                                    styles.outlineButtonText,
-                                    { color: colors.tint },
-                                  ]}
-                                >
-                                  {facebookScreenshot
-                                    ? t("facebookScreenshotSelected")
-                                    : t("facebookScreenshotButton")}
-                                </ThemedText>
-                              )}
-                            </Pressable>
-                            {facebookScreenshot ? (
-                              <ThemedText style={styles.profileSub}>
-                                {facebookScreenshot.name}
-                              </ThemedText>
-                            ) : null}
-                            <Pressable
-                              onPress={handleSubmitFacebookFollow}
-                              disabled={
-                                loading.facebookFollowSubmit ||
-                                !facebookLinked ||
-                                !FACEBOOK_PAGE_URL ||
-                                !facebookScreenshot
-                              }
-                              style={[
-                                styles.primaryButton,
-                                styles.fullWidthButton,
-                                { backgroundColor: colors.tint },
-                                (loading.facebookFollowSubmit ||
-                                  !facebookLinked ||
-                                  !FACEBOOK_PAGE_URL ||
-                                  !facebookScreenshot) && {
-                                  opacity: 0.6,
-                                },
-                              ]}
-                            >
-                              {loading.facebookFollowSubmit ? (
-                                <FlexMarketLoader variant="inline" size="xs" showText={false} />
-                              ) : (
-                                <ThemedText style={styles.primaryButtonText}>
-                                  {t("facebookSubmitFollowProof")}
-                                </ThemedText>
-                              )}
-                            </Pressable>
-
-                            <View
-                              style={[
-                                styles.infoBox,
-                                { borderColor: colors.icon },
-                              ]}
-                            >
-                              <View style={styles.facebookStatusRow}>
-                                <ThemedText style={styles.infoLabel}>
-                                  {t("facebookFollowLatestStatus")}
-                                </ThemedText>
-                                {latestFacebookFollowQuery.isFetching ? (
-                                  <FlexMarketLoader variant="inline" size="xs" showText={false} />
-                                ) : null}
-                              </View>
-                              <ThemedText
-                                style={[
-                                  styles.infoValue,
-                                  { color: facebookFollowStatusColor },
-                                ]}
-                              >
-                                {facebookFollowStatus ||
-                                  t("facebookFollowNoSubmission")}
-                              </ThemedText>
-                              {latestFacebookFollow?.facebookPageUrl ? (
-                                <Pressable
-                                  onPress={() =>
-                                    handleOpenUrl(
-                                      latestFacebookFollow.facebookPageUrl,
-                                    )
-                                  }
-                                  style={styles.inlineLinkButton}
-                                >
-                                  <ThemedText
-                                    style={{
-                                      color: colors.tint,
-                                      fontWeight: "700",
-                                    }}
-                                  >
-                                    {t("facebookOpenPage")}
-                                  </ThemedText>
-                                </Pressable>
-                              ) : null}
-                              {latestFacebookFollow?.adminNote ? (
-                                <ThemedText style={styles.profileSub}>
-                                  {t("facebookFollowAdminNote")}:{" "}
-                                  {latestFacebookFollow.adminNote}
-                                </ThemedText>
-                              ) : null}
-                            </View>
-                      </>
-                      </ProfileFadeIn>
-                    ) : null}
-                  </ProfileAnimatedCard>
-
-                  <ProfileAnimatedCard scheme={scheme} borderColor={colors.icon}>
-                  <View style={styles.cardHeader}>
-                    <Pressable
-                      onPress={() => setShowEmailVerification((prev) => !prev)}
-                      style={styles.collapsibleHeader}
-                    >
-                      <View style={styles.verificationHeaderLeft}>
-                        <ThemedText style={styles.cardTitle}>
-                          {t("emailVerification")}
-                        </ThemedText>
-                        <ThemedText
-                          style={[
-                            styles.badgeInline,
-                            { color: emailVerified ? SUCCESS : colors.icon },
-                          ]}
-                        >
-                          {emailStatusText}
-                        </ThemedText>
-                      </View>
-                      <MaterialIcons
-                        name={
-                          showEmailVerification ? "expand-less" : "expand-more"
-                        }
-                        color={colors.icon}
-                        size={22}
-                      />
-                    </Pressable>
-                  </View>
-                  {showEmailVerification ? (
-                    <ProfileFadeIn reduceMotion={reduceMotion}>
-                      <>
-                        <TextInput
-                          style={[styles.input, inputStyle]}
-                          value={email}
-                          onChangeText={setEmail}
-                          placeholder={t("emailPlaceholder")}
-                          placeholderTextColor={colors.icon}
-                          keyboardType="email-address"
-                          autoCapitalize="none"
-                          editable={!emailVerified}
-                        />
-                        {!emailVerified ? (
-                          <>
-                            <Pressable
-                              onPress={handleSendEmail}
-                              disabled={
-                                loading.sendEmail ||
-                                emailVerified ||
-                                !email.trim()
-                              }
-                              style={[
-                                styles.outlineButton,
-                                { borderColor: colors.tint },
-                                (loading.sendEmail ||
-                                  emailVerified ||
-                                  !email.trim()) && { opacity: 0.5 },
-                              ]}
-                            >
-                              {loading.sendEmail ? (
-                                <FlexMarketLoader variant="inline" size="xs" showText={false} />
-                              ) : (
-                                <ThemedText
-                                  style={[
-                                    styles.outlineButtonText,
-                                    { color: colors.tint },
-                                  ]}
-                                >
-                                  {t("sendEmailVerificationButton")}
-                                </ThemedText>
-                              )}
-                            </Pressable>
-                            <TextInput
-                              style={[styles.input, inputStyle]}
-                              value={emailToken}
-                              onChangeText={setEmailToken}
-                              placeholder={t("emailTokenPlaceholder")}
-                              placeholderTextColor={colors.icon}
-                              autoCapitalize="none"
-                              autoCorrect={false}
-                              editable={!emailVerified}
-                            />
-                            <Pressable
-                              onPress={handleVerifyEmail}
-                              disabled={
-                                loading.verifyEmail ||
-                                emailVerified ||
-                                !email.trim() ||
-                                !emailToken.trim()
-                              }
-                              style={[
-                                styles.primaryButton,
-                                styles.fullWidthButton,
-                                { backgroundColor: colors.tint },
-                                (loading.verifyEmail ||
-                                  emailVerified ||
-                                  !email.trim() ||
-                                  !emailToken.trim()) && {
-                                  opacity: 0.6,
-                                },
-                              ]}
-                            >
-                              {loading.verifyEmail ? (
-                                <FlexMarketLoader variant="inline" size="xs" showText={false} />
-                              ) : (
-                                <ThemedText style={styles.primaryButtonText}>
-                                  {t("verifyEmailButton")}
-                                </ThemedText>
-                              )}
-                            </Pressable>
-                          </>
-                        ) : (
-                          <ThemedText style={styles.profileSub}>
-                            {t("profileVerifiedHint")}
-                          </ThemedText>
-                        )}
-                      </>
-                    </ProfileFadeIn>
-                  ) : null}
-                </ProfileAnimatedCard>
-
-                <ProfileAnimatedCard scheme={scheme} borderColor={colors.icon}>
-                  <Pressable
-                    onPress={() => setShowKbzPayVerification((prev) => !prev)}
-                    style={styles.collapsibleHeader}
-                  >
+                <ProfileAnimatedCard
+                  scheme={scheme}
+                  borderColor={
+                    verificationDoneCount === 4
+                      ? SUCCESS + "66"
+                      : colors.icon
+                  }
+                  style={[
+                    styles.verificationOverviewCard,
+                    verificationDoneCount === 4
+                      ? { backgroundColor: SUCCESS + "10" }
+                      : null,
+                  ]}
+                >
+                  <View style={styles.verificationOverviewHeader}>
                     <View
                       style={[
-                        styles.kbzHeaderIcon,
-                        { backgroundColor: colors.tint + "18" },
+                        styles.verificationOverviewIcon,
+                        {
+                          backgroundColor:
+                            verificationDoneCount === 4
+                              ? SUCCESS
+                              : colors.tint,
+                        },
                       ]}
                     >
                       <MaterialIcons
-                        name="account-balance-wallet"
-                        color={colors.tint}
+                        name={
+                          verificationDoneCount === 4
+                            ? "verified-user"
+                            : "security"
+                        }
+                        color="#fff"
                         size={22}
                       />
                     </View>
-                    <View style={styles.verificationHeaderLeft}>
-                      <ThemedText style={styles.cardTitle}>
-                        {t("kbzPayVerification")}
-                      </ThemedText>
-                      <ThemedText
-                        style={[styles.badgeInline, { color: kbzStatusColor }]}
-                      >
-                        {kbzStatusText}
+                    <View style={styles.verificationOverviewCopy}>
+                      <View style={styles.verificationOverviewTitleRow}>
+                        <ThemedText
+                          numberOfLines={2}
+                          style={styles.verificationOverviewTitle}
+                        >
+                          {t("verificationsOverviewTitle")}
+                        </ThemedText>
+                        <View
+                          style={[
+                            styles.verificationProgressChip,
+                            {
+                              backgroundColor:
+                                verificationDoneCount === 4
+                                  ? SUCCESS + "22"
+                                  : colors.tint + "18",
+                            },
+                          ]}
+                        >
+                          <ThemedText
+                            numberOfLines={1}
+                            style={[
+                              styles.verificationProgressChipText,
+                              {
+                                color:
+                                  verificationDoneCount === 4
+                                    ? SUCCESS
+                                    : colors.tint,
+                              },
+                            ]}
+                          >
+                            {tf("verificationsProgressCount", {
+                              done: String(verificationDoneCount),
+                              total: "4",
+                            })}
+                          </ThemedText>
+                        </View>
+                      </View>
+                      <ThemedText style={styles.verificationOverviewHint}>
+                        {verificationDoneCount === 4
+                          ? t("verificationsAllComplete")
+                          : t("verificationsOverviewHint")}
                       </ThemedText>
                     </View>
-                    <MaterialIcons
-                      name={
-                        showKbzPayVerification ? "expand-less" : "expand-more"
-                      }
-                      color={colors.icon}
-                      size={22}
-                    />
-                  </Pressable>
+                  </View>
 
-                  {showKbzPayVerification ? (
+                  <View
+                    style={[
+                      styles.verificationProgressTrack,
+                      { backgroundColor: colors.icon + "22" },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.verificationProgressFill,
+                        {
+                          width: `${Math.round(verificationProgress * 100)}%`,
+                          backgroundColor:
+                            verificationDoneCount === 4
+                              ? SUCCESS
+                              : colors.tint,
+                        },
+                      ]}
+                    />
+                  </View>
+
+                  <View style={styles.verificationOverviewGrid}>
+                    {verificationOverviewItems.map((item) => {
+                      const accent = verificationToneColor(
+                        item.tone,
+                        colors.tint,
+                      );
+                      return (
+                        <Pressable
+                          key={item.key}
+                          onPress={item.onPress}
+                          style={[
+                            styles.verificationOverviewTile,
+                            {
+                              borderColor: item.expanded
+                                ? accent
+                                : colors.icon + "33",
+                              backgroundColor: item.expanded
+                                ? accent + "12"
+                                : colors.icon + "0A",
+                            },
+                          ]}
+                        >
+                          <View style={styles.verificationOverviewTileTop}>
+                            <View
+                              style={[
+                                styles.verificationOverviewTileIcon,
+                                { backgroundColor: accent + "20" },
+                              ]}
+                            >
+                              <MaterialIcons
+                                name={
+                                  item.tone === "done" ? "check" : item.icon
+                                }
+                                size={16}
+                                color={accent}
+                              />
+                            </View>
+                            <ThemedText
+                              style={[
+                                styles.verificationOverviewTileStep,
+                                { color: colors.icon },
+                              ]}
+                            >
+                              {item.step}
+                            </ThemedText>
+                          </View>
+                          <ThemedText
+                            numberOfLines={3}
+                            style={styles.verificationOverviewTileTitle}
+                          >
+                            {item.title}
+                          </ThemedText>
+                          <VerificationStatusPill
+                            tone={item.tone}
+                            label={toneLabel(item.tone)}
+                            tint={colors.tint}
+                          />
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+
+                  {verificationNextItem ? (
+                    <View
+                      style={[
+                        styles.verificationNextRow,
+                        { borderColor: colors.icon + "33" },
+                      ]}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.verificationNextLabel,
+                          { color: colors.icon },
+                        ]}
+                      >
+                        {t("verificationsNextHint")}
+                      </ThemedText>
+                      <Pressable
+                        onPress={verificationNextItem.onPress}
+                        style={styles.verificationNextButton}
+                      >
+                        <ThemedText
+                          numberOfLines={2}
+                          style={[
+                            styles.verificationNextButtonText,
+                            { color: colors.tint },
+                          ]}
+                        >
+                          {verificationNextItem.title}
+                        </ThemedText>
+                        <MaterialIcons
+                          name="arrow-forward"
+                          size={16}
+                          color={colors.tint}
+                        />
+                      </Pressable>
+                    </View>
+                  ) : null}
+                </ProfileAnimatedCard>
+
+                <ProfileAnimatedCard
+                  scheme={scheme}
+                  borderColor={
+                    phoneTone === "done"
+                      ? SUCCESS + "55"
+                      : phoneTone === "pending"
+                        ? WARNING + "55"
+                        : colors.icon
+                  }
+                  style={styles.verificationItemCard}
+                >
+                  <VerificationItemHeader
+                    step={1}
+                    icon="phone-iphone"
+                    title={t("phoneVerification")}
+                    tone={phoneTone}
+                    statusLabel={toneLabel(phoneTone)}
+                    expanded={showPhoneVerification}
+                    onPress={() =>
+                      setShowPhoneVerification((prev) => !prev)
+                    }
+                    colors={colors}
+                  />
+                  {showPhoneVerification ? (
                     <ProfileFadeIn reduceMotion={reduceMotion}>
                       <View style={styles.kbzFlow}>
-                        <View style={styles.kbzStepRow}>
-                          {[
-                            t("kbzPayFlowRequest"),
-                            t("kbzPayFlowInstruction"),
-                            t("kbzPayFlowTransfer"),
-                            t("kbzPayFlowReview"),
-                          ].map((label, index) => {
-                            const done = index < kbzFlowStep;
-                            const active = index === kbzFlowStep;
-                            return (
-                              <View key={label} style={styles.kbzStep}>
-                                <View
+                        {!phoneVerified ? (
+                          <VerificationStepRail
+                            labels={[
+                              t("phoneVerifyStepPhone"),
+                              t("phoneVerifyStepCode"),
+                              t("phoneVerifyStepDone"),
+                            ]}
+                            activeStep={phoneFlowStep}
+                            colors={colors}
+                          />
+                        ) : null}
+
+                        {phoneVerified ? (
+                          <View
+                            style={[
+                              styles.kbzStatusPanel,
+                              {
+                                backgroundColor: SUCCESS + "12",
+                                borderColor: SUCCESS + "55",
+                              },
+                            ]}
+                          >
+                            <View
+                              style={[
+                                styles.kbzStatusIcon,
+                                { backgroundColor: SUCCESS + "20" },
+                              ]}
+                            >
+                              <MaterialIcons
+                                name="verified"
+                                size={26}
+                                color={SUCCESS}
+                              />
+                            </View>
+                            <ThemedText style={styles.kbzStateTitle}>
+                              {t("phoneVerifiedTitle")}
+                            </ThemedText>
+                            <ThemedText
+                              style={[
+                                styles.kbzCenteredText,
+                                { color: colors.icon },
+                              ]}
+                            >
+                              {t("phoneVerifiedBody")}
+                            </ThemedText>
+                            {phone.trim() ? (
+                              <View
+                                style={[
+                                  styles.kbzSubmittedId,
+                                  { borderColor: colors.icon + "44" },
+                                ]}
+                              >
+                                <ThemedText style={styles.infoLabel}>
+                                  {t("phoneNumber")}
+                                </ThemedText>
+                                <ThemedText style={styles.infoValue}>
+                                  {phone}
+                                </ThemedText>
+                              </View>
+                            ) : null}
+                          </View>
+                        ) : (
+                          <View style={styles.kbzStateContent}>
+                            <ThemedText style={styles.kbzStateTitle}>
+                              {t("phoneVerifyStartTitle")}
+                            </ThemedText>
+                            <ThemedText style={styles.profileSub}>
+                              {t("phoneVerifyIntro")}
+                            </ThemedText>
+
+                            <View style={styles.kbzInstructionRow}>
+                              <View
+                                style={[
+                                  styles.kbzInstructionNumber,
+                                  { backgroundColor: colors.tint },
+                                ]}
+                              >
+                                <ThemedText
+                                  style={styles.kbzInstructionNumberText}
+                                >
+                                  1
+                                </ThemedText>
+                              </View>
+                              <View style={styles.kbzInstructionBody}>
+                                <ThemedText style={styles.label}>
+                                  {t("phoneNumber")}
+                                </ThemedText>
+                                <TextInput
+                                  style={[styles.input, inputStyle]}
+                                  value={phone}
+                                  onChangeText={(value) => {
+                                    setPhone(value);
+                                    if (phoneOtpSent) setPhoneOtpSent(false);
+                                  }}
+                                  placeholder={t("phoneNumberPlaceholder")}
+                                  placeholderTextColor={colors.icon}
+                                  keyboardType="phone-pad"
+                                  autoCapitalize="none"
+                                />
+                                <Pressable
+                                  onPress={handleSendOtp}
+                                  disabled={loading.sendOtp || !phone.trim()}
                                   style={[
-                                    styles.kbzStepCircle,
-                                    {
-                                      backgroundColor: done
-                                        ? SUCCESS
-                                        : active
-                                          ? colors.tint
-                                          : colors.icon + "22",
-                                      borderColor:
-                                        done || active
-                                          ? "transparent"
-                                          : colors.icon + "55",
+                                    styles.primaryButton,
+                                    styles.fullWidthButton,
+                                    { backgroundColor: colors.tint },
+                                    (loading.sendOtp || !phone.trim()) && {
+                                      opacity: 0.5,
                                     },
                                   ]}
                                 >
-                                  {done ? (
+                                  {loading.sendOtp ? (
+                                    <FlexMarketLoader
+                                      variant="inline"
+                                      size="xs"
+                                      showText={false}
+                                    />
+                                  ) : (
+                                    <ThemedText
+                                      style={styles.primaryButtonText}
+                                    >
+                                      {phoneOtpSent
+                                        ? t("resend")
+                                        : t("phoneSendCodeButton")}
+                                    </ThemedText>
+                                  )}
+                                </Pressable>
+                              </View>
+                            </View>
+
+                            {phoneOtpSent ? (
+                              <View style={styles.kbzInstructionRow}>
+                                <View
+                                  style={[
+                                    styles.kbzInstructionNumber,
+                                    { backgroundColor: colors.tint },
+                                  ]}
+                                >
+                                  <ThemedText
+                                    style={styles.kbzInstructionNumberText}
+                                  >
+                                    2
+                                  </ThemedText>
+                                </View>
+                                <View style={styles.kbzInstructionBody}>
+                                  <ThemedText style={styles.label}>
+                                    {t("otpCode")}
+                                  </ThemedText>
+                                  <ThemedText
+                                    style={[
+                                      styles.kbzInputHint,
+                                      { color: colors.icon },
+                                    ]}
+                                  >
+                                    {t("phoneCodeSentHint")}
+                                  </ThemedText>
+                                  <TextInput
+                                    style={[styles.input, inputStyle]}
+                                    value={otpCode}
+                                    onChangeText={(v) =>
+                                      setOtpCode(v.replace(/\D/g, ""))
+                                    }
+                                    placeholder={t("otpPlaceholder")}
+                                    placeholderTextColor={colors.icon}
+                                    keyboardType="number-pad"
+                                    maxLength={6}
+                                  />
+                                  <Pressable
+                                    onPress={handleVerifyOtp}
+                                    disabled={
+                                      loading.verifyOtp ||
+                                      otpCode.trim().length < 4
+                                    }
+                                    style={[
+                                      styles.primaryButton,
+                                      styles.fullWidthButton,
+                                      { backgroundColor: colors.tint },
+                                      (loading.verifyOtp ||
+                                        otpCode.trim().length < 4) && {
+                                        opacity: 0.5,
+                                      },
+                                    ]}
+                                  >
+                                    {loading.verifyOtp ? (
+                                      <FlexMarketLoader
+                                        variant="inline"
+                                        size="xs"
+                                        showText={false}
+                                      />
+                                    ) : (
+                                      <ThemedText
+                                        style={styles.primaryButtonText}
+                                      >
+                                        {t("verify")}
+                                      </ThemedText>
+                                    )}
+                                  </Pressable>
+                                </View>
+                              </View>
+                            ) : null}
+                          </View>
+                        )}
+                      </View>
+                    </ProfileFadeIn>
+                  ) : null}
+                </ProfileAnimatedCard>
+
+                <ProfileAnimatedCard
+                  scheme={scheme}
+                  borderColor={
+                    emailTone === "done"
+                      ? SUCCESS + "55"
+                      : emailTone === "pending"
+                        ? WARNING + "55"
+                        : colors.icon
+                  }
+                  style={styles.verificationItemCard}
+                >
+                  <VerificationItemHeader
+                    step={2}
+                    icon="alternate-email"
+                    title={t("emailVerification")}
+                    tone={emailTone}
+                    statusLabel={toneLabel(emailTone)}
+                    expanded={showEmailVerification}
+                    onPress={() =>
+                      setShowEmailVerification((prev) => !prev)
+                    }
+                    colors={colors}
+                  />
+                  {showEmailVerification ? (
+                    <ProfileFadeIn reduceMotion={reduceMotion}>
+                      <View style={styles.kbzFlow}>
+                        {!emailVerified ? (
+                          <VerificationStepRail
+                            labels={[
+                              t("emailVerifyStepEmail"),
+                              t("emailVerifyStepToken"),
+                              t("emailVerifyStepDone"),
+                            ]}
+                            activeStep={emailFlowStep}
+                            colors={colors}
+                          />
+                        ) : null}
+
+                        {emailVerified ? (
+                          <View
+                            style={[
+                              styles.kbzStatusPanel,
+                              {
+                                backgroundColor: SUCCESS + "12",
+                                borderColor: SUCCESS + "55",
+                              },
+                            ]}
+                          >
+                            <View
+                              style={[
+                                styles.kbzStatusIcon,
+                                { backgroundColor: SUCCESS + "20" },
+                              ]}
+                            >
+                              <MaterialIcons
+                                name="verified"
+                                size={26}
+                                color={SUCCESS}
+                              />
+                            </View>
+                            <ThemedText style={styles.kbzStateTitle}>
+                              {t("emailVerifiedTitle")}
+                            </ThemedText>
+                            <ThemedText
+                              style={[
+                                styles.kbzCenteredText,
+                                { color: colors.icon },
+                              ]}
+                            >
+                              {t("emailVerifiedBody")}
+                            </ThemedText>
+                            {email.trim() ? (
+                              <View
+                                style={[
+                                  styles.kbzSubmittedId,
+                                  { borderColor: colors.icon + "44" },
+                                ]}
+                              >
+                                <ThemedText style={styles.infoLabel}>
+                                  {t("emailAddress")}
+                                </ThemedText>
+                                <ThemedText style={styles.infoValue}>
+                                  {email}
+                                </ThemedText>
+                              </View>
+                            ) : null}
+                          </View>
+                        ) : (
+                          <View style={styles.kbzStateContent}>
+                            <ThemedText style={styles.kbzStateTitle}>
+                              {t("emailVerifyStartTitle")}
+                            </ThemedText>
+                            <ThemedText style={styles.profileSub}>
+                              {t("emailVerifyIntro")}
+                            </ThemedText>
+
+                            <View style={styles.kbzInstructionRow}>
+                              <View
+                                style={[
+                                  styles.kbzInstructionNumber,
+                                  { backgroundColor: colors.tint },
+                                ]}
+                              >
+                                <ThemedText
+                                  style={styles.kbzInstructionNumberText}
+                                >
+                                  1
+                                </ThemedText>
+                              </View>
+                              <View style={styles.kbzInstructionBody}>
+                                <ThemedText style={styles.label}>
+                                  {t("emailAddress")}
+                                </ThemedText>
+                                <TextInput
+                                  style={[styles.input, inputStyle]}
+                                  value={email}
+                                  onChangeText={setEmail}
+                                  placeholder={t("emailPlaceholder")}
+                                  placeholderTextColor={colors.icon}
+                                  keyboardType="email-address"
+                                  autoCapitalize="none"
+                                />
+                                <Pressable
+                                  onPress={handleSendEmail}
+                                  disabled={loading.sendEmail || !email.trim()}
+                                  style={[
+                                    styles.primaryButton,
+                                    styles.fullWidthButton,
+                                    { backgroundColor: colors.tint },
+                                    (loading.sendEmail || !email.trim()) && {
+                                      opacity: 0.5,
+                                    },
+                                  ]}
+                                >
+                                  {loading.sendEmail ? (
+                                    <FlexMarketLoader
+                                      variant="inline"
+                                      size="xs"
+                                      showText={false}
+                                    />
+                                  ) : (
+                                    <ThemedText
+                                      style={styles.primaryButtonText}
+                                    >
+                                      {emailCodeSent
+                                        ? t("resend")
+                                        : t("sendEmailVerificationButton")}
+                                    </ThemedText>
+                                  )}
+                                </Pressable>
+                              </View>
+                            </View>
+
+                            {emailCodeSent ? (
+                              <View style={styles.kbzInstructionRow}>
+                                <View
+                                  style={[
+                                    styles.kbzInstructionNumber,
+                                    { backgroundColor: colors.tint },
+                                  ]}
+                                >
+                                  <ThemedText
+                                    style={styles.kbzInstructionNumberText}
+                                  >
+                                    2
+                                  </ThemedText>
+                                </View>
+                                <View style={styles.kbzInstructionBody}>
+                                  <ThemedText style={styles.label}>
+                                    {t("emailToken")}
+                                  </ThemedText>
+                                  <ThemedText
+                                    style={[
+                                      styles.kbzInputHint,
+                                      { color: colors.icon },
+                                    ]}
+                                  >
+                                    {t("emailCodeSentHint")}
+                                  </ThemedText>
+                                  <TextInput
+                                    style={[styles.input, inputStyle]}
+                                    value={emailToken}
+                                    onChangeText={setEmailToken}
+                                    placeholder={t("emailTokenPlaceholder")}
+                                    placeholderTextColor={colors.icon}
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                  />
+                                  <Pressable
+                                    onPress={handleVerifyEmail}
+                                    disabled={
+                                      loading.verifyEmail ||
+                                      !email.trim() ||
+                                      !emailToken.trim()
+                                    }
+                                    style={[
+                                      styles.primaryButton,
+                                      styles.fullWidthButton,
+                                      { backgroundColor: colors.tint },
+                                      (loading.verifyEmail ||
+                                        !email.trim() ||
+                                        !emailToken.trim()) && {
+                                        opacity: 0.5,
+                                      },
+                                    ]}
+                                  >
+                                    {loading.verifyEmail ? (
+                                      <FlexMarketLoader
+                                        variant="inline"
+                                        size="xs"
+                                        showText={false}
+                                      />
+                                    ) : (
+                                      <ThemedText
+                                        style={styles.primaryButtonText}
+                                      >
+                                        {t("verifyEmailButton")}
+                                      </ThemedText>
+                                    )}
+                                  </Pressable>
+                                </View>
+                              </View>
+                            ) : null}
+                          </View>
+                        )}
+                      </View>
+                    </ProfileFadeIn>
+                  ) : null}
+                </ProfileAnimatedCard>
+
+                <ProfileAnimatedCard
+                  scheme={scheme}
+                  borderColor={
+                    facebookTone === "done"
+                      ? SUCCESS + "55"
+                      : facebookTone === "pending"
+                        ? WARNING + "55"
+                        : colors.icon
+                  }
+                  style={styles.verificationItemCard}
+                >
+                  <VerificationItemHeader
+                    step={3}
+                    icon="groups"
+                    title={t("facebookVerification")}
+                    tone={facebookTone}
+                    statusLabel={toneLabel(facebookTone)}
+                    expanded={showFacebookVerification}
+                    onPress={() =>
+                      setShowFacebookVerification((prev) => !prev)
+                    }
+                    colors={colors}
+                  />
+                  {showFacebookVerification ? (
+                    <ProfileFadeIn reduceMotion={reduceMotion}>
+                      <View style={styles.kbzFlow}>
+                        {facebookFollowStatus !== "APPROVED" ? (
+                          <VerificationStepRail
+                            labels={[
+                              t("facebookFlowLink"),
+                              t("facebookFlowFollow"),
+                              t("facebookFlowReview"),
+                            ]}
+                            activeStep={facebookFlowStep}
+                            colors={colors}
+                          />
+                        ) : null}
+
+                        {facebookFollowStatus === "APPROVED" ? (
+                          <View
+                            style={[
+                              styles.kbzStatusPanel,
+                              {
+                                backgroundColor: SUCCESS + "12",
+                                borderColor: SUCCESS + "55",
+                              },
+                            ]}
+                          >
+                            <View
+                              style={[
+                                styles.kbzStatusIcon,
+                                { backgroundColor: SUCCESS + "20" },
+                              ]}
+                            >
+                              <MaterialIcons
+                                name="verified"
+                                size={26}
+                                color={SUCCESS}
+                              />
+                            </View>
+                            <ThemedText style={styles.kbzStateTitle}>
+                              {t("facebookFollowApprovedTitle")}
+                            </ThemedText>
+                          </View>
+                        ) : facebookFollowStatus === "PENDING" ? (
+                          <View
+                            style={[
+                              styles.kbzStatusPanel,
+                              {
+                                backgroundColor: colors.tint + "0D",
+                                borderColor: colors.tint + "44",
+                              },
+                            ]}
+                          >
+                            <View
+                              style={[
+                                styles.kbzStatusIcon,
+                                { backgroundColor: colors.tint + "18" },
+                              ]}
+                            >
+                              <MaterialIcons
+                                name="fact-check"
+                                size={24}
+                                color={colors.tint}
+                              />
+                            </View>
+                            <ThemedText style={styles.kbzStateTitle}>
+                              {t("facebookFollowReviewTitle")}
+                            </ThemedText>
+                          </View>
+                        ) : (
+                          <View style={styles.kbzStateContent}>
+                            {!facebookLinked ? (
+                              <>
+                                <ThemedText style={styles.kbzStateTitle}>
+                                  {t("facebookStartTitle")}
+                                </ThemedText>
+                                <ThemedText style={styles.profileSub}>
+                                  {t("facebookLinkIntro")}
+                                </ThemedText>
+                                <View style={styles.kbzInstructionRow}>
+                                  <View
+                                    style={[
+                                      styles.kbzInstructionNumber,
+                                      { backgroundColor: "#1877F2" },
+                                    ]}
+                                  >
+                                    <ThemedText
+                                      style={styles.kbzInstructionNumberText}
+                                    >
+                                      1
+                                    </ThemedText>
+                                  </View>
+                                  <View style={styles.kbzInstructionBody}>
+                                    <ThemedText style={styles.label}>
+                                      {t("facebookLinkStepTitle")}
+                                    </ThemedText>
+                                    <Pressable
+                                      onPress={handleStartFacebookOAuth}
+                                      disabled={
+                                        loading.facebookLink || !FACEBOOK_APP_ID
+                                      }
+                                      style={[
+                                        styles.primaryButton,
+                                        styles.fullWidthButton,
+                                        { backgroundColor: "#1877F2" },
+                                        (loading.facebookLink ||
+                                          !FACEBOOK_APP_ID) && {
+                                          opacity: 0.6,
+                                        },
+                                      ]}
+                                    >
+                                      {loading.facebookLink ? (
+                                        <FlexMarketLoader
+                                          variant="inline"
+                                          size="xs"
+                                          showText={false}
+                                        />
+                                      ) : (
+                                        <ThemedText
+                                          style={styles.primaryButtonText}
+                                        >
+                                          {t("facebookOAuthButton")}
+                                        </ThemedText>
+                                      )}
+                                    </Pressable>
+                                  </View>
+                                </View>
+                              </>
+                            ) : (
+                              <View
+                                style={[
+                                  styles.kbzStatusPanel,
+                                  {
+                                    backgroundColor: SUCCESS + "12",
+                                    borderColor: SUCCESS + "55",
+                                  },
+                                ]}
+                              >
+                                <View
+                                  style={[
+                                    styles.kbzStatusIcon,
+                                    { backgroundColor: SUCCESS + "20" },
+                                  ]}
+                                >
+                                  <MaterialIcons
+                                    name="link"
+                                    size={24}
+                                    color={SUCCESS}
+                                  />
+                                </View>
+                                <ThemedText style={styles.kbzStateTitle}>
+                                  {t("facebookLinkedTitle")}
+                                </ThemedText>
+                                {(user?.facebookName || facebookName) ? (
+                                  <View
+                                    style={[
+                                      styles.kbzSubmittedId,
+                                      { borderColor: colors.icon + "44" },
+                                    ]}
+                                  >
+                                    <ThemedText style={styles.infoLabel}>
+                                      {t("facebookNameLabel")}
+                                    </ThemedText>
+                                    <ThemedText style={styles.infoValue}>
+                                      {user?.facebookName || facebookName}
+                                    </ThemedText>
+                                  </View>
+                                ) : null}
+                                {user?.facebookProfileUrl ||
+                                facebookProfileUrl ? (
+                                  <Pressable
+                                    onPress={() =>
+                                      handleOpenUrl(
+                                        user?.facebookProfileUrl ||
+                                          facebookProfileUrl,
+                                      )
+                                    }
+                                    style={[
+                                      styles.kbzSecondaryButton,
+                                      { borderColor: colors.tint },
+                                    ]}
+                                  >
                                     <MaterialIcons
-                                      name="check"
-                                      size={14}
-                                      color="#fff"
+                                      name="open-in-new"
+                                      size={18}
+                                      color={colors.tint}
+                                    />
+                                    <ThemedText
+                                      style={[
+                                        styles.kbzSecondaryButtonText,
+                                        { color: colors.tint },
+                                      ]}
+                                    >
+                                      {t("facebookOpenProfile")}
+                                    </ThemedText>
+                                  </Pressable>
+                                ) : null}
+                              </View>
+                            )}
+
+                            <View style={styles.kbzInstructionRow}>
+                              <View
+                                style={[
+                                  styles.kbzInstructionNumber,
+                                  {
+                                    backgroundColor: facebookLinked
+                                      ? "#1877F2"
+                                      : colors.icon,
+                                  },
+                                ]}
+                              >
+                                <ThemedText
+                                  style={styles.kbzInstructionNumberText}
+                                >
+                                  2
+                                </ThemedText>
+                              </View>
+                              <View style={styles.kbzInstructionBody}>
+                                <ThemedText style={styles.label}>
+                                  {t("facebookFollowStepTitle")}
+                                </ThemedText>
+                                <ThemedText
+                                  style={[
+                                    styles.kbzInputHint,
+                                    { color: colors.icon },
+                                  ]}
+                                >
+                                  {t("facebookFollowIntro")}
+                                </ThemedText>
+                                {facebookFollowStatus === "REJECTED" ? (
+                                  <View
+                                    style={[
+                                      styles.kbzImportantBanner,
+                                      {
+                                        backgroundColor: DANGER + "12",
+                                        borderColor: DANGER + "55",
+                                      },
+                                    ]}
+                                  >
+                                    <MaterialIcons
+                                      name="error-outline"
+                                      size={20}
+                                      color={DANGER}
+                                    />
+                                    <ThemedText
+                                      style={[
+                                        styles.kbzImportantText,
+                                        { color: DANGER },
+                                      ]}
+                                    >
+                                      {t("facebookFollowRejectedHint")}
+                                    </ThemedText>
+                                  </View>
+                                ) : null}
+                                {(user?.facebookName || facebookName) ? (
+                                  <View
+                                    style={[
+                                      styles.kbzSubmittedId,
+                                      { borderColor: colors.icon + "44" },
+                                    ]}
+                                  >
+                                    <ThemedText style={styles.infoLabel}>
+                                      {t("facebookNameLabel")}
+                                    </ThemedText>
+                                    <ThemedText style={styles.infoValue}>
+                                      {user?.facebookName || facebookName}
+                                    </ThemedText>
+                                  </View>
+                                ) : null}
+                                {FACEBOOK_PAGE_URL ? (
+                                  <Pressable
+                                    onPress={() =>
+                                      handleOpenUrl(FACEBOOK_PAGE_URL)
+                                    }
+                                    disabled={!facebookLinked}
+                                    style={[
+                                      styles.kbzSecondaryButton,
+                                      { borderColor: colors.tint },
+                                      !facebookLinked && { opacity: 0.5 },
+                                    ]}
+                                  >
+                                    <MaterialIcons
+                                      name="open-in-new"
+                                      size={18}
+                                      color={colors.tint}
+                                    />
+                                    <ThemedText
+                                      style={[
+                                        styles.kbzSecondaryButtonText,
+                                        { color: colors.tint },
+                                      ]}
+                                    >
+                                      {t("facebookOpenPage")}
+                                    </ThemedText>
+                                  </Pressable>
+                                ) : (
+                                  <ThemedText style={styles.profileSub}>
+                                    {t("facebookMissingPageUrl")}
+                                  </ThemedText>
+                                )}
+                                <Pressable
+                                  onPress={handlePickFacebookScreenshot}
+                                  disabled={
+                                    !facebookLinked ||
+                                    loading.facebookScreenshot ||
+                                    loading.facebookFollowSubmit
+                                  }
+                                  style={[
+                                    styles.outlineButton,
+                                    { borderColor: colors.tint },
+                                    (!facebookLinked ||
+                                      loading.facebookScreenshot ||
+                                      loading.facebookFollowSubmit) && {
+                                      opacity: 0.6,
+                                    },
+                                  ]}
+                                >
+                                  {loading.facebookScreenshot ? (
+                                    <FlexMarketLoader
+                                      variant="inline"
+                                      size="xs"
+                                      showText={false}
                                     />
                                   ) : (
                                     <ThemedText
                                       style={[
-                                        styles.kbzStepNumber,
-                                        {
-                                          color: active
-                                            ? "#fff"
-                                            : colors.icon,
-                                        },
+                                        styles.outlineButtonText,
+                                        { color: colors.tint },
                                       ]}
                                     >
-                                      {index + 1}
+                                      {facebookScreenshot
+                                        ? t("facebookScreenshotSelected")
+                                        : t("facebookScreenshotButton")}
                                     </ThemedText>
                                   )}
-                                </View>
-                                <ThemedText
-                                  numberOfLines={2}
+                                </Pressable>
+                                {facebookScreenshot ? (
+                                  <ThemedText style={styles.profileSub}>
+                                    {facebookScreenshot.name}
+                                  </ThemedText>
+                                ) : null}
+                                <Pressable
+                                  onPress={handleSubmitFacebookFollow}
+                                  disabled={
+                                    loading.facebookFollowSubmit ||
+                                    !facebookLinked ||
+                                    !FACEBOOK_PAGE_URL ||
+                                    !facebookScreenshot
+                                  }
                                   style={[
-                                    styles.kbzStepLabel,
-                                    {
-                                      color:
-                                        done || active
-                                          ? colors.text
-                                          : colors.icon,
+                                    styles.primaryButton,
+                                    styles.fullWidthButton,
+                                    { backgroundColor: colors.tint },
+                                    (loading.facebookFollowSubmit ||
+                                      !facebookLinked ||
+                                      !FACEBOOK_PAGE_URL ||
+                                      !facebookScreenshot) && {
+                                      opacity: 0.6,
                                     },
                                   ]}
                                 >
-                                  {label}
-                                </ThemedText>
-                                {index < 3 ? (
-                                  <View
-                                    style={[
-                                      styles.kbzStepConnector,
-                                      {
-                                        backgroundColor:
-                                          index < kbzFlowStep
-                                            ? SUCCESS
-                                            : colors.icon + "33",
-                                      },
-                                    ]}
-                                  />
-                                ) : null}
+                                  {loading.facebookFollowSubmit ? (
+                                    <FlexMarketLoader
+                                      variant="inline"
+                                      size="xs"
+                                      showText={false}
+                                    />
+                                  ) : (
+                                    <ThemedText
+                                      style={styles.primaryButtonText}
+                                    >
+                                      {t("facebookSubmitFollowProof")}
+                                    </ThemedText>
+                                  )}
+                                </Pressable>
                               </View>
-                            );
-                          })}
+                            </View>
+                          </View>
+                        )}
+
+                        <View
+                          style={[
+                            styles.infoBox,
+                            { borderColor: colors.icon },
+                          ]}
+                        >
+                          <View style={styles.facebookStatusRow}>
+                            <ThemedText style={styles.infoLabel}>
+                              {t("facebookFollowLatestStatus")}
+                            </ThemedText>
+                            {latestFacebookFollowQuery.isFetching ? (
+                              <FlexMarketLoader
+                                variant="inline"
+                                size="xs"
+                                showText={false}
+                              />
+                            ) : null}
+                          </View>
+                          <ThemedText
+                            style={[
+                              styles.infoValue,
+                              { color: facebookFollowStatusColor },
+                            ]}
+                          >
+                            {facebookFollowStatus ||
+                              t("facebookFollowNoSubmission")}
+                          </ThemedText>
+                          {latestFacebookFollow?.facebookPageUrl ? (
+                            <Pressable
+                              onPress={() =>
+                                handleOpenUrl(
+                                  latestFacebookFollow.facebookPageUrl,
+                                )
+                              }
+                              style={styles.inlineLinkButton}
+                            >
+                              <ThemedText
+                                style={{
+                                  color: colors.tint,
+                                  fontWeight: "700",
+                                }}
+                              >
+                                {t("facebookOpenPage")}
+                              </ThemedText>
+                            </Pressable>
+                          ) : null}
+                          {latestFacebookFollow?.adminNote ? (
+                            <ThemedText style={styles.profileSub}>
+                              {t("facebookFollowAdminNote")}:{" "}
+                              {latestFacebookFollow.adminNote}
+                            </ThemedText>
+                          ) : null}
                         </View>
+                      </View>
+                    </ProfileFadeIn>
+                  ) : null}
+                </ProfileAnimatedCard>
+
+                <ProfileAnimatedCard
+                  scheme={scheme}
+                  borderColor={
+                    kbzTone === "done"
+                      ? SUCCESS + "55"
+                      : kbzTone === "pending"
+                        ? WARNING + "55"
+                        : colors.icon
+                  }
+                  style={styles.verificationItemCard}
+                >
+                  <VerificationItemHeader
+                    step={4}
+                    icon="account-balance-wallet"
+                    title={t("kbzPayVerification")}
+                    tone={kbzTone}
+                    statusLabel={toneLabel(kbzTone)}
+                    expanded={showKbzPayVerification}
+                    onPress={() =>
+                      setShowKbzPayVerification((prev) => !prev)
+                    }
+                    colors={colors}
+                  />
+
+                  {showKbzPayVerification ? (
+                    <ProfileFadeIn reduceMotion={reduceMotion}>
+                      <View style={styles.kbzFlow}>
+                        {!user?.isKbzPayVerified ? (
+                          <VerificationStepRail
+                            labels={[
+                              t("kbzPayFlowRequest"),
+                              t("kbzPayFlowInstruction"),
+                              t("kbzPayFlowTransfer"),
+                              t("kbzPayFlowReview"),
+                            ]}
+                            activeStep={kbzFlowStep}
+                            colors={colors}
+                          />
+                        ) : null}
 
                         {kbzCanRequest ? (
                           <View style={styles.kbzStateContent}>
@@ -2702,7 +3538,9 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    height: 40,
+    minHeight: 40,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
@@ -2711,7 +3549,10 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontWeight: "800",
-    fontSize: 13,
+    fontSize: 11,
+    lineHeight: 14,
+    textAlign: "center",
+    paddingHorizontal: 2,
   },
   card: {
     borderWidth: 1,
@@ -2842,11 +3683,13 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   kbzStepLabel: {
-    fontSize: 10,
-    lineHeight: 13,
+    fontSize: 9,
+    lineHeight: 12,
     fontWeight: "600",
     textAlign: "center",
-    minHeight: 26,
+    minHeight: 24,
+    paddingHorizontal: 1,
+    width: "100%",
   },
   kbzStepConnector: {
     position: "absolute",
@@ -3108,6 +3951,196 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     opacity: 0.9,
+  },
+  verificationOverviewCard: {
+    gap: 14,
+  },
+  verificationOverviewHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  verificationOverviewIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  verificationOverviewCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 6,
+  },
+  verificationOverviewTitleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  verificationOverviewTitle: {
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 120,
+    fontSize: 16,
+    fontWeight: "700",
+    lineHeight: 22,
+  },
+  verificationOverviewHint: {
+    fontSize: 12,
+    lineHeight: 18,
+    opacity: 0.72,
+  },
+  verificationProgressChip: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    flexShrink: 0,
+    maxWidth: "100%",
+  },
+  verificationProgressChipText: {
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  verificationProgressTrack: {
+    height: 8,
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  verificationProgressFill: {
+    height: "100%",
+    borderRadius: 999,
+  },
+  verificationOverviewGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  verificationOverviewTile: {
+    flexBasis: "47%",
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    maxWidth: "100%",
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 10,
+    gap: 8,
+    overflow: "hidden",
+  },
+  verificationOverviewTileTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  verificationOverviewTileIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  verificationOverviewTileStep: {
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  verificationOverviewTileTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 17,
+    minHeight: 34,
+  },
+  verificationNextRow: {
+    gap: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 12,
+  },
+  verificationNextLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  verificationNextButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    maxWidth: "100%",
+  },
+  verificationNextButtonText: {
+    flexShrink: 1,
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 18,
+  },
+  verificationItemCard: {
+    gap: 14,
+  },
+  verificationItemHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  verificationItemHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    flex: 1,
+    minWidth: 0,
+  },
+  verificationHeaderCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 6,
+  },
+  verificationHeaderTitleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 4,
+  },
+  verificationStepIndex: {
+    fontSize: 14,
+    fontWeight: "800",
+    lineHeight: 20,
+    marginTop: 1,
+  },
+  verificationHeaderTitle: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 15,
+    fontWeight: "700",
+    lineHeight: 20,
+  },
+  verificationStatusPill: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    maxWidth: "100%",
+  },
+  verificationStatusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    flexShrink: 0,
+  },
+  verificationStatusPillText: {
+    flexShrink: 1,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  verificationChevron: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    marginTop: 4,
   },
   withdrawalHeaderLeft: {
     flexDirection: "row",
