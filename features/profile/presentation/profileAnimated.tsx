@@ -139,6 +139,7 @@ export const ProfileTabButton = memo(function ProfileTabButton({
       ]}
     >
       <ThemedText
+        numberOfLines={2}
         style={[
           styles.tabText,
           { color: active ? "#fff" : inactiveColor },
@@ -210,7 +211,9 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    height: 40,
+    minHeight: 40,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
@@ -219,7 +222,9 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontWeight: "800",
-    fontSize: 13,
+    fontSize: 11,
+    lineHeight: 14,
+    textAlign: "center",
     opacity: 0.85,
   },
   tabTextActive: {
