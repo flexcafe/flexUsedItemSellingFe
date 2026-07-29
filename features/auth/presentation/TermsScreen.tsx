@@ -1,7 +1,7 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 import { useRouter, type Href } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   NativeScrollEvent,
@@ -12,10 +12,10 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AuthLogo } from "@/components/auth-logo";
+import { useLanguageSwitcherSafeTop } from "@/components/app-safe-area";
+import { AnimatedLanguageBar } from "@/components/animated-language-bar";
 import { FlexMarketLoader } from "@/components/flex-market-loader";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -25,33 +25,15 @@ import { uiCardShadow, uiCardSurface } from "@/presentation/lib/uiAnimations";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLegalTerms } from "@/presentation/providers/LegalTermsProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
+import { AuthPrimaryButton } from "./authAnimated";
 
-import {
-  AuthAnimatedSection,
-  AuthPrimaryButton,
-} from "./authAnimated";
-
-const SCROLL_END_THRESHOLD = 28;
-
-function formatPublishedAt(value: string | null, locale: string): string | null {
-  if (!value?.trim()) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  try {
-    return new Intl.DateTimeFormat(locale, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    }).format(date);
-  } catch {
-    return date.toISOString().slice(0, 10);
-  }
-}
+const SCROLL_END_THRESHOLD = 24;
 
 export function TermsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { locale, t } = useLocale();
+  const topInset = useLanguageSwitcherSafeTop();
+  const { locale, setLocale, t } = useLocale();
   const { isAuthenticated, logout } = useAuth();
   const {
     terms,
@@ -66,29 +48,37 @@ export function TermsScreen() {
   const colorScheme = useColorScheme();
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
-  const reduceMotion = useReducedMotion();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasReachedEnd, setHasReachedEnd] = useState(false);
   const [contentOverflows, setContentOverflows] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
 
   const isReaccept = isAuthenticated && needsAcceptance;
   const canAgree = !contentOverflows || hasReachedEnd;
-  const publishedLabel = useMemo(
-    () => formatPublishedAt(terms?.publishedAt ?? null, locale),
-    [locale, terms?.publishedAt],
-  );
 
-  const onScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-      const distanceFromBottom =
-        contentSize.height - (layoutMeasurement.height + contentOffset.y);
-      if (distanceFromBottom <= SCROLL_END_THRESHOLD) {
-        setHasReachedEnd(true);
-      }
-    },
-    [],
-  );
+  useEffect(() => {
+    setHasReachedEnd(false);
+    setContentOverflows(false);
+    setViewportHeight(0);
+    setContentHeight(0);
+  }, [terms?.version]);
+
+  useEffect(() => {
+    if (viewportHeight <= 0 || contentHeight <= 0) return;
+    const overflows = contentHeight > viewportHeight + SCROLL_END_THRESHOLD;
+    setContentOverflows(overflows);
+    if (!overflows) setHasReachedEnd(true);
+  }, [contentHeight, viewportHeight]);
+
+  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const distanceFromBottom =
+      contentSize.height - (layoutMeasurement.height + contentOffset.y);
+    if (distanceFromBottom <= SCROLL_END_THRESHOLD) {
+      setHasReachedEnd(true);
+    }
+  };
 
   const handleAgree = async () => {
     if (!terms?.version) {
@@ -182,106 +172,30 @@ export function TermsScreen() {
   }
 
   return (
-    <ThemedView style={styles.screen}>
-      <AuthAnimatedSection delayMs={0} reduceMotion={reduceMotion}>
-        <View style={styles.hero}>
-          <AuthLogo variant="compact" />
-          <View
-            style={[
-              styles.heroBadge,
-              { backgroundColor: colors.tint + "16" },
-            ]}
-          >
-            <MaterialIcons name="verified-user" size={18} color={colors.tint} />
-            <ThemedText style={[styles.heroBadgeText, { color: colors.tint }]}>
-              {t("termsSafetyBadge")}
+    <ThemedView style={[styles.screen, { paddingTop: topInset }]}>
+      {/* Document zone — takes all leftover space above the fixed footer */}
+      <View style={styles.main}>
+        <View style={styles.header}>
+          <View style={styles.titleRow}>
+            <MaterialIcons name="gavel" size={20} color={colors.tint} />
+            <ThemedText
+              type="defaultSemiBold"
+              numberOfLines={2}
+              style={styles.title}
+            >
+              {terms.title || t("termsTitle")}
             </ThemedText>
           </View>
-          <ThemedText type="screenTitle" style={styles.title}>
-            {terms.title || t("termsTitle")}
-          </ThemedText>
           <ThemedText style={[styles.requiredHint, { color: colors.icon }]}>
             {isReaccept
               ? t("termsMustAcceptAgain")
               : t("termsMustAcceptBeforeAuth")}
           </ThemedText>
-          <View style={styles.metaRow}>
-            <View
-              style={[
-                styles.metaPill,
-                {
-                  backgroundColor: colors.tint + "14",
-                  borderColor: colors.tint + "33",
-                },
-              ]}
-            >
-              <MaterialIcons name="history" size={14} color={colors.tint} />
-              <ThemedText style={[styles.metaPillText, { color: colors.tint }]}>
-                {t("termsVersionLabel")} {terms.version}
-              </ThemedText>
-            </View>
-            {publishedLabel ? (
-              <View
-                style={[
-                  styles.metaPill,
-                  {
-                    backgroundColor: colors.icon + "12",
-                    borderColor: colors.icon + "33",
-                  },
-                ]}
-              >
-                <MaterialIcons name="event" size={14} color={colors.icon} />
-                <ThemedText
-                  style={[styles.metaPillText, { color: colors.icon }]}
-                >
-                  {publishedLabel}
-                </ThemedText>
-              </View>
-            ) : null}
-          </View>
-        </View>
-      </AuthAnimatedSection>
-
-      <AuthAnimatedSection
-        delayMs={80}
-        reduceMotion={reduceMotion}
-        style={styles.highlights}
-      >
-        <View
-          style={[
-            styles.highlightCard,
-            {
-              backgroundColor: "#16a34a14",
-              borderColor: "#16a34a44",
-            },
-          ]}
-        >
-          <MaterialIcons name="block" size={18} color="#16a34a" />
-          <ThemedText style={[styles.highlightText, { color: colors.text }]}>
-            {t("termsHighlightZeroTolerance")}
+          <ThemedText style={[styles.versionLine, { color: colors.tint }]}>
+            {t("termsVersionLabel")} {terms.version}
           </ThemedText>
         </View>
-        <View
-          style={[
-            styles.highlightCard,
-            {
-              backgroundColor: colors.tint + "12",
-              borderColor: colors.tint + "33",
-            },
-          ]}
-        >
-          <MaterialIcons name="flag" size={18} color={colors.tint} />
-          <ThemedText style={[styles.highlightText, { color: colors.text }]}>
-            {t("termsHighlightReportBlock")}
-          </ThemedText>
-        </View>
-      </AuthAnimatedSection>
 
-      <AuthAnimatedSection
-        delayMs={120}
-        reduceMotion={reduceMotion}
-        style={styles.documentWrap}
-      >
         <View
           style={[
             styles.documentCard,
@@ -315,11 +229,16 @@ export function TermsScreen() {
               style={styles.documentScroll}
               contentContainerStyle={styles.documentInner}
               showsVerticalScrollIndicator
+              nestedScrollEnabled
+              bounces
+              keyboardShouldPersistTaps="handled"
               onScroll={onScroll}
               scrollEventThrottle={16}
+              onLayout={(e) => {
+                setViewportHeight(e.nativeEvent.layout.height);
+              }}
               onContentSizeChange={(_w, h) => {
-                setContentOverflows(h > 220);
-                if (h <= 220) setHasReachedEnd(true);
+                setContentHeight(h);
               }}
             >
               <ThemedText style={styles.contentText}>{terms.content}</ThemedText>
@@ -346,13 +265,15 @@ export function TermsScreen() {
             ) : null}
           </View>
         </View>
-      </AuthAnimatedSection>
+      </View>
 
+      {/* Fixed action dock — never scrolls away, always tappable */}
       <View
+        pointerEvents="box-none"
         style={[
           styles.footer,
           {
-            paddingBottom: Math.max(insets.bottom, 12),
+            paddingBottom: Math.max(insets.bottom, 10),
             borderTopColor: colors.icon + "22",
             backgroundColor: colors.background,
           },
@@ -378,12 +299,27 @@ export function TermsScreen() {
             void handleDisagree();
           }}
           disabled={isSubmitting}
+          hitSlop={8}
           style={[styles.secondaryButton, isSubmitting ? styles.disabled : null]}
         >
           <ThemedText style={[styles.secondaryButtonText, { color: colors.icon }]}>
             {t("termsDisagree")}
           </ThemedText>
         </Pressable>
+        <View style={styles.languageRow} pointerEvents="box-none">
+          <AnimatedLanguageBar
+            locale={locale}
+            onSelect={setLocale}
+            variant="comfortable"
+            disabled={isSubmitting}
+            scheme={scheme}
+            tintColor={colors.tint}
+            borderColor={colors.tint}
+            backgroundColor={colors.background}
+            elevated
+            style={styles.languageBar}
+          />
+        </View>
       </View>
     </ThemedView>
   );
@@ -392,9 +328,12 @@ export function TermsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    gap: 12,
+    paddingHorizontal: 16,
+  },
+  main: {
+    flex: 1,
+    minHeight: 0,
+    gap: 8,
   },
   centered: {
     flex: 1,
@@ -403,79 +342,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     gap: 12,
   },
-  hero: {
-    alignItems: "center",
-    gap: 8,
-    paddingTop: 4,
+  header: {
+    gap: 4,
+    paddingTop: 2,
+    flexShrink: 0,
   },
-  heroBadge: {
+  titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  heroBadgeText: {
-    fontSize: 12,
-    fontWeight: "800",
+    gap: 8,
   },
   title: {
-    marginBottom: 0,
-    textAlign: "center",
+    flex: 1,
+    fontSize: 18,
+    lineHeight: 24,
   },
   requiredHint: {
-    fontSize: 13,
-    lineHeight: 19,
-    textAlign: "center",
-    paddingHorizontal: 8,
+    fontSize: 12,
+    lineHeight: 18,
+    flexShrink: 0,
   },
-  metaRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 2,
-  },
-  metaPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  metaPillText: {
+  versionLine: {
     fontSize: 11,
     fontWeight: "800",
   },
-  highlights: {
-    gap: 8,
-  },
-  highlightCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  highlightText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 17,
-    fontWeight: "600",
-  },
-  documentWrap: {
-    flex: 1,
-    minHeight: 180,
-  },
   documentCard: {
     flex: 1,
+    minHeight: 0,
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: "hidden",
   },
   documentHeader: {
@@ -483,12 +378,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 8,
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 6,
+    flexShrink: 0,
   },
   documentHeaderTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "800",
   },
   scrollHint: {
@@ -509,14 +405,15 @@ const styles = StyleSheet.create({
   },
   documentBody: {
     flex: 1,
+    minHeight: 0,
     position: "relative",
   },
   documentScroll: {
     flex: 1,
   },
   documentInner: {
-    paddingHorizontal: 14,
-    paddingBottom: 28,
+    paddingHorizontal: 12,
+    paddingBottom: 32,
   },
   contentText: {
     fontSize: 14,
@@ -527,15 +424,27 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 44,
+    height: 40,
     alignItems: "center",
     justifyContent: "flex-end",
-    paddingBottom: 4,
+    paddingBottom: 2,
   },
   footer: {
-    gap: 8,
+    flexShrink: 0,
+    gap: 6,
     paddingTop: 10,
+    marginTop: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
+    zIndex: 20,
+    elevation: 8,
+  },
+  languageRow: {
+    marginTop: 2,
+    minHeight: 56,
+    justifyContent: "center",
+  },
+  languageBar: {
+    width: "100%",
   },
   primaryButtonText: {
     color: "#fff",
