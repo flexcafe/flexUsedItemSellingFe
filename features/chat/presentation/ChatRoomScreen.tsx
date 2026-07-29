@@ -1,6 +1,7 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
+import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -61,6 +62,10 @@ import {
   useUpdateLocationShare,
 } from "@/presentation/hooks/useClientChat";
 import { useProduct, useSetActiveDeal } from "@/presentation/hooks/useProducts";
+import {
+  ContentReportModal,
+  type ContentReportTarget,
+} from "@/presentation/components/ContentReportModal";
 import {
   buildLeafletLiveViewHtml,
   buildLeafletPickerHtml,
@@ -488,6 +493,9 @@ export function ChatRoomScreen({
     latitude: number;
     longitude: number;
   } | null>(null);
+  const [reportTarget, setReportTarget] = useState<ContentReportTarget | null>(
+    null,
+  );
   const [keyboardOverlap, setKeyboardOverlap] = useState(0);
   const safePaymentStatusQuery = useSafePaymentStatus(chatRoomId);
   const listRef = useRef<FlatListType<ChatMessage>>(null);
@@ -1979,10 +1987,29 @@ export function ChatRoomScreen({
       const isMine = item.senderId != null && item.senderId === user?.id;
       const isSystem = item.type !== "TEXT" || item.senderId == null;
       const isDirectTrade = item.type === "DIRECT_TRADE_REQUEST";
+      const canReportMessage =
+        !isMine && !isSystem && Boolean(item.id?.trim());
 
       const tradeMeta = isDirectTrade
         ? (item.metadata as Record<string, unknown>)
         : null;
+
+      const onReportMessage = () => {
+        if (!canReportMessage) return;
+        void Haptics.selectionAsync();
+        Alert.alert(t("contentReportTitle"), t("contentReportTargetChatMessage"), [
+          { text: t("contentReportCancel"), style: "cancel" },
+          {
+            text: t("contentReportAction"),
+            style: "destructive",
+            onPress: () =>
+              setReportTarget({
+                targetType: "CHAT_MESSAGE",
+                targetId: item.id,
+              }),
+          },
+        ]);
+      };
 
       return (
         <Animated.View
@@ -1993,7 +2020,10 @@ export function ChatRoomScreen({
             isMine ? styles.messageRowMine : styles.messageRowOther,
           ]}
         >
-          <View
+          <Pressable
+            disabled={!canReportMessage}
+            onLongPress={onReportMessage}
+            delayLongPress={350}
             style={[
               styles.bubble,
               isSystem && styles.bubbleSystem,
@@ -2058,7 +2088,7 @@ export function ChatRoomScreen({
             >
               {formatChatTimestamp(item.createdAt)}
             </ThemedText>
-          </View>
+          </Pressable>
         </Animated.View>
       );
     },
@@ -2121,6 +2151,23 @@ export function ChatRoomScreen({
             {resolvedPeerName}
           </ThemedText>
         </View>
+        {counterpartUserId ? (
+          <Pressable
+            onPress={() => {
+              void Haptics.selectionAsync();
+              setReportTarget({
+                targetType: "USER_PROFILE",
+                targetId: counterpartUserId,
+              });
+            }}
+            hitSlop={8}
+            style={styles.headerReportBtn}
+            accessibilityRole="button"
+            accessibilityLabel={t("contentReportAction")}
+          >
+            <MaterialIcons name="flag" size={20} color={colors.icon} />
+          </Pressable>
+        ) : null}
       </Animated.View>
 
       {!isBuyer && showPendingLocationChange ? (
@@ -3750,6 +3797,11 @@ export function ChatRoomScreen({
           </Animated.View>
         </Animated.View>
       </Modal>
+      <ContentReportModal
+        visible={reportTarget != null}
+        target={reportTarget}
+        onClose={() => setReportTarget(null)}
+      />
     </ThemedView>
   );
 }
@@ -3992,6 +4044,13 @@ const styles = StyleSheet.create({
   },
   headerText: { flex: 1, minWidth: 0, gap: 2 },
   headerTitle: { fontSize: 16 },
+  headerReportBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   headerSubtitle: { fontSize: 12, opacity: 0.65 },
   pendingLocationBanner: {
     marginHorizontal: 12,

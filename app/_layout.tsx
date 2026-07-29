@@ -20,6 +20,7 @@ import type { ICategoryService } from "@/core/domain/services/ICategoryService";
 import type { IChatService } from "@/core/domain/services/IChatService";
 import type { IClientReportService } from "@/core/domain/services/IClientReportService";
 import type { ILegalService } from "@/core/domain/services/ILegalService";
+import type { IModerationService } from "@/core/domain/services/IModerationService";
 import type { INotificationService } from "@/core/domain/services/INotificationService";
 import type { IProductService } from "@/core/domain/services/IProductService";
 import type { IProfileService } from "@/core/domain/services/IProfileService";
@@ -130,6 +131,9 @@ export default function RootLayout() {
       "clientReportService",
     ),
     legalService: container.resolve<ILegalService>("legalService"),
+    moderationService: container.resolve<IModerationService>(
+      "moderationService",
+    ),
     preferencesRepository: container.resolve<IPreferencesRepository>(
       "preferencesRepository",
     ),

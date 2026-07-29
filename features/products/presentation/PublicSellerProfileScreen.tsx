@@ -9,7 +9,12 @@ import {
   useSellerReviews,
 } from "@/presentation/hooks/useClientProducts";
 import { ReferralCodeBlock } from "@/presentation/components/ReferralCodeBlock";
+import {
+  ContentReportModal,
+  type ContentReportTarget,
+} from "@/presentation/components/ContentReportModal";
 import { uiCardShadow, uiSectionEnter } from "@/presentation/lib/uiAnimations";
+import { useAuth } from "@/presentation/providers/AuthProvider";
 import {
   useLocale,
   userRankLabelKey,
@@ -18,8 +23,8 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { memo, useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   Extrapolation,
   FadeIn,
@@ -94,12 +99,16 @@ const ReviewBar = memo(function ReviewBar({
 export function PublicSellerProfileScreen({ userId }: Props) {
   const router = useRouter();
   const { t, tf, locale } = useLocale();
+  const { isAuthenticated } = useAuth();
   const colorScheme = useColorScheme();
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
   const reduceMotion = useReducedMotion();
   const backPressed = useSharedValue(0);
   const [page, setPage] = useState(1);
+  const [reportTarget, setReportTarget] = useState<ContentReportTarget | null>(
+    null,
+  );
 
   const profileQuery = usePublicUserProfile(userId);
   const reviewsQuery = useSellerReviews(userId, { page, limit: 20 });
@@ -134,6 +143,21 @@ export function PublicSellerProfileScreen({ userId }: Props) {
     ],
   }));
 
+  const openContentReport = useCallback(
+    (target: ContentReportTarget) => {
+      if (!isAuthenticated) {
+        Alert.alert(
+          t("contentReportLoginRequiredTitle"),
+          t("contentReportLoginRequiredBody"),
+        );
+        return;
+      }
+      void Haptics.selectionAsync();
+      setReportTarget(target);
+    },
+    [isAuthenticated, t],
+  );
+
   return (
     <ThemedView style={styles.safe}>
       <ThemedView style={styles.container}>
@@ -166,7 +190,19 @@ export function PublicSellerProfileScreen({ userId }: Props) {
           <ThemedText type="screenTitle" style={styles.topTitle}>
             {t("publicProfileTitle")}
           </ThemedText>
-          <View style={styles.backButton} />
+          <Pressable
+            onPress={() =>
+              openContentReport({
+                targetType: "USER_PROFILE",
+                targetId: userId,
+              })
+            }
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel={t("contentReportAction")}
+          >
+            <MaterialIcons name="flag" size={20} color="#FFF" />
+          </Pressable>
         </View>
 
         {profileQuery.isLoading ? (
@@ -394,9 +430,28 @@ export function PublicSellerProfileScreen({ userId }: Props) {
                       { backgroundColor: surface, borderColor },
                     ]}
                   >
-                    <ThemedText style={styles.reviewStars}>
-                      {"★".repeat(Math.max(1, item.stars))}
-                    </ThemedText>
+                    <View style={styles.reviewItemHeader}>
+                      <ThemedText style={styles.reviewStars}>
+                        {"★".repeat(Math.max(1, item.stars))}
+                      </ThemedText>
+                      <Pressable
+                        onPress={() =>
+                          openContentReport({
+                            targetType: "REVIEW",
+                            targetId: item.id,
+                          })
+                        }
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel={t("contentReportAction")}
+                      >
+                        <MaterialIcons
+                          name="flag"
+                          size={18}
+                          color={colors.icon}
+                        />
+                      </Pressable>
+                    </View>
                     <ThemedText style={styles.reviewNick}>
                       {item.reviewerNickname ?? "—"}
                     </ThemedText>
@@ -474,6 +529,11 @@ export function PublicSellerProfileScreen({ userId }: Props) {
           </Animated.ScrollView>
         )}
       </ThemedView>
+      <ContentReportModal
+        visible={reportTarget != null}
+        target={reportTarget}
+        onClose={() => setReportTarget(null)}
+      />
     </ThemedView>
   );
 }
@@ -576,6 +636,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     gap: 4,
+  },
+  reviewItemHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
   },
   reviewStars: { color: "#FB6D00", fontSize: 12, fontWeight: "800" },
   reviewNick: { fontSize: 13, fontWeight: "700" },
