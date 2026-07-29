@@ -25,6 +25,8 @@ export interface RegisterInput {
   gpsLatitude: number;
   gpsLongitude: number;
   referralId?: string;
+  acceptedTerms: true;
+  termsVersion: string;
 }
 
 /**
