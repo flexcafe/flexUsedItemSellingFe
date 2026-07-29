@@ -1,5 +1,5 @@
 import * as Location from "expo-location";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import {
   isValidPhoneNumber,
   parsePhoneNumberFromString,
@@ -39,6 +39,7 @@ import {
   mapRegisterReferralError,
   normalizeReferralCodeInput,
 } from "@/presentation/lib/referral";
+import { useLegalTerms } from "@/presentation/providers/LegalTermsProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 
 import { AuthKeyboardScreen } from "./AuthKeyboardScreen";
@@ -132,6 +133,7 @@ export function RegisterScreen() {
   const router = useRouter();
   const { ref: refFromLink } = useLocalSearchParams<{ ref?: string | string[] }>();
   const { register } = useAuth();
+  const { termsVersion, hasPreAuthAcceptedCurrent } = useLegalTerms();
   const { locale, setLocale, t } = useLocale();
   const colorScheme = useColorScheme();
   const scheme = colorScheme ?? "light";
@@ -374,6 +376,12 @@ export function RegisterScreen() {
       return;
     }
 
+    if (!hasPreAuthAcceptedCurrent || !termsVersion) {
+      Alert.alert(t("errorTitle"), t("termsRequiredForRegister"));
+      router.replace("/(auth)/terms" as Href);
+      return;
+    }
+
     const input: RegisterInput = {
       registrationType: parsed.data.registrationType,
       nickname: parsed.data.nickname,
@@ -393,6 +401,8 @@ export function RegisterScreen() {
       gpsLatitude: locationCoords.latitude,
       gpsLongitude: locationCoords.longitude,
       referralId: normalizeReferralCodeInput(parsed.data.referralId ?? ""),
+      acceptedTerms: true,
+      termsVersion,
     };
 
     setIsSubmitting(true);

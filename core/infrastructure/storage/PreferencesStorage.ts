@@ -5,6 +5,7 @@ import type { AppLocale } from "@/core/domain/types/locale";
 
 const LOCALE_KEY = "flex_used_market_locale";
 const ACTION_NOTIFY_COOLDOWNS_KEY = "flex_used_market_action_notify_cooldowns_v1";
+const ACCEPTED_TERMS_VERSION_KEY = "flex_used_market_accepted_terms_version_v1";
 
 async function setItem(key: string, value: string): Promise<void> {
   if (Platform.OS === "web") {
@@ -58,6 +59,28 @@ export const PreferencesStorage = {
     const cur = await readActionNotifyCooldowns();
     cur[key] = completedAtEpochMs;
     await setItem(ACTION_NOTIFY_COOLDOWNS_KEY, JSON.stringify(cur));
+  },
+
+  async getAcceptedTermsVersion(): Promise<string | null> {
+    const raw = await getItem(ACCEPTED_TERMS_VERSION_KEY);
+    const trimmed = raw?.trim() ?? "";
+    return trimmed.length > 0 ? trimmed : null;
+  },
+
+  async setAcceptedTermsVersion(version: string): Promise<void> {
+    await setItem(ACCEPTED_TERMS_VERSION_KEY, version.trim());
+  },
+
+  async clearAcceptedTermsVersion(): Promise<void> {
+    if (Platform.OS === "web") {
+      localStorage.removeItem(ACCEPTED_TERMS_VERSION_KEY);
+      return;
+    }
+    try {
+      await SecureStore.deleteItemAsync(ACCEPTED_TERMS_VERSION_KEY);
+    } catch {
+      await setItem(ACCEPTED_TERMS_VERSION_KEY, "");
+    }
   },
 } as const;
 

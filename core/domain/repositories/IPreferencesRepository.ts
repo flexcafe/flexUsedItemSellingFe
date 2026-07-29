@@ -11,5 +11,8 @@ export interface IPreferencesRepository {
     key: ActionNotifyCooldownKey,
     completedAtEpochMs: number,
   ): Promise<void>;
+  getAcceptedTermsVersion(): Promise<string | null>;
+  setAcceptedTermsVersion(version: string): Promise<void>;
+  clearAcceptedTermsVersion(): Promise<void>;
 }
 

@@ -101,6 +101,15 @@ export const API_ENDPOINTS = {
     FRAUD_REPORTS: "/v1/client/fraud-reports",
     MY_FRAUD_REPORTS: "/v1/client/fraud-reports/mine",
   },
+  MODERATION: {
+    REPORTS: "/v1/client/moderation/reports",
+    MY_REPORTS: "/v1/client/moderation/reports/mine",
+  },
+  LEGAL: {
+    TERMS: "/v1/client/legal/terms",
+    TERMS_ACCEPT: "/v1/client/legal/terms/accept",
+    TERMS_STATUS: "/v1/client/legal/terms/status",
+  },
   PRODUCTS: {
     LIST: "/v1/products",
     BY_ID: (id: string) => `/v1/products/${id}`,

@@ -268,6 +268,521 @@ const DICT: Dictionary = {
     zh: "登录失败",
     en: "Sign-in failed",
   },
+  termsTitle: {
+    ko: "이용약관",
+    my: "အသုံးပြုမှု စည်းမျဉ်း",
+    zh: "使用条款",
+    en: "Terms of Use",
+  },
+  /** Stable BE keys (`TERMS_OF_USE_TITLE` / `TERMS_OF_USE`) — same pattern as `noti.*`. */
+  TERMS_OF_USE_TITLE: {
+    ko: "이용약관",
+    my: "အသုံးပြုမှု စည်းမျဉ်း",
+    zh: "使用条款",
+    en: "Terms of Use",
+  },
+  TERMS_OF_USE: {
+    ko: `FLEX USED ITEM MARKETPLACE — 이용약관 (EULA)
+
+최종 업데이트: 2026년 7월
+버전 {version}
+
+계정을 생성하거나 로그인하거나 본 앱을 사용하는 경우, 본 이용약관에 동의한 것으로 간주됩니다.
+
+1. 불쾌한 콘텐츠 및 악용 사용자에 대한 무관용
+불쾌한 콘텐츠와 악용 사용자에 대해 무관용 정책을 적용합니다. 불법적이거나, 혐오·괴롭힘·성적 노골적·폭력적·위협적·차별적·사기성·스팸 또는 그 밖의 불쾌한 콘텐츠를 게시·공유·전송·업로드해서는 안 됩니다. 본 정책을 위반하는 계정은 사전 통지 없이 정지되거나 영구 퇴출될 수 있습니다.
+
+2. 사용자 생성 콘텐츠
+리스팅, 채팅 메시지, 리뷰, 프로필 정보 및 제출하는 기타 자료는 사용자 생성 콘텐츠입니다. 귀하의 콘텐츠와 다른 사용자와의 상호작용에 대한 책임은 전적으로 귀하에게 있습니다.
+
+3. 콘텐츠 필터링
+불쾌한 콘텐츠를 앱에 표시되기 전후에 감지하고 차단하기 위해 자동 필터링과 사람 검토를 사용합니다. 필터링된 콘텐츠는 거부되거나 삭제될 수 있습니다.
+
+4. 불쾌한 콘텐츠 신고
+본 약관을 위반하는 리스팅, 메시지, 리뷰 또는 프로필은 앱 내 신고 기능을 사용해 신고해야 합니다. 신고 내용은 운영팀이 검토합니다.
+
+5. 악용 사용자 차단
+다른 사용자를 차단할 수 있습니다. 차단 시 해당 사용자의 콘텐츠가 즉시 피드에서 제거되고 추가 연락이 차단됩니다. 차단은 운영팀에도 전달되어 조사가 이뤄질 수 있습니다.
+
+6. 24시간 이내 조치
+불쾌한 콘텐츠 신고에 대해 24시간 이내에 조치합니다. 신고가 확인되면 해당 콘텐츠를 삭제하고, 제공한 사용자를 퇴출(차단)할 수 있습니다.
+
+7. 계정 해지
+불쾌한 콘텐츠를 게시하거나 다른 사용자를 괴롭히거나 플랫폼을 악용하는 계정은 정지 또는 영구 차단될 수 있습니다.
+
+8. 문의
+안전 관련 문제는 앱 내 신고 기능을 이용하거나 앱스토어 등록 정보에 안내된 지원 채널로 연락해 주세요.
+
+동의 / 수락을 누르면, 불쾌한 콘텐츠 및 악용 사용자에 대한 무관용 정책을 포함한 본 약관을 읽고 동의한 것으로 확인됩니다.`,
+    my: `FLEX USED ITEM MARKETPLACE — အသုံးပြုမှု စည်းမျဉ်း (EULA)
+
+နောက်ဆုံး အပ်ဒိတ်: ဇူလိုင် ၂၀၂၆
+ဗားရှင်း {version}
+
+အကောင့်ဖန်တီးခြင်း၊ ဝင်ရောက်ခြင်း သို့မဟုတ် ဤအက်ပ်ကို အသုံးပြုခြင်းဖြင့် ဤအသုံးပြုမှု စည်းမျဉ်းများကို သဘောတူသည်ဟု မှတ်ယူပါသည်။
+
+1. မလိုလားအပ်သော အကြောင်းအရာနှင့် အလွဲသုံးစားသူများအတွက် လုံးဝ လက်မခံ
+မလိုလားအပ်သော အကြောင်းအရာနှင့် အလွဲသုံးစားသူများကို လုံးဝ လက်မခံပါ။ တရားမဝင်၊ မုန်းတီးမှု၊ နှောင့်ယှက်မှု၊ လိင်ပိုင်းဆိုင်ရာ ထင်ရှား၊ အကြမ်းဖက်၊ ခြိမ်းခြောက်၊ ခွဲခြားဆက်ဆံ၊ လိမ်လည်၊ စပမ်း သို့မဟုတ် အခြား မလိုလားအပ်သော အကြောင်းအရာများကို တင်ခြင်း၊ မျှဝေခြင်း၊ ပို့ခြင်း၊ အပ်လုဒ်လုပ်ခြင်း မပြုရပါ။ ဤမူဝါဒကို ချိုးဖောက်သော အကောင့်များကို ကြိုတင်အသိပေးခြင်းမရှိဘဲ ဆိုင်းငံ့ခြင်း သို့မဟုတ် အပြီးအပိုင် ထုတ်ပယ်နိုင်ပါသည်။
+
+2. အသုံးပြုသူ ဖန်တီးသော အကြောင်းအရာ
+စာရင်းများ၊ ချတ်စာများ၊ သုံးသပ်ချက်များ၊ ပရိုဖိုင်အချက်အလက်နှင့် သင်တင်သွင်းသော အခြားပစ္စည်းများသည် အသုံးပြုသူ ဖန်တီးသော အကြောင်းအရာဖြစ်သည်။ သင့်အကြောင်းအရာနှင့် အခြားအသုံးပြုသူများနှင့် အပြန်အလှန်ဆက်ဆံမှုအတွက် သင်သာလျှင် တာဝန်ရှိသည်။
+
+3. အကြောင်းအရာ စစ်ထုတ်ခြင်း
+မလိုလားအပ်သော အကြောင်းအရာကို အက်ပ်တွင် ပေါ်မလာမီ သို့မဟုတ် ပေါ်ပြီးနောက် ရှာဖွေပိတ်ရန် အလိုအလျောက် စစ်ထုတ်ခြင်းနှင့် လူကြည့်ရှု စစ်ဆေးခြင်းကို အသုံးပြုသည်။ စစ်ထုတ်ထားသော အကြောင်းအရာကို ငြင်းပယ်ခြင်း သို့မဟုတ် ဖယ်ရှားနိုင်သည်။
+
+4. မလိုလားအပ်သော အကြောင်းအရာ တိုင်ကြားခြင်း
+ဤစည်းမျဉ်းများကို ချိုးဖောက်သော စာရင်းများ၊ စာများ၊ သုံးသပ်ချက်များ သို့မဟုတ် ပရိုဖိုင်များကို အက်ပ်အတွင်း တိုင်ကြားမှု လုပ်ဆောင်ချက်ဖြင့် အလံတင်ရပါမည်။ တိုင်ကြားမှုများကို ကျွန်ုပ်တို့၏ အဖွဲ့က စစ်ဆေးသည်။
+
+5. အလွဲသုံးစားသူ ပိတ်ခြင်း
+အခြားအသုံးပြုသူများကို ပိတ်နိုင်သည်။ ပိတ်လိုက်သည်နှင့် ထိုအသုံးပြုသူ၏ အကြောင်းအရာသည် သင့်ဖိဒ်မှ ချက်ချင်း ပျောက်သွားပြီး ထပ်မံ ဆက်သွယ်၍ မရတော့ပါ။ ပိတ်ခြင်းသည် စုံစမ်းစစ်ဆေးရန် ကျွန်ုပ်တို့၏ စည်းကမ်းထိန်းသိမ်းရေးအဖွဲ့ကိုလည်း အသိပေးသည်။
+
+6. ၂၄ နာရီအတွင်း အရေးယူခြင်း
+မလိုလားအပ်သော အကြောင်းအရာ တိုင်ကြားမှုများကို ၂၄ နာရီအတွင်း အရေးယူသည်။ တိုင်ကြားမှု အတည်ပြုပါက ချိုးဖောက်သော အကြောင်းအရာကို ဖယ်ရှားပြီး ထိုအကြောင်းအရာ ပေးသူကို ထုတ်ပယ် (ပိတ်) နိုင်သည်။
+
+7. အကောင့် ရပ်ဆိုင်းခြင်း
+မလိုလားအပ်သော အကြောင်းအရာတင်ခြင်း၊ အခြားသူများကို နှောင့်ယှက်ခြင်း သို့မဟုတ် ပလက်ဖောင်းကို အလွဲသုံးစားလုပ်သော အကောင့်များကို ဆိုင်းငံ့ခြင်း သို့မဟုတ် အပြီးအပိုင် ပိတ်နိုင်သည်။
+
+8. ဆက်သွယ်ရန်
+ဘေးကင်းရေးဆိုင်ရာ ကိစ္စများအတွက် အက်ပ်အတွင်း တိုင်ကြားမှုကို အသုံးပြုပါ သို့မဟုတ် အက်ပ်စတိုး စာရင်းတွင် ဖော်ပြထားသော ပံ့ပိုးမှု လမ်းကြောင်းများမှ ဆက်သွယ်ပါ။
+
+သဘောတူသည် / လက်ခံသည် ကို နှိပ်ခြင်းဖြင့် မလိုလားအပ်သော အကြောင်းအရာနှင့် အလွဲသုံးစားသူများအတွက် လုံးဝ လက်မခံမူဝါဒ အပါအဝင် ဤစည်းမျဉ်းများကို ဖတ်ပြီး သဘောတူကြောင်း အတည်ပြုသည်။`,
+    zh: `FLEX USED ITEM MARKETPLACE — 使用条款（EULA）
+
+最后更新：2026年7月
+版本 {version}
+
+创建账户、登录或使用本应用，即表示您同意本使用条款。
+
+1. 对不当内容和滥用用户零容忍
+我们对不当内容和滥用用户采取零容忍政策。您不得发布、分享、发送或上传任何非法、仇恨、骚扰、色情、暴力、威胁、歧视、欺诈、垃圾信息或其他不当内容。违反本政策的账户可能被暂停或永久封禁，恕不另行通知。
+
+2. 用户生成内容
+商品信息、聊天消息、评价、个人资料及您提交的其他材料均为用户生成内容。您应对自己的内容以及与其他用户的互动承担全部责任。
+
+3. 内容过滤
+我们使用自动过滤和人工审核，在不当内容出现在应用中之前或之后进行检测和拦截。被过滤的内容可能被拒绝或删除。
+
+4. 举报不当内容
+您必须使用应用内的举报功能，标记违反本条款的商品、消息、评价或个人资料。举报将由我们的团队审核。
+
+5. 屏蔽滥用用户
+您可以屏蔽其他用户。屏蔽后，该用户的内容会立即从您的动态中移除，并阻止进一步联系。屏蔽也会通知我们的审核团队以便调查。
+
+6. 24小时内处理
+我们在24小时内对不当内容举报采取行动。举报一经确认，我们将删除违规内容，并可能封禁（驱逐）提供该内容的用户。
+
+7. 账户终止
+我们可能暂停或永久封禁发布不当内容、骚扰他人或以其他方式滥用平台的账户。
+
+8. 联系我们
+如有安全相关问题，请使用应用内举报功能，或通过应用商店页面所列支持渠道联系我们。
+
+点击“同意 / 接受”，即确认您已阅读并同意本条款，包括对不当内容和滥用用户的零容忍政策。`,
+    en: `FLEX USED ITEM MARKETPLACE — TERMS OF USE (EULA)
+
+Last updated: July 2026
+Version {version}
+
+By creating an account, logging in, or using this app, you agree to these Terms of Use.
+
+1. NO TOLERANCE FOR OBJECTIONABLE CONTENT OR ABUSIVE USERS
+We have zero tolerance for objectionable content or abusive users. You must not post, share, send, or upload any content that is illegal, hateful, harassing, sexually explicit, violent, threatening, discriminatory, fraudulent, spam, or otherwise objectionable. Accounts that violate this policy may be suspended or permanently ejected without notice.
+
+2. USER-GENERATED CONTENT
+Listings, chat messages, reviews, profile information, and other materials you submit are user-generated content. You are solely responsible for your content and for your interactions with other users.
+
+3. CONTENT FILTERING
+We use automated filtering and human review to detect and block objectionable material before or after it appears in the app. Filtered content may be rejected or removed.
+
+4. REPORTING OBJECTIONABLE CONTENT
+You must use the in-app Report feature to flag listings, messages, reviews, or profiles that violate these Terms. Reports are reviewed by our team.
+
+5. BLOCKING ABUSIVE USERS
+You may block other users. Blocking immediately removes that user's content from your feed and prevents further contact. Blocking also notifies our moderation team so we can investigate.
+
+6. MODERATION WITHIN 24 HOURS
+We act on objectionable content reports within 24 hours. When a report is confirmed, we remove the offending content and may eject (ban) the user who provided it.
+
+7. ACCOUNT TERMINATION
+We may suspend or permanently ban accounts that post objectionable content, harass others, or otherwise abuse the platform.
+
+8. CONTACT
+For safety concerns, use in-app reporting or contact support through the channels listed in the app store listing.
+
+By tapping Agree / Accept, you confirm that you have read and agree to these Terms, including the zero-tolerance policy for objectionable content and abusive users.`,
+  },
+  termsSafetyBadge: {
+    ko: "안전 정책",
+    my: "ဘေးကင်းရေး မူဝါဒ",
+    zh: "安全政策",
+    en: "Safety policy",
+  },
+  termsDocumentLabel: {
+    ko: "약관 전문",
+    my: "စည်းမျဉ်း အပြည့်အစုံ",
+    zh: "完整条款",
+    en: "Full terms",
+  },
+  termsScrollHint: {
+    ko: "끝까지 스크롤",
+    my: "အောက်ထိ ရွှေ့ပါ",
+    zh: "请滑到底部",
+    en: "Scroll to end",
+  },
+  termsScrollComplete: {
+    ko: "확인 완료",
+    my: "ဖတ်ပြီးပါပြီ",
+    zh: "已读完",
+    en: "Read",
+  },
+  termsScrollRequiredTitle: {
+    ko: "약관을 끝까지 읽어 주세요",
+    my: "စည်းမျဉ်းကို အဆုံးထိ ဖတ်ပါ",
+    zh: "请先阅读完整条款",
+    en: "Please finish reading",
+  },
+  termsScrollRequiredBody: {
+    ko: "동의하기 전에 약관 내용을 끝까지 스크롤해 확인해야 합니다.",
+    my: "သဘောတူမီ စည်းမျဉ်းကို အဆုံးထိ ရွှေ့ဖတ်ရပါမည်။",
+    zh: "同意前请先滚动并阅读完整条款。",
+    en: "Scroll through the full Terms before agreeing.",
+  },
+  termsHighlightZeroTolerance: {
+    ko: "불쾌한 콘텐츠와 악용 사용자에 대해 무관용 정책을 적용합니다.",
+    my: "မလိုလားအပ်သော အကြောင်းအရာနှင့် အလွဲသုံးစားသူများကို လုံးဝ လက်မခံပါ။",
+    zh: "我们对不当内容和滥用用户采取零容忍政策。",
+    en: "Zero tolerance for objectionable content and abusive users.",
+  },
+  termsHighlightReportBlock: {
+    ko: "사용자는 부적절한 콘텐츠를 신고하고 악용 사용자를 차단할 수 있습니다.",
+    my: "မသင့်လျော်သော အကြောင်းအရာကို တိုင်ကြားပြီး အလွဲသုံးစားသူကို ပိတ်နိုင်ပါသည်။",
+    zh: "用户可举报不当内容并屏蔽滥用用户。",
+    en: "You can report objectionable content and block abusive users.",
+  },
+  termsVersionLabel: {
+    ko: "버전",
+    my: "ဗားရှင်း",
+    zh: "版本",
+    en: "Version",
+  },
+  termsMustAcceptBeforeAuth: {
+    ko: "로그인 또는 회원가입 전에 약관에 동의해야 합니다. 불쾌한 콘텐츠와 악용 사용자에 대해 무관용 정책을 적용합니다.",
+    my: "ဝင်ရောက်/စာရင်းသွင်းမီ စည်းမျဉ်းကို သဘောတူရပါမည်။ မလိုလားအပ်သော အကြောင်းအရာနှင့် အလွဲသုံးစားသူများကို လုံးဝ လက်မခံပါ။",
+    zh: "登录或注册前必须同意条款。我们对不当内容和滥用用户采取零容忍政策。",
+    en: "You must agree to the Terms before signing in or registering. We have a zero-tolerance policy for objectionable content and abusive users.",
+  },
+  termsMustAcceptAgain: {
+    ko: "약관이 업데이트되었습니다. 앱을 계속 사용하려면 새 약관에 동의해 주세요.",
+    my: "စည်းမျဉ်း အသစ်ရှိပါသည်။ ဆက်အသုံးပြုရန် သဘောတူပါ။",
+    zh: "条款已更新。请重新同意后继续使用应用。",
+    en: "Terms were updated. Please accept the latest version to continue.",
+  },
+  termsAgree: {
+    ko: "동의",
+    my: "သဘောတူသည်",
+    zh: "同意",
+    en: "Agree",
+  },
+  termsDisagree: {
+    ko: "동의 안 함",
+    my: "သဘောမတူ",
+    zh: "不同意",
+    en: "Disagree",
+  },
+  termsDisagreeTitle: {
+    ko: "약관 미동의",
+    my: "စည်းမျဉ်း မသဘောတူပါ",
+    zh: "未同意条款",
+    en: "Terms not accepted",
+  },
+  termsDisagreeBody: {
+    ko: "약관에 동의하지 않으면 로그인하거나 회원가입할 수 없습니다.",
+    my: "စည်းမျဉ်းကို မသဘောတူပါက ဝင်ရောက်/စာရင်းသွင်း၍ မရပါ။",
+    zh: "不同意条款将无法登录或注册。",
+    en: "You cannot sign in or register without agreeing to the Terms.",
+  },
+  termsDisagreeAuthenticatedBody: {
+    ko: "새 약관에 동의하지 않으면 앱을 사용할 수 없습니다. 로그아웃하시겠습니까?",
+    my: "စည်းမျဉ်းအသစ်ကို မသဘောတူပါက အက်ပ်ကို အသုံးပြု၍ မရပါ။ ထွက်မလား။",
+    zh: "不同意新条款将无法继续使用。是否退出登录？",
+    en: "You cannot use the app without accepting the updated Terms. Sign out?",
+  },
+  termsStay: {
+    ko: "계속 보기",
+    my: "ဆက်ကြည့်မည်",
+    zh: "继续阅读",
+    en: "Keep reading",
+  },
+  termsSignOut: {
+    ko: "로그아웃",
+    my: "ထွက်မည်",
+    zh: "退出登录",
+    en: "Sign out",
+  },
+  termsLoadFailed: {
+    ko: "이용약관을 불러오지 못했습니다",
+    my: "စည်းမျဉ်း မရယူနိုင်ပါ",
+    zh: "无法加载使用条款",
+    en: "Could not load Terms of Use",
+  },
+  termsLoadFailedHint: {
+    ko: "네트워크를 확인한 뒤 다시 시도하세요.",
+    my: "ကွန်ရက်ကို စစ်ဆေးပြီး ထပ်မံကြိုးစားပါ။",
+    zh: "请检查网络后重试。",
+    en: "Check your connection and try again.",
+  },
+  termsRetry: {
+    ko: "다시 시도",
+    my: "ပြန်ကြိုးစား",
+    zh: "重试",
+    en: "Retry",
+  },
+  termsAcceptFailed: {
+    ko: "약관 동의에 실패했습니다. 다시 시도하세요.",
+    my: "စည်းမျဉ်း သဘောတူမှု မအောင်မြင်ပါ။ ထပ်မံကြိုးစားပါ။",
+    zh: "同意条款失败，请重试。",
+    en: "Failed to accept Terms. Please try again.",
+  },
+  contentReportTitle: {
+    ko: "콘텐츠 신고",
+    my: "အကြောင်းအရာ တိုင်ကြားရန်",
+    zh: "举报内容",
+    en: "Report content",
+  },
+  contentReportTargetListing: {
+    ko: "이 상품을 신고합니다",
+    my: "ဤစာရင်းကို တိုင်ကြားမည်",
+    zh: "举报此商品",
+    en: "Reporting this listing",
+  },
+  contentReportTargetChatMessage: {
+    ko: "이 채팅 메시지를 신고합니다",
+    my: "ဤချတ်စာကို တိုင်ကြားမည်",
+    zh: "举报此聊天消息",
+    en: "Reporting this chat message",
+  },
+  contentReportTargetReview: {
+    ko: "이 리뷰를 신고합니다",
+    my: "ဤသုံးသပ်ချက်ကို တိုင်ကြားမည်",
+    zh: "举报此评价",
+    en: "Reporting this review",
+  },
+  contentReportTargetProfile: {
+    ko: "이 프로필을 신고합니다",
+    my: "ဤပရိုဖိုင်ကို တိုင်ကြားမည်",
+    zh: "举报此个人资料",
+    en: "Reporting this profile",
+  },
+  contentReportReasonLabel: {
+    ko: "신고 사유",
+    my: "တိုင်ကြားရသည့် အကြောင်းရင်း",
+    zh: "举报原因",
+    en: "Reason",
+  },
+  contentReportReasonHint: {
+    ko: "가장 가까운 사유를 선택하세요",
+    my: "အနီးစပ်ဆုံး အကြောင်းရင်းကို ရွေးပါ",
+    zh: "请选择最接近的原因",
+    en: "Choose the closest matching reason",
+  },
+  contentReportSelectedPrefix: {
+    ko: "선택:",
+    my: "ရွေးထားသည်:",
+    zh: "已选：",
+    en: "Selected:",
+  },
+  contentReportReasonObjectionable: {
+    ko: "불쾌한 콘텐츠",
+    my: "မလိုလားအပ်သော အကြောင်းအရာ",
+    zh: "不当内容",
+    en: "Objectionable content",
+  },
+  contentReportReasonHarassment: {
+    ko: "괴롭힘",
+    my: "နှောင့်ယှက်မှု",
+    zh: "骚扰",
+    en: "Harassment",
+  },
+  contentReportReasonHateSpeech: {
+    ko: "혐오 발언",
+    my: "မုန်းတီးစကား",
+    zh: "仇恨言论",
+    en: "Hate speech",
+  },
+  contentReportReasonSexual: {
+    ko: "성적 콘텐츠",
+    my: "လိင်ပိုင်းဆိုင်ရာ အကြောင်းအရာ",
+    zh: "色情内容",
+    en: "Sexual content",
+  },
+  contentReportReasonSpam: {
+    ko: "스팸",
+    my: "စပမ်း",
+    zh: "垃圾信息",
+    en: "Spam",
+  },
+  contentReportReasonViolence: {
+    ko: "폭력",
+    my: "အကြမ်းဖက်မှု",
+    zh: "暴力",
+    en: "Violence",
+  },
+  contentReportReasonScam: {
+    ko: "사기",
+    my: "လိမ်လည်မှု",
+    zh: "诈骗",
+    en: "Scam",
+  },
+  contentReportReasonOther: {
+    ko: "기타",
+    my: "အခြား",
+    zh: "其他",
+    en: "Other",
+  },
+  contentReportDetailsLabel: {
+    ko: "추가 설명 (선택)",
+    my: "အသေးစိတ် (ရွေးချယ်နိုင်)",
+    zh: "补充说明（可选）",
+    en: "Details (optional)",
+  },
+  contentReportDetailsHint: {
+    ko: "도움이 될 짧은 설명을 남길 수 있습니다",
+    my: "ကူညီနိုင်သော အတိုချုပ် ရှင်းလင်းချက် ရေးနိုင်သည်",
+    zh: "可补充简短说明以便审核",
+    en: "Add a short note to help our review",
+  },
+  contentReportDetailsPlaceholder: {
+    ko: "신고 이유를 간단히 적어 주세요",
+    my: "တိုင်ကြားရသည့် အကြောင်းရင်းကို ရေးပါ",
+    zh: "请简要说明举报原因",
+    en: "Briefly describe the issue",
+  },
+  contentReportReviewHint: {
+    ko: "신고는 운영팀이 24시간 이내에 검토합니다.",
+    my: "တိုင်ကြားမှုကို အဖွဲ့က ၂၄ နာရီအတွင်း စစ်ဆေးပါမည်။",
+    zh: "我们的团队将在24小时内审核举报。",
+    en: "Our team reviews reports within 24 hours.",
+  },
+  contentReportSubmit: {
+    ko: "신고하기",
+    my: "တိုင်ကြားမည်",
+    zh: "提交举报",
+    en: "Submit report",
+  },
+  contentReportCancel: {
+    ko: "취소",
+    my: "ပယ်ဖျက်",
+    zh: "取消",
+    en: "Cancel",
+  },
+  contentReportSuccessTitle: {
+    ko: "신고 접수됨",
+    my: "တိုင်ကြားချက် လက်ခံရရှိပါသည်",
+    zh: "举报已提交",
+    en: "Report submitted",
+  },
+  contentReportSuccessBody: {
+    ko: "운영팀이 24시간 이내에 검토합니다.",
+    my: "အဖွဲ့က ၂၄ နာရီအတွင်း စစ်ဆေးပါမည်။",
+    zh: "我们的团队将在24小时内审核。",
+    en: "Our team will review within 24 hours.",
+  },
+  contentReportSubmitFailed: {
+    ko: "신고에 실패했습니다. 다시 시도하세요.",
+    my: "တိုင်ကြားမှု မအောင်မြင်ပါ။ ထပ်မံကြိုးစားပါ။",
+    zh: "举报失败，请重试。",
+    en: "Could not submit report. Please try again.",
+  },
+  contentReportLoginRequiredTitle: {
+    ko: "로그인이 필요합니다",
+    my: "ဝင်ရောက်ရန် လိုအပ်သည်",
+    zh: "需要登录",
+    en: "Sign in required",
+  },
+  contentReportLoginRequiredBody: {
+    ko: "콘텐츠를 신고하려면 먼저 로그인해 주세요.",
+    my: "အကြောင်းအရာ တိုင်ကြားရန် အရင် ဝင်ရောက်ပါ။",
+    zh: "请先登录后再举报内容。",
+    en: "Please sign in to report content.",
+  },
+  contentReportAction: {
+    ko: "신고",
+    my: "တိုင်ကြား",
+    zh: "举报",
+    en: "Report",
+  },
+  contentReportsTitle: {
+    ko: "플래그한 콘텐츠",
+    my: "အလံတင်ထားသော အကြောင်းအရာ",
+    zh: "已标记的内容",
+    en: "Flagged content",
+  },
+  contentReportsSubtitle: {
+    ko: "상품·채팅·리뷰·프로필에 남긴 플래그 신고만 표시됩니다. (사기 신고와 별개)",
+    my: "စာရင်း၊ ချတ်၊ သုံးသပ်ချက်၊ ပရိုဖိုင်အတွက် အလံတင် တိုင်ကြားချက်များသာ။ (လိမ်လည်မှုနှင့် သီးခြား)",
+    zh: "仅显示对商品、聊天、评价、个人资料的标记举报（与诈骗举报分开）。",
+    en: "Only flags you filed on listings, chat, reviews, or profiles. Separate from scam reports.",
+  },
+  contentReportsClose: {
+    ko: "닫기",
+    my: "ပိတ်မည်",
+    zh: "关闭",
+    en: "Close",
+  },
+  contentReportsEmptyTitle: {
+    ko: "플래그 내역이 없습니다",
+    my: "အလံတင်မှတ်တမ်း မရှိသေးပါ",
+    zh: "暂无标记记录",
+    en: "No flagged content yet",
+  },
+  contentReportsEmptyBody: {
+    ko: "불쾌한 상품·메시지·리뷰·프로필을 플래그하면 여기에 표시됩니다. 사기 거래는 ‘사기 신고’를 사용하세요.",
+    my: "မလိုလားအပ်သော စာရင်း၊ စာ၊ သုံးသပ်ချက်၊ ပရိုဖိုင်ကို အလံတင်ပါက ဤနေရာတွင် ပေါ်မည်။ လိမ်လည်မှုအတွက် ‘လိမ်လည်မှု တိုင်ကြား’ ကို သုံးပါ။",
+    zh: "标记不当商品、消息、评价或个人资料后会显示在这里。欺诈交易请使用“诈骗举报”。",
+    en: "Flags from listings, messages, reviews, or profiles appear here. For scam trades, use Scam report.",
+  },
+  contentReportsReportedUser: {
+    ko: "신고 대상",
+    my: "တိုင်ကြားခံရသူ",
+    zh: "被举报用户",
+    en: "Reported user",
+  },
+  contentReportsUnknownUser: {
+    ko: "알 수 없음",
+    my: "မသိ",
+    zh: "未知",
+    en: "Unknown",
+  },
+  contentReportStatusPending: {
+    ko: "검토 중",
+    my: "စစ်ဆေးနေသည်",
+    zh: "审核中",
+    en: "Pending",
+  },
+  contentReportStatusActioned: {
+    ko: "조치 완료",
+    my: "အရေးယူပြီး",
+    zh: "已处理",
+    en: "Actioned",
+  },
+  contentReportStatusDismissed: {
+    ko: "기각",
+    my: "ပယ်ချပြီး",
+    zh: "已驳回",
+    en: "Dismissed",
+  },
+  contentReportsOpenButton: {
+    ko: "플래그 내역",
+    my: "အလံတင်မှတ်တမ်း",
+    zh: "标记记录",
+    en: "Flag history",
+  },
+  termsRequiredForRegister: {
+    ko: "회원가입을 위해 먼저 이용약관에 동의해 주세요.",
+    my: "စာရင်းသွင်းရန် အရင် စည်းမျဉ်းကို သဘောတူပါ။",
+    zh: "注册前请先同意使用条款。",
+    en: "Please agree to the Terms before registering.",
+  },
   loginFailedBody: {
     ko: "자격 증명을 확인하고 다시 시도하세요.",
     my: "အထောက်အထားများကို စစ်ဆေးပြီး ပြန်လည်ကြိုးစားပါ။",
@@ -3325,6 +3840,48 @@ const DICT: Dictionary = {
     zh: "个人资料",
     en: "Profile",
   },
+  homeProfileActionHint: {
+    ko: "계정 및 인증 관리",
+    my: "အကောင့်နှင့် အတည်ပြုမှု စီမံရန်",
+    zh: "管理账户与认证",
+    en: "Manage account & verification",
+  },
+  homeSuggestionButtonShort: {
+    ko: "제안",
+    my: "အကြံပြု",
+    zh: "建议",
+    en: "Suggest",
+  },
+  homeSuggestionButtonHint: {
+    ko: "앱 아이디어",
+    my: "အက်ပ် အကြံဉာဏ်",
+    zh: "应用建议",
+    en: "App ideas",
+  },
+  homeFraudButtonShort: {
+    ko: "사기 신고",
+    my: "လိမ်လည်မှု",
+    zh: "诈骗举报",
+    en: "Scam",
+  },
+  homeFraudButtonHint: {
+    ko: "가짜 거래·결제",
+    my: "အတု အရောင်း/ငွေပေး",
+    zh: "假交易/付款",
+    en: "Fake trade / pay",
+  },
+  contentReportsButtonShort: {
+    ko: "플래그",
+    my: "အလံတင်",
+    zh: "标记记录",
+    en: "Flags",
+  },
+  contentReportsButtonHint: {
+    ko: "콘텐츠만",
+    my: "အကြောင်းအရာသာ",
+    zh: "仅内容",
+    en: "Content only",
+  },
   homeSuggestReportButton: {
     ko: "제안/신고",
     my: "အကြံပြု/တိုင်ကြား",
@@ -3342,6 +3899,30 @@ const DICT: Dictionary = {
     my: "အကြံပြုချက်နှင့် လိမ်လည်မှုတိုင်ကြားချက်",
     zh: "建议与诈骗举报",
     en: "Suggestions & fraud reports",
+  },
+  homeSuggestionSectionTitle: {
+    ko: "제안 보내기",
+    my: "အကြံပြုချက် ပေးပို့ရန်",
+    zh: "提交建议",
+    en: "Send suggestion",
+  },
+  homeSuggestionSectionSubtitle: {
+    ko: "앱을 더 좋게 만들 아이디어를 알려 주세요.",
+    my: "အက်ပ်ကို ပိုကောင်းစေမည့် အကြံပြုချက်ကို ပေးပို့ပါ။",
+    zh: "告诉我们如何让应用更好。",
+    en: "Share ideas to help improve the app.",
+  },
+  homeFraudSectionTitle: {
+    ko: "사기 신고",
+    my: "လိမ်လည်မှု တိုင်ကြားရန်",
+    zh: "诈骗举报",
+    en: "Scam report",
+  },
+  homeFraudSectionSubtitle: {
+    ko: "가짜 상품·가짜 결제·사기 거래만 신고하세요. (콘텐츠 플래그와 별개)",
+    my: "အတုပစ္စည်း၊ အတုငွေပေးချေမှု၊ လိမ်လည် အရောင်းအဝယ်သာ။ (အကြောင်းအရာ အလံတင်နှင့် သီးခြား)",
+    zh: "仅举报假商品、假付款或欺诈交易（与内容标记分开）。",
+    en: "Report fake products, fake payments, or scam trades only. Separate from content flags.",
   },
   homeReportsSubtitle: {
     ko: "앱 개선 아이디어를 제안하거나 사기 거래를 신고하세요.",

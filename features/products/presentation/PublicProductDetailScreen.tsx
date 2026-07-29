@@ -23,7 +23,12 @@ import {
   type MapOpenTarget,
 } from "@/presentation/lib/openMapsApp";
 import { ReferralCodeBlock } from "@/presentation/components/ReferralCodeBlock";
+import {
+  ContentReportModal,
+  type ContentReportTarget,
+} from "@/presentation/components/ContentReportModal";
 import { uiCardShadow, uiSectionEnter } from "@/presentation/lib/uiAnimations";
+import { useAuth } from "@/presentation/providers/AuthProvider";
 import {
   formatProductConditionForDisplay,
   productStatusLabelKey,
@@ -502,6 +507,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
   const router = useRouter();
   const insets = useAppliedSafeAreaInsets();
   const { t, tf, locale } = useLocale();
+  const { isAuthenticated } = useAuth();
   const colorScheme = useColorScheme();
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
@@ -523,6 +529,9 @@ export function PublicProductDetailScreen({ productId }: Props) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [mapLoading, setMapLoading] = useState(true);
+  const [reportTarget, setReportTarget] = useState<ContentReportTarget | null>(
+    null,
+  );
 
   const chatPressed = useSharedValue(0);
   const backPressed = useSharedValue(0);
@@ -669,6 +678,21 @@ export function PublicProductDetailScreen({ productId }: Props) {
     ],
   }));
 
+  const openContentReport = useCallback(
+    (target: ContentReportTarget) => {
+      if (!isAuthenticated) {
+        Alert.alert(
+          t("contentReportLoginRequiredTitle"),
+          t("contentReportLoginRequiredBody"),
+        );
+        return;
+      }
+      void Haptics.selectionAsync();
+      setReportTarget(target);
+    },
+    [isAuthenticated, t],
+  );
+
   const screenBackButton = (
     <AnimatedPressable
       onPress={() => router.back()}
@@ -687,6 +711,19 @@ export function PublicProductDetailScreen({ productId }: Props) {
       <MaterialIcons name="arrow-back" size={22} color="#FFF" />
     </AnimatedPressable>
   );
+
+  const screenReportButton = product ? (
+    <Pressable
+      onPress={() =>
+        openContentReport({ targetType: "LISTING", targetId: product.id })
+      }
+      style={[styles.screenReportBtn, { top: backButtonTop }]}
+      accessibilityRole="button"
+      accessibilityLabel={t("contentReportAction")}
+    >
+      <MaterialIcons name="flag" size={20} color="#FFF" />
+    </Pressable>
+  ) : null;
 
   if (detailQuery.isLoading) {
     return (
@@ -730,6 +767,7 @@ export function PublicProductDetailScreen({ productId }: Props) {
   return (
       <ThemedView style={styles.container}>
       {screenBackButton}
+      {screenReportButton}
         <Animated.ScrollView
         entering={reduceMotion ? undefined : FadeIn.duration(240)}
         contentContainerStyle={[
@@ -827,14 +865,6 @@ export function PublicProductDetailScreen({ productId }: Props) {
 
           <View style={styles.mapGradientTop} pointerEvents="none" />
           <View style={styles.mapGradientBottom} pointerEvents="none" />
-
-          <View style={styles.mapOverlayTop}>
-            <View style={styles.mapIdPill}>
-              <ThemedText style={styles.mapIdText}>
-                #{product.id.slice(-6)}
-              </ThemedText>
-            </View>
-          </View>
 
           <Pressable
             onPress={() => {
@@ -1414,9 +1444,24 @@ export function PublicProductDetailScreen({ productId }: Props) {
                 }
                 style={[styles.reviewItem, { borderColor: borderColor }]}
               >
-                <ThemedText style={styles.reviewStars}>
-                  {"★".repeat(Math.max(1, item.stars))}
-                </ThemedText>
+                <View style={styles.reviewItemHeader}>
+                  <ThemedText style={styles.reviewStars}>
+                    {"★".repeat(Math.max(1, item.stars))}
+                  </ThemedText>
+                  <Pressable
+                    onPress={() =>
+                      openContentReport({
+                        targetType: "REVIEW",
+                        targetId: item.id,
+                      })
+                    }
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("contentReportAction")}
+                  >
+                    <MaterialIcons name="flag" size={18} color={colors.icon} />
+                  </Pressable>
+                </View>
                 <ThemedText style={styles.reviewNickname}>
                   {item.reviewerNickname ?? "—"}
                 </ThemedText>
@@ -1463,6 +1508,11 @@ export function PublicProductDetailScreen({ productId }: Props) {
         uri={selectedImage}
         visible={selectedImage != null}
         onClose={() => setSelectedImage(null)}
+      />
+      <ContentReportModal
+        visible={reportTarget != null}
+        target={reportTarget}
+        onClose={() => setReportTarget(null)}
       />
     </ThemedView>
   );
@@ -1528,24 +1578,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.35)",
   },
-  mapOverlayTop: {
+  screenReportBtn: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
+    right: 16,
+    zIndex: 60,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  reviewItemHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-end",
-    paddingHorizontal: 12,
-    paddingTop: 8,
+    justifyContent: "space-between",
+    gap: 8,
   },
-  mapIdPill: {
-    backgroundColor: "rgba(255,255,255,0.22)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-  mapIdText: { color: "#FFF", fontSize: 11, fontWeight: "800" },
   locationChip: {
     position: "absolute",
     bottom: 12,

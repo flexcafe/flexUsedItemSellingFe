@@ -83,6 +83,8 @@ export interface RegisterRequestDto {
   gpsLatitude: number;
   gpsLongitude: number;
   referralId?: string;
+  acceptedTerms: true;
+  termsVersion: string;
 }
 
 export interface OtpSendRequestDto {

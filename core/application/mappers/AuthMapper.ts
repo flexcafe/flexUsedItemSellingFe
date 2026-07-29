@@ -184,6 +184,8 @@ export function toRegisterRequestDto(
       ...(data.referralId && data.referralId.length > 0
         ? { referralId: data.referralId }
         : {}),
+      acceptedTerms: true,
+      termsVersion: data.termsVersion,
     };
   }
 

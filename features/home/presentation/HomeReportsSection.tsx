@@ -17,7 +17,6 @@ import {
   ProfileAnimatedCard,
   ProfilePressableScale,
   ProfileStaggerItem,
-  ProfileTabButton,
   ProfileTabPanel,
 } from "@/features/profile/presentation/profileAnimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -53,6 +52,7 @@ type Tab = "suggestion" | "fraud";
 
 type HomeReportsSectionProps = {
   visible: boolean;
+  mode: Tab;
   onClose: () => void;
 };
 
@@ -321,6 +321,7 @@ function EmptyHistory({
 
 export function HomeReportsSection({
   visible,
+  mode,
   onClose,
 }: HomeReportsSectionProps) {
   const { t, tf } = useLocale();
@@ -330,7 +331,7 @@ export function HomeReportsSection({
   const insets = useAppSafeAreaInsets();
   const reduceMotion = useReducedMotion();
 
-  const [tab, setTab] = useState<Tab>("suggestion");
+  const tab = mode;
 
   const suggestionsQuery = useMySuggestions();
   const submitSuggestion = useSubmitSuggestion();
@@ -348,7 +349,6 @@ export function HomeReportsSection({
   const [fraudType, setFraudType] = useState<FraudType>("FAKE_PRODUCT");
   const [fraudDetails, setFraudDetails] = useState("");
 
-  const surface = uiCardSurface(scheme);
   const borderColor = colors.icon + "22";
   const fieldSurface = scheme === "dark" ? "#14171C" : "#F8FAFC";
 
@@ -447,38 +447,16 @@ export function HomeReportsSection({
               </Pressable>
             </View>
             <ThemedText type="screenTitle" style={styles.heroTitle}>
-              {t("homeSuggestionReportTitle")}
+              {tab === "suggestion"
+                ? t("homeSuggestionSectionTitle")
+                : t("homeFraudSectionTitle")}
             </ThemedText>
             <ThemedText style={styles.heroSubtitle}>
-              {t("homeReportsSubtitle")}
+              {tab === "suggestion"
+                ? t("homeSuggestionSectionSubtitle")
+                : t("homeFraudSectionSubtitle")}
             </ThemedText>
           </Animated.View>
-
-          <View
-            style={[
-              styles.tabBarWrap,
-              {
-                borderColor,
-                backgroundColor: surface,
-              },
-              uiCardShadow(scheme),
-            ]}
-          >
-            <ProfileTabButton
-              active={tab === "suggestion"}
-              tint={colors.tint}
-              inactiveColor={colors.icon}
-              label={t("homeSuggestionTab")}
-              onPress={() => setTab("suggestion")}
-            />
-            <ProfileTabButton
-              active={tab === "fraud"}
-              tint={colors.tint}
-              inactiveColor={colors.icon}
-              label={t("homeFraudTab")}
-              onPress={() => setTab("fraud")}
-            />
-          </View>
 
           <KeyboardAwareFormScroll
             fill
@@ -851,19 +829,9 @@ const styles = StyleSheet.create({
     marginTop: 6,
     maxWidth: "95%",
   },
-  tabBarWrap: {
-    marginHorizontal: 16,
-    marginTop: -18,
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 6,
-    flexDirection: "row",
-    gap: 8,
-    zIndex: 2,
-  },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 20,
+    paddingTop: 16,
     gap: 14,
   },
   sectionHeader: {

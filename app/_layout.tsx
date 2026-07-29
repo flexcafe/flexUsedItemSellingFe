@@ -3,7 +3,7 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { Slot, useRouter, useSegments } from "expo-router";
+import { Slot, useRouter, useSegments, type Href } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
@@ -19,6 +19,8 @@ import type { IAuthService } from "@/core/domain/services/IAuthService";
 import type { ICategoryService } from "@/core/domain/services/ICategoryService";
 import type { IChatService } from "@/core/domain/services/IChatService";
 import type { IClientReportService } from "@/core/domain/services/IClientReportService";
+import type { ILegalService } from "@/core/domain/services/ILegalService";
+import type { IModerationService } from "@/core/domain/services/IModerationService";
 import type { INotificationService } from "@/core/domain/services/INotificationService";
 import type { IProductService } from "@/core/domain/services/IProductService";
 import type { IProfileService } from "@/core/domain/services/IProfileService";
@@ -27,6 +29,10 @@ import container from "@/core/infrastructure/di/container";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { NotificationToastRoot } from "@/presentation/components/notification-toast-root";
 import { AuthProvider, useAuth } from "@/presentation/providers/AuthProvider";
+import {
+  LegalTermsProvider,
+  useLegalTerms,
+} from "@/presentation/providers/LegalTermsProvider";
 import { LocaleProvider } from "@/presentation/providers/LocaleProvider";
 import { QueryProvider } from "@/presentation/providers/QueryProvider";
 import { RealtimeProvider } from "@/presentation/providers/RealtimeProvider";
@@ -34,22 +40,64 @@ import { ServicesProvider } from "@/presentation/providers/ServicesProvider";
 
 function AuthGate() {
   const { isAuthenticated, isLoading } = useAuth();
+  const {
+    isLoadingTerms,
+    isCheckingStatus,
+    statusReady,
+    hasPreAuthAcceptedCurrent,
+    needsAcceptance,
+  } = useLegalTerms();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || isLoadingTerms) return;
+    if (isAuthenticated && (!statusReady || isCheckingStatus)) return;
 
     const inAuthGroup = segments[0] === "(auth)";
+    const authScreen = inAuthGroup ? String(segments[1] ?? "") : "";
+    const onTerms = authScreen === "terms";
 
-    if (!isAuthenticated && !inAuthGroup) {
-      router.replace("/(auth)/login");
-    } else if (isAuthenticated && inAuthGroup) {
+    if (!isAuthenticated) {
+      if (!hasPreAuthAcceptedCurrent) {
+        if (!onTerms) router.replace("/(auth)/terms" as Href);
+        return;
+      }
+      if (onTerms) {
+        router.replace("/(auth)/login");
+        return;
+      }
+      if (!inAuthGroup) {
+        router.replace("/(auth)/login");
+      }
+      return;
+    }
+
+    if (needsAcceptance) {
+      if (!onTerms) router.replace("/(auth)/terms" as Href);
+      return;
+    }
+
+    if (inAuthGroup) {
       router.replace("/(tabs)");
     }
-  }, [isAuthenticated, isLoading, segments, router]);
+  }, [
+    isAuthenticated,
+    isLoading,
+    isLoadingTerms,
+    isCheckingStatus,
+    statusReady,
+    hasPreAuthAcceptedCurrent,
+    needsAcceptance,
+    segments,
+    router,
+  ]);
 
-  if (isLoading) {
+  if (
+    isLoading ||
+    isLoadingTerms ||
+    (isAuthenticated && (!statusReady || isCheckingStatus))
+  ) {
     return (
       <SafeAreaScreenWrapper mode="full">
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -82,6 +130,10 @@ export default function RootLayout() {
     clientReportService: container.resolve<IClientReportService>(
       "clientReportService",
     ),
+    legalService: container.resolve<ILegalService>("legalService"),
+    moderationService: container.resolve<IModerationService>(
+      "moderationService",
+    ),
     preferencesRepository: container.resolve<IPreferencesRepository>(
       "preferencesRepository",
     ),
@@ -94,17 +146,19 @@ export default function RootLayout() {
           <QueryProvider>
             <LocaleProvider>
               <AuthProvider>
-                <RealtimeProvider>
-                  <View style={{ flex: 1 }}>
-                    <AuthGate />
-                    <LanguageSwitcher />
-                    {showLaunch ? (
-                      <AnimatedLaunchScreen onFinish={handleLaunchFinish} />
-                    ) : null}
-                  </View>
-                  <NotificationToastRoot />
-                  <StatusBar style="auto" />
-                </RealtimeProvider>
+                <LegalTermsProvider>
+                  <RealtimeProvider>
+                    <View style={{ flex: 1 }}>
+                      <AuthGate />
+                      <LanguageSwitcher />
+                      {showLaunch ? (
+                        <AnimatedLaunchScreen onFinish={handleLaunchFinish} />
+                      ) : null}
+                    </View>
+                    <NotificationToastRoot />
+                    <StatusBar style="auto" />
+                  </RealtimeProvider>
+                </LegalTermsProvider>
               </AuthProvider>
             </LocaleProvider>
           </QueryProvider>

@@ -46,6 +46,7 @@ import Animated, {
 import { HomeHero } from "./HomeHero";
 import { HomeRadiusFilter } from "./HomeRadiusFilter";
 import { HomeReportsSection } from "./HomeReportsSection";
+import { MyContentReportsSection } from "@/features/moderation/presentation/MyContentReportsSection";
 import { HomeSlider } from "./HomeSlider";
 
 const PRODUCT_IMAGE_SIZE = 80;
@@ -225,6 +226,10 @@ export function HomeScreen() {
     useState<ClientCatalogRadiusSelection>(null);
   const [searchFocused, setSearchFocused] = useState(false);
   const [reportsVisible, setReportsVisible] = useState(false);
+  const [reportsMode, setReportsMode] = useState<"suggestion" | "fraud">(
+    "suggestion",
+  );
+  const [contentReportsVisible, setContentReportsVisible] = useState(false);
   const searchFocus = useSharedValue(0);
 
   useEffect(() => {
@@ -338,7 +343,15 @@ export function HomeScreen() {
           categories={categories}
           selectedCategoryId={selectedCategoryId}
           onSelectCategory={setSelectedCategoryId}
-          onOpenReports={() => setReportsVisible(true)}
+          onOpenSuggestion={() => {
+            setReportsMode("suggestion");
+            setReportsVisible(true);
+          }}
+          onOpenFraudReport={() => {
+            setReportsMode("fraud");
+            setReportsVisible(true);
+          }}
+          onOpenContentReports={() => setContentReportsVisible(true)}
         />
         <View style={styles.sliderSection}>
           <HomeSlider />
@@ -530,7 +543,12 @@ export function HomeScreen() {
     <ThemedView style={styles.container}>
       <HomeReportsSection
         visible={reportsVisible}
+        mode={reportsMode}
         onClose={() => setReportsVisible(false)}
+      />
+      <MyContentReportsSection
+        visible={contentReportsVisible}
+        onClose={() => setContentReportsVisible(false)}
       />
       <Animated.FlatList
         data={products}

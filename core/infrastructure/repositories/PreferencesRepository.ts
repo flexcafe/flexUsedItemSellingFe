@@ -37,5 +37,17 @@ export class PreferencesRepository implements IPreferencesRepository {
   ): Promise<void> {
     return PreferencesStorage.setActionNotifyCooldown(key, completedAtEpochMs);
   }
+
+  getAcceptedTermsVersion(): Promise<string | null> {
+    return PreferencesStorage.getAcceptedTermsVersion();
+  }
+
+  setAcceptedTermsVersion(version: string): Promise<void> {
+    return PreferencesStorage.setAcceptedTermsVersion(version);
+  }
+
+  clearAcceptedTermsVersion(): Promise<void> {
+    return PreferencesStorage.clearAcceptedTermsVersion();
+  }
 }
 
