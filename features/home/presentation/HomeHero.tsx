@@ -20,15 +20,65 @@ type HomeHeroProps = {
   categories: Category[];
   selectedCategoryId: string | null;
   onSelectCategory: (id: string | null) => void;
-  onOpenReports: () => void;
+  onOpenSuggestion: () => void;
+  onOpenFraudReport: () => void;
+  onOpenContentReports: () => void;
 };
+
+type ActionTileProps = {
+  icon: keyof typeof MaterialIcons.glyphMap;
+  label: string;
+  hint: string;
+  onPress: () => void;
+  tone?: "neutral" | "danger" | "soft";
+};
+
+function ActionTile({
+  icon,
+  label,
+  hint,
+  onPress,
+  tone = "neutral",
+}: ActionTileProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}. ${hint}`}
+      style={({ pressed }) => [
+        styles.actionTile,
+        tone === "danger" && styles.actionTileDanger,
+        tone === "soft" && styles.actionTileSoft,
+        pressed && styles.pressed,
+      ]}
+    >
+      <View
+        style={[
+          styles.actionIconWrap,
+          tone === "danger" && styles.actionIconWrapDanger,
+          tone === "soft" && styles.actionIconWrapSoft,
+        ]}
+      >
+        <MaterialIcons name={icon} size={18} color="#fff" />
+      </View>
+      <Text style={styles.actionLabel} numberOfLines={1}>
+        {label}
+      </Text>
+      <Text style={styles.actionHint} numberOfLines={2}>
+        {hint}
+      </Text>
+    </Pressable>
+  );
+}
 
 export function HomeHero({
   tint,
   categories,
   selectedCategoryId,
   onSelectCategory,
-  onOpenReports,
+  onOpenSuggestion,
+  onOpenFraudReport,
+  onOpenContentReports,
 }: HomeHeroProps) {
   const router = useRouter();
   const { logout } = useAuth();
@@ -46,46 +96,71 @@ export function HomeHero({
         },
       ]}
     >
-      <Text style={styles.marketTitle}>{t("homeMarketTitleFlex")}</Text>
-
-      <View style={styles.actionsRow}>
-        <View style={styles.actionsLeft}>
-          <Pressable
-            onPress={() => router.push("/(tabs)/profile")}
-            style={({ pressed }) => [
-              styles.outlinePill,
-              pressed && styles.pillPressed,
-            ]}
-          >
-            <MaterialIcons name="person-outline" size={14} color="#fff" />
-            <Text style={styles.outlinePillText} numberOfLines={1}>
-              {t("homeMyProfileButton")}
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={onOpenReports}
-            style={({ pressed }) => [
-              styles.reportPill,
-              pressed && styles.pillPressed,
-            ]}
-          >
-            <MaterialIcons name="warning" size={14} color="#fff" />
-            <Text style={styles.reportPillText} numberOfLines={1}>
-              {t("homeSuggestReportButton")}
-            </Text>
-          </Pressable>
-        </View>
+      <View style={styles.titleRow}>
+        <Text style={styles.marketTitle} numberOfLines={1}>
+          {t("homeMarketTitleFlex")}
+        </Text>
         <Pressable
           onPress={() => void logout()}
           style={({ pressed }) => [
-            styles.logoutPill,
-            pressed && styles.pillPressed,
+            styles.logoutBtn,
+            pressed && styles.pressed,
           ]}
+          accessibilityRole="button"
+          accessibilityLabel={t("homeLogoutCaps")}
         >
-          <Text style={[styles.logoutPillText, { color: tint }]}>
+          <MaterialIcons name="logout" size={15} color={tint} />
+          <Text style={[styles.logoutText, { color: tint }]} numberOfLines={1}>
             {t("homeLogoutCaps")}
           </Text>
         </Pressable>
+      </View>
+
+      <Pressable
+        onPress={() => router.push("/(tabs)/profile")}
+        style={({ pressed }) => [
+          styles.profileCard,
+          pressed && styles.pressed,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={t("homeMyProfileButton")}
+      >
+        <View style={styles.profileIconWrap}>
+          <MaterialIcons name="person-outline" size={18} color="#fff" />
+        </View>
+        <View style={styles.profileCopy}>
+          <Text style={styles.profileTitle} numberOfLines={1}>
+            {t("homeMyProfileButton")}
+          </Text>
+          <Text style={styles.profileHint} numberOfLines={1}>
+            {t("homeProfileActionHint")}
+          </Text>
+        </View>
+        <MaterialIcons name="chevron-right" size={20} color="rgba(255,255,255,0.85)" />
+      </Pressable>
+
+      <View style={styles.actionsGrid}>
+        <ActionTile
+          icon="lightbulb-outline"
+          label={t("homeSuggestionButtonShort")}
+          hint={t("homeSuggestionButtonHint")}
+          onPress={onOpenSuggestion}
+          tone="soft"
+        />
+        <ActionTile
+          icon="flag"
+          label={t("contentReportsButtonShort")}
+          hint={t("contentReportsButtonHint")}
+          onPress={onOpenContentReports}
+          tone="neutral"
+        />
+        <ActionTile
+          icon="gavel"
+          label={t("homeFraudButtonShort")}
+          hint={t("homeFraudButtonHint")}
+          onPress={onOpenFraudReport}
+          tone="danger"
+        />
       </View>
 
       <AppScrollView
@@ -166,75 +241,127 @@ const styles = StyleSheet.create({
   hero: {
     paddingBottom: 10,
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+  },
   marketTitle: {
     ...ScreenTitleTypography,
     color: "#fff",
-    paddingHorizontal: 12,
-    marginTop: 0,
-    marginBottom: 6,
-  },
-  actionsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    marginBottom: 6,
-  },
-  actionsLeft: {
     flex: 1,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    alignItems: "center",
+    marginTop: 0,
+    marginBottom: 0,
   },
-  outlinePill: {
+  logoutBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingHorizontal: 7,
-    paddingVertical: 5,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#fff",
-    flexShrink: 1,
-    maxWidth: "100%",
-  },
-  outlinePillText: {
-    color: "#fff",
-    fontSize: 9,
-    fontWeight: "600",
-    flexShrink: 1,
-  },
-  reportPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 7,
-    paddingVertical: 5,
-    borderRadius: 999,
-    backgroundColor: "#DC2626",
-    flexShrink: 1,
-    maxWidth: "100%",
-  },
-  reportPillText: {
-    color: "#fff",
-    fontSize: 9,
-    fontWeight: "700",
-    flexShrink: 1,
-  },
-  logoutPill: {
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 999,
     backgroundColor: "#fff",
-    flexShrink: 0,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
   },
-  logoutPillText: {
-    fontSize: 10,
+  logoutText: {
+    fontSize: 11,
     fontWeight: "700",
   },
-  pillPressed: {
-    opacity: 0.85,
+  profileCard: {
+    marginHorizontal: 12,
+    marginBottom: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.28)",
+    backgroundColor: "rgba(255,255,255,0.14)",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  profileIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.18)",
+  },
+  profileCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 1,
+  },
+  profileTitle: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  profileHint: {
+    color: "rgba(255,255,255,0.82)",
+    fontSize: 11,
+    fontWeight: "500",
+  },
+  actionsGrid: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+  },
+  actionTile: {
+    flex: 1,
+    minHeight: 92,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.28)",
+    backgroundColor: "rgba(0,0,0,0.18)",
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "flex-start",
+    gap: 5,
+  },
+  actionTileSoft: {
+    backgroundColor: "rgba(255,255,255,0.16)",
+  },
+  actionTileDanger: {
+    backgroundColor: "rgba(185,28,28,0.55)",
+    borderColor: "rgba(255,255,255,0.22)",
+  },
+  actionIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.16)",
+    marginBottom: 1,
+  },
+  actionIconWrapSoft: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  actionIconWrapDanger: {
+    backgroundColor: "rgba(255,255,255,0.18)",
+  },
+  actionLabel: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "800",
+    textAlign: "center",
+    lineHeight: 15,
+  },
+  actionHint: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 10,
+    fontWeight: "500",
+    textAlign: "center",
+    lineHeight: 13,
+  },
+  pressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.98 }],
   },
   categoryRow: {
     gap: 8,
@@ -286,6 +413,3 @@ const styles = StyleSheet.create({
     lineHeight: 9,
   },
 });
-
-
-
