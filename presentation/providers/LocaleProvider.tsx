@@ -274,6 +274,143 @@ const DICT: Dictionary = {
     zh: "使用条款",
     en: "Terms of Use",
   },
+  /** Stable BE keys (`TERMS_OF_USE_TITLE` / `TERMS_OF_USE`) — same pattern as `noti.*`. */
+  TERMS_OF_USE_TITLE: {
+    ko: "이용약관",
+    my: "အသုံးပြုမှု စည်းမျဉ်း",
+    zh: "使用条款",
+    en: "Terms of Use",
+  },
+  TERMS_OF_USE: {
+    ko: `FLEX USED ITEM MARKETPLACE — 이용약관 (EULA)
+
+최종 업데이트: 2026년 7월
+버전 {version}
+
+계정을 생성하거나 로그인하거나 본 앱을 사용하는 경우, 본 이용약관에 동의한 것으로 간주됩니다.
+
+1. 불쾌한 콘텐츠 및 악용 사용자에 대한 무관용
+불쾌한 콘텐츠와 악용 사용자에 대해 무관용 정책을 적용합니다. 불법적이거나, 혐오·괴롭힘·성적 노골적·폭력적·위협적·차별적·사기성·스팸 또는 그 밖의 불쾌한 콘텐츠를 게시·공유·전송·업로드해서는 안 됩니다. 본 정책을 위반하는 계정은 사전 통지 없이 정지되거나 영구 퇴출될 수 있습니다.
+
+2. 사용자 생성 콘텐츠
+리스팅, 채팅 메시지, 리뷰, 프로필 정보 및 제출하는 기타 자료는 사용자 생성 콘텐츠입니다. 귀하의 콘텐츠와 다른 사용자와의 상호작용에 대한 책임은 전적으로 귀하에게 있습니다.
+
+3. 콘텐츠 필터링
+불쾌한 콘텐츠를 앱에 표시되기 전후에 감지하고 차단하기 위해 자동 필터링과 사람 검토를 사용합니다. 필터링된 콘텐츠는 거부되거나 삭제될 수 있습니다.
+
+4. 불쾌한 콘텐츠 신고
+본 약관을 위반하는 리스팅, 메시지, 리뷰 또는 프로필은 앱 내 신고 기능을 사용해 신고해야 합니다. 신고 내용은 운영팀이 검토합니다.
+
+5. 악용 사용자 차단
+다른 사용자를 차단할 수 있습니다. 차단 시 해당 사용자의 콘텐츠가 즉시 피드에서 제거되고 추가 연락이 차단됩니다. 차단은 운영팀에도 전달되어 조사가 이뤄질 수 있습니다.
+
+6. 24시간 이내 조치
+불쾌한 콘텐츠 신고에 대해 24시간 이내에 조치합니다. 신고가 확인되면 해당 콘텐츠를 삭제하고, 제공한 사용자를 퇴출(차단)할 수 있습니다.
+
+7. 계정 해지
+불쾌한 콘텐츠를 게시하거나 다른 사용자를 괴롭히거나 플랫폼을 악용하는 계정은 정지 또는 영구 차단될 수 있습니다.
+
+8. 문의
+안전 관련 문제는 앱 내 신고 기능을 이용하거나 앱스토어 등록 정보에 안내된 지원 채널로 연락해 주세요.
+
+동의 / 수락을 누르면, 불쾌한 콘텐츠 및 악용 사용자에 대한 무관용 정책을 포함한 본 약관을 읽고 동의한 것으로 확인됩니다.`,
+    my: `FLEX USED ITEM MARKETPLACE — အသုံးပြုမှု စည်းမျဉ်း (EULA)
+
+နောက်ဆုံး အပ်ဒိတ်: ဇူလိုင် ၂၀၂၆
+ဗားရှင်း {version}
+
+အကောင့်ဖန်တီးခြင်း၊ ဝင်ရောက်ခြင်း သို့မဟုတ် ဤအက်ပ်ကို အသုံးပြုခြင်းဖြင့် ဤအသုံးပြုမှု စည်းမျဉ်းများကို သဘောတူသည်ဟု မှတ်ယူပါသည်။
+
+1. မလိုလားအပ်သော အကြောင်းအရာနှင့် အလွဲသုံးစားသူများအတွက် လုံးဝ လက်မခံ
+မလိုလားအပ်သော အကြောင်းအရာနှင့် အလွဲသုံးစားသူများကို လုံးဝ လက်မခံပါ။ တရားမဝင်၊ မုန်းတီးမှု၊ နှောင့်ယှက်မှု၊ လိင်ပိုင်းဆိုင်ရာ ထင်ရှား၊ အကြမ်းဖက်၊ ခြိမ်းခြောက်၊ ခွဲခြားဆက်ဆံ၊ လိမ်လည်၊ စပမ်း သို့မဟုတ် အခြား မလိုလားအပ်သော အကြောင်းအရာများကို တင်ခြင်း၊ မျှဝေခြင်း၊ ပို့ခြင်း၊ အပ်လုဒ်လုပ်ခြင်း မပြုရပါ။ ဤမူဝါဒကို ချိုးဖောက်သော အကောင့်များကို ကြိုတင်အသိပေးခြင်းမရှိဘဲ ဆိုင်းငံ့ခြင်း သို့မဟုတ် အပြီးအပိုင် ထုတ်ပယ်နိုင်ပါသည်။
+
+2. အသုံးပြုသူ ဖန်တီးသော အကြောင်းအရာ
+စာရင်းများ၊ ချတ်စာများ၊ သုံးသပ်ချက်များ၊ ပရိုဖိုင်အချက်အလက်နှင့် သင်တင်သွင်းသော အခြားပစ္စည်းများသည် အသုံးပြုသူ ဖန်တီးသော အကြောင်းအရာဖြစ်သည်။ သင့်အကြောင်းအရာနှင့် အခြားအသုံးပြုသူများနှင့် အပြန်အလှန်ဆက်ဆံမှုအတွက် သင်သာလျှင် တာဝန်ရှိသည်။
+
+3. အကြောင်းအရာ စစ်ထုတ်ခြင်း
+မလိုလားအပ်သော အကြောင်းအရာကို အက်ပ်တွင် ပေါ်မလာမီ သို့မဟုတ် ပေါ်ပြီးနောက် ရှာဖွေပိတ်ရန် အလိုအလျောက် စစ်ထုတ်ခြင်းနှင့် လူကြည့်ရှု စစ်ဆေးခြင်းကို အသုံးပြုသည်။ စစ်ထုတ်ထားသော အကြောင်းအရာကို ငြင်းပယ်ခြင်း သို့မဟုတ် ဖယ်ရှားနိုင်သည်။
+
+4. မလိုလားအပ်သော အကြောင်းအရာ တိုင်ကြားခြင်း
+ဤစည်းမျဉ်းများကို ချိုးဖောက်သော စာရင်းများ၊ စာများ၊ သုံးသပ်ချက်များ သို့မဟုတ် ပရိုဖိုင်များကို အက်ပ်အတွင်း တိုင်ကြားမှု လုပ်ဆောင်ချက်ဖြင့် အလံတင်ရပါမည်။ တိုင်ကြားမှုများကို ကျွန်ုပ်တို့၏ အဖွဲ့က စစ်ဆေးသည်။
+
+5. အလွဲသုံးစားသူ ပိတ်ခြင်း
+အခြားအသုံးပြုသူများကို ပိတ်နိုင်သည်။ ပိတ်လိုက်သည်နှင့် ထိုအသုံးပြုသူ၏ အကြောင်းအရာသည် သင့်ဖိဒ်မှ ချက်ချင်း ပျောက်သွားပြီး ထပ်မံ ဆက်သွယ်၍ မရတော့ပါ။ ပိတ်ခြင်းသည် စုံစမ်းစစ်ဆေးရန် ကျွန်ုပ်တို့၏ စည်းကမ်းထိန်းသိမ်းရေးအဖွဲ့ကိုလည်း အသိပေးသည်။
+
+6. ၂၄ နာရီအတွင်း အရေးယူခြင်း
+မလိုလားအပ်သော အကြောင်းအရာ တိုင်ကြားမှုများကို ၂၄ နာရီအတွင်း အရေးယူသည်။ တိုင်ကြားမှု အတည်ပြုပါက ချိုးဖောက်သော အကြောင်းအရာကို ဖယ်ရှားပြီး ထိုအကြောင်းအရာ ပေးသူကို ထုတ်ပယ် (ပိတ်) နိုင်သည်။
+
+7. အကောင့် ရပ်ဆိုင်းခြင်း
+မလိုလားအပ်သော အကြောင်းအရာတင်ခြင်း၊ အခြားသူများကို နှောင့်ယှက်ခြင်း သို့မဟုတ် ပလက်ဖောင်းကို အလွဲသုံးစားလုပ်သော အကောင့်များကို ဆိုင်းငံ့ခြင်း သို့မဟုတ် အပြီးအပိုင် ပိတ်နိုင်သည်။
+
+8. ဆက်သွယ်ရန်
+ဘေးကင်းရေးဆိုင်ရာ ကိစ္စများအတွက် အက်ပ်အတွင်း တိုင်ကြားမှုကို အသုံးပြုပါ သို့မဟုတ် အက်ပ်စတိုး စာရင်းတွင် ဖော်ပြထားသော ပံ့ပိုးမှု လမ်းကြောင်းများမှ ဆက်သွယ်ပါ။
+
+သဘောတူသည် / လက်ခံသည် ကို နှိပ်ခြင်းဖြင့် မလိုလားအပ်သော အကြောင်းအရာနှင့် အလွဲသုံးစားသူများအတွက် လုံးဝ လက်မခံမူဝါဒ အပါအဝင် ဤစည်းမျဉ်းများကို ဖတ်ပြီး သဘောတူကြောင်း အတည်ပြုသည်။`,
+    zh: `FLEX USED ITEM MARKETPLACE — 使用条款（EULA）
+
+最后更新：2026年7月
+版本 {version}
+
+创建账户、登录或使用本应用，即表示您同意本使用条款。
+
+1. 对不当内容和滥用用户零容忍
+我们对不当内容和滥用用户采取零容忍政策。您不得发布、分享、发送或上传任何非法、仇恨、骚扰、色情、暴力、威胁、歧视、欺诈、垃圾信息或其他不当内容。违反本政策的账户可能被暂停或永久封禁，恕不另行通知。
+
+2. 用户生成内容
+商品信息、聊天消息、评价、个人资料及您提交的其他材料均为用户生成内容。您应对自己的内容以及与其他用户的互动承担全部责任。
+
+3. 内容过滤
+我们使用自动过滤和人工审核，在不当内容出现在应用中之前或之后进行检测和拦截。被过滤的内容可能被拒绝或删除。
+
+4. 举报不当内容
+您必须使用应用内的举报功能，标记违反本条款的商品、消息、评价或个人资料。举报将由我们的团队审核。
+
+5. 屏蔽滥用用户
+您可以屏蔽其他用户。屏蔽后，该用户的内容会立即从您的动态中移除，并阻止进一步联系。屏蔽也会通知我们的审核团队以便调查。
+
+6. 24小时内处理
+我们在24小时内对不当内容举报采取行动。举报一经确认，我们将删除违规内容，并可能封禁（驱逐）提供该内容的用户。
+
+7. 账户终止
+我们可能暂停或永久封禁发布不当内容、骚扰他人或以其他方式滥用平台的账户。
+
+8. 联系我们
+如有安全相关问题，请使用应用内举报功能，或通过应用商店页面所列支持渠道联系我们。
+
+点击“同意 / 接受”，即确认您已阅读并同意本条款，包括对不当内容和滥用用户的零容忍政策。`,
+    en: `FLEX USED ITEM MARKETPLACE — TERMS OF USE (EULA)
+
+Last updated: July 2026
+Version {version}
+
+By creating an account, logging in, or using this app, you agree to these Terms of Use.
+
+1. NO TOLERANCE FOR OBJECTIONABLE CONTENT OR ABUSIVE USERS
+We have zero tolerance for objectionable content or abusive users. You must not post, share, send, or upload any content that is illegal, hateful, harassing, sexually explicit, violent, threatening, discriminatory, fraudulent, spam, or otherwise objectionable. Accounts that violate this policy may be suspended or permanently ejected without notice.
+
+2. USER-GENERATED CONTENT
+Listings, chat messages, reviews, profile information, and other materials you submit are user-generated content. You are solely responsible for your content and for your interactions with other users.
+
+3. CONTENT FILTERING
+We use automated filtering and human review to detect and block objectionable material before or after it appears in the app. Filtered content may be rejected or removed.
+
+4. REPORTING OBJECTIONABLE CONTENT
+You must use the in-app Report feature to flag listings, messages, reviews, or profiles that violate these Terms. Reports are reviewed by our team.
+
+5. BLOCKING ABUSIVE USERS
+You may block other users. Blocking immediately removes that user's content from your feed and prevents further contact. Blocking also notifies our moderation team so we can investigate.
+
+6. MODERATION WITHIN 24 HOURS
+We act on objectionable content reports within 24 hours. When a report is confirmed, we remove the offending content and may eject (ban) the user who provided it.
+
+7. ACCOUNT TERMINATION
+We may suspend or permanently ban accounts that post objectionable content, harass others, or otherwise abuse the platform.
+
+8. CONTACT
+For safety concerns, use in-app reporting or contact support through the channels listed in the app store listing.
+
+By tapping Agree / Accept, you confirm that you have read and agree to these Terms, including the zero-tolerance policy for objectionable content and abusive users.`,
+  },
   termsSafetyBadge: {
     ko: "안전 정책",
     my: "ဘေးကင်းရေး မူဝါဒ",

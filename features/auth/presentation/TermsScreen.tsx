@@ -1,7 +1,7 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 import { useRouter, type Href } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   NativeScrollEvent,
@@ -21,6 +21,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { localizeLegalTerms } from "@/presentation/i18n/legal";
 import { uiCardShadow, uiCardSurface } from "@/presentation/lib/uiAnimations";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLegalTerms } from "@/presentation/providers/LegalTermsProvider";
@@ -33,7 +34,7 @@ export function TermsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const topInset = useLanguageSwitcherSafeTop();
-  const { locale, setLocale, t } = useLocale();
+  const { locale, setLocale, t, tf } = useLocale();
   const { isAuthenticated, logout } = useAuth();
   const {
     terms,
@@ -56,13 +57,19 @@ export function TermsScreen() {
 
   const isReaccept = isAuthenticated && needsAcceptance;
   const canAgree = !contentOverflows || hasReachedEnd;
+  const localizedTerms = useMemo(
+    () => (terms ? localizeLegalTerms(terms, tf) : null),
+    [terms, tf],
+  );
+  const displayVersion =
+    terms?.metadata?.version?.trim() || terms?.version?.trim() || "";
 
   useEffect(() => {
     setHasReachedEnd(false);
     setContentOverflows(false);
     setViewportHeight(0);
     setContentHeight(0);
-  }, [terms?.version]);
+  }, [terms?.version, terms?.contentKey, locale]);
 
   useEffect(() => {
     if (viewportHeight <= 0 || contentHeight <= 0) return;
@@ -183,7 +190,7 @@ export function TermsScreen() {
               numberOfLines={2}
               style={styles.title}
             >
-              {terms.title || t("termsTitle")}
+              {localizedTerms?.title || t("termsTitle")}
             </ThemedText>
           </View>
           <ThemedText style={[styles.requiredHint, { color: colors.icon }]}>
@@ -191,9 +198,11 @@ export function TermsScreen() {
               ? t("termsMustAcceptAgain")
               : t("termsMustAcceptBeforeAuth")}
           </ThemedText>
-          <ThemedText style={[styles.versionLine, { color: colors.tint }]}>
-            {t("termsVersionLabel")} {terms.version}
-          </ThemedText>
+          {displayVersion ? (
+            <ThemedText style={[styles.versionLine, { color: colors.tint }]}>
+              {t("termsVersionLabel")} {displayVersion}
+            </ThemedText>
+          ) : null}
         </View>
 
         <View
@@ -241,7 +250,9 @@ export function TermsScreen() {
                 setContentHeight(h);
               }}
             >
-              <ThemedText style={styles.contentText}>{terms.content}</ThemedText>
+              <ThemedText style={styles.contentText}>
+                {localizedTerms?.content || terms.content}
+              </ThemedText>
             </ScrollView>
             {!canAgree ? (
               <View

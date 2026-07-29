@@ -120,7 +120,8 @@ export function LegalTermsProvider({ children }: { children: ReactNode }) {
     void refreshStatus();
   }, [isAuthLoading, isAuthenticated, refreshStatus]);
 
-  const termsVersion = terms?.version?.trim() || null;
+  const termsVersion =
+    terms?.metadata?.version?.trim() || terms?.version?.trim() || null;
   const hasPreAuthAcceptedCurrent = Boolean(
     termsVersion &&
       preAuthAcceptedVersion &&

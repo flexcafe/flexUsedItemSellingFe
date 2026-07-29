@@ -21,11 +21,25 @@ function asNullableString(value: unknown): string | null {
   return null;
 }
 
+function asMetadataVersion(
+  dto: LegalTermsDto | null | undefined,
+): string {
+  const fromMeta =
+    dto?.metadata && typeof dto.metadata === "object"
+      ? asTrimmedString(dto.metadata.version)
+      : "";
+  return fromMeta || asTrimmedString(dto?.version);
+}
+
 export function toLegalTerms(dto: LegalTermsDto | null | undefined): LegalTerms {
+  const version = asMetadataVersion(dto);
   return {
-    version: asTrimmedString(dto?.version),
+    version,
+    titleKey: asNullableString(dto?.titleKey),
     title: asTrimmedString(dto?.title) || "Terms of Use",
+    contentKey: asNullableString(dto?.contentKey),
     content: asTrimmedString(dto?.content),
+    metadata: { version },
     publishedAt: asNullableString(dto?.publishedAt),
   };
 }
