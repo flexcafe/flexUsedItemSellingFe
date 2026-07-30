@@ -9,6 +9,8 @@ import type { IProfileService } from "@/core/domain/services/IProfileService";
 import type {
   AvatarUploadResult,
   ChangePasswordInput,
+  DeleteAccountInput,
+  DeleteAccountResult,
   FacebookFollowSubmission,
   FacebookFollowSubmissionInput,
   FacebookLinkInput,
@@ -40,6 +42,10 @@ export class ProfileService implements IProfileService {
 
   changePassword(input: ChangePasswordInput): Promise<boolean> {
     return this.repo.changePassword(input);
+  }
+
+  deleteAccount(input: DeleteAccountInput): Promise<DeleteAccountResult> {
+    return this.repo.deleteAccount(input);
   }
 
   uploadAvatar(file: UploadFile): Promise<AvatarUploadResult> {

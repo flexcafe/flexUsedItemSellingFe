@@ -1,4 +1,8 @@
-import type { ContentReportDto } from "@/core/application/dtos/ModerationDto";
+import type {
+  ContentReportDto,
+  UnblockUserDto,
+  UserBlockDto,
+} from "@/core/application/dtos/ModerationDto";
 import type {
   ContentReport,
   ContentReportReason,
@@ -9,6 +13,10 @@ import {
   CONTENT_REPORT_REASONS,
   CONTENT_REPORT_TARGET_TYPES,
 } from "@/core/domain/entities/ContentReport";
+import type {
+  UnblockResult,
+  UserBlock,
+} from "@/core/domain/entities/UserBlock";
 
 function asTrimmedString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -58,5 +66,26 @@ export function toContentReport(
     adminNote: asNullableString(dto?.adminNote),
     createdAt: asTrimmedString(dto?.createdAt),
     updatedAt: asTrimmedString(dto?.updatedAt),
+  };
+}
+
+export function toUserBlock(dto: UserBlockDto | null | undefined): UserBlock {
+  return {
+    id: asTrimmedString(dto?.id),
+    blockedUserId: asTrimmedString(dto?.blockedUserId),
+    blockedNickname: asTrimmedString(dto?.blockedNickname),
+    blockedReferralCode: asTrimmedString(dto?.blockedReferralCode),
+    reason: asNullableString(dto?.reason),
+    createdAt: asTrimmedString(dto?.createdAt),
+  };
+}
+
+export function toUnblockResult(
+  dto: UnblockUserDto | null | undefined,
+  fallbackUserId = "",
+): UnblockResult {
+  return {
+    blockedUserId: asTrimmedString(dto?.blockedUserId) || fallbackUserId,
+    unblocked: Boolean(dto?.unblocked ?? true),
   };
 }

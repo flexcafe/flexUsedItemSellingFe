@@ -10,6 +10,10 @@ import {
 } from "@/presentation/hooks/useClientProducts";
 import { ReferralCodeBlock } from "@/presentation/components/ReferralCodeBlock";
 import {
+  BlockUserModal,
+  type BlockUserTarget,
+} from "@/presentation/components/BlockUserModal";
+import {
   ContentReportModal,
   type ContentReportTarget,
 } from "@/presentation/components/ContentReportModal";
@@ -99,7 +103,7 @@ const ReviewBar = memo(function ReviewBar({
 export function PublicSellerProfileScreen({ userId }: Props) {
   const router = useRouter();
   const { t, tf, locale } = useLocale();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const colorScheme = useColorScheme();
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
@@ -109,10 +113,12 @@ export function PublicSellerProfileScreen({ userId }: Props) {
   const [reportTarget, setReportTarget] = useState<ContentReportTarget | null>(
     null,
   );
+  const [blockTarget, setBlockTarget] = useState<BlockUserTarget | null>(null);
 
   const profileQuery = usePublicUserProfile(userId);
   const reviewsQuery = useSellerReviews(userId, { page, limit: 20 });
   const profile = profileQuery.data;
+  const isOwnProfile = Boolean(user?.id && user.id === userId);
 
   const surface = cardSurface(scheme);
   const borderColor = colors.icon + "22";
@@ -158,6 +164,25 @@ export function PublicSellerProfileScreen({ userId }: Props) {
     [isAuthenticated, t],
   );
 
+  const openBlockUser = useCallback(() => {
+    if (!isAuthenticated) {
+      Alert.alert(
+        t("userBlockLoginRequiredTitle"),
+        t("userBlockLoginRequiredBody"),
+      );
+      return;
+    }
+    if (isOwnProfile) {
+      Alert.alert(t("errorTitle"), t("userBlockCannotSelf"));
+      return;
+    }
+    void Haptics.selectionAsync();
+    setBlockTarget({
+      userId,
+      displayName: profile?.nickname ?? null,
+    });
+  }, [isAuthenticated, isOwnProfile, profile?.nickname, t, userId]);
+
   return (
     <ThemedView style={styles.safe}>
       <ThemedView style={styles.container}>
@@ -190,19 +215,33 @@ export function PublicSellerProfileScreen({ userId }: Props) {
           <ThemedText type="screenTitle" style={styles.topTitle}>
             {t("publicProfileTitle")}
           </ThemedText>
-          <Pressable
-            onPress={() =>
-              openContentReport({
-                targetType: "USER_PROFILE",
-                targetId: userId,
-              })
-            }
-            style={styles.backButton}
-            accessibilityRole="button"
-            accessibilityLabel={t("contentReportAction")}
-          >
-            <MaterialIcons name="flag" size={20} color="#FFF" />
-          </Pressable>
+          <View style={styles.topActions}>
+            {!isOwnProfile ? (
+              <Pressable
+                onPress={openBlockUser}
+                style={styles.backButton}
+                accessibilityRole="button"
+                accessibilityLabel={t("userBlockAction")}
+              >
+                <MaterialIcons name="block" size={20} color="#FFF" />
+              </Pressable>
+            ) : (
+              <View style={styles.backButton} />
+            )}
+            <Pressable
+              onPress={() =>
+                openContentReport({
+                  targetType: "USER_PROFILE",
+                  targetId: userId,
+                })
+              }
+              style={styles.backButton}
+              accessibilityRole="button"
+              accessibilityLabel={t("contentReportAction")}
+            >
+              <MaterialIcons name="flag" size={20} color="#FFF" />
+            </Pressable>
+          </View>
         </View>
 
         {profileQuery.isLoading ? (
@@ -534,6 +573,14 @@ export function PublicSellerProfileScreen({ userId }: Props) {
         target={reportTarget}
         onClose={() => setReportTarget(null)}
       />
+      <BlockUserModal
+        visible={blockTarget != null}
+        target={blockTarget}
+        onClose={() => setBlockTarget(null)}
+        onBlocked={() => {
+          if (router.canGoBack()) router.back();
+        }}
+      />
     </ThemedView>
   );
 }
@@ -554,6 +601,10 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
+  },
+  topActions: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   topTitle: { color: "#FFF" },
   centeredFull: {

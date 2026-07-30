@@ -11,6 +11,7 @@ import type { ClientCatalogRadiusSelection } from "@/core/domain/types/catalog";
 import { useBuyerCatalogLocation } from "@/presentation/hooks/useBuyerCatalogLocation";
 import { useCategories } from "@/presentation/hooks/useCategories";
 import { useClientProductsCatalog } from "@/presentation/hooks/useClientProducts";
+import { useBlockedUserIds } from "@/presentation/hooks/useModerationReports";
 import {
   uiCardShadow,
   uiLayoutTransition,
@@ -313,10 +314,21 @@ export function HomeScreen() {
     ...geo,
   });
 
-  const products = useMemo(
-    () => productsQuery.data?.pages.flatMap((p) => p.items) ?? [],
-    [productsQuery.data?.pages],
+  const blockedIdsQuery = useBlockedUserIds();
+  const blockedUserIds = useMemo(
+    () => new Set(blockedIdsQuery.data ?? []),
+    [blockedIdsQuery.data],
   );
+
+  const products = useMemo(() => {
+    const items = productsQuery.data?.pages.flatMap((p) => p.items) ?? [];
+    if (blockedUserIds.size === 0) return items;
+    return items.filter((item) => {
+      const sellerId =
+        item.sellerId?.trim() || item.seller?.userId?.trim() || "";
+      return !sellerId || !blockedUserIds.has(sellerId);
+    });
+  }, [blockedUserIds, productsQuery.data?.pages]);
 
   const isRefreshing =
     productsQuery.isRefetching ||

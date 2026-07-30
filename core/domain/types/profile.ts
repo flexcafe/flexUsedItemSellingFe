@@ -4,6 +4,20 @@ export interface ChangePasswordInput {
   confirmNewPassword: string;
 }
 
+/** Must be sent exactly as `"DELETE"` to permanently delete the account. */
+export const DELETE_ACCOUNT_CONFIRM_TEXT = "DELETE" as const;
+
+export interface DeleteAccountInput {
+  currentPassword: string;
+  /** Must equal {@link DELETE_ACCOUNT_CONFIRM_TEXT}. */
+  confirm: typeof DELETE_ACCOUNT_CONFIRM_TEXT;
+}
+
+export interface DeleteAccountResult {
+  deleted: boolean;
+  deletedAt: string | null;
+}
+
 export interface UploadFile {
   uri: string;
   name: string;

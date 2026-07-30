@@ -1,5 +1,6 @@
 import type {
   ChangePasswordInput,
+  DeleteAccountInput,
   FacebookFollowSubmissionInput,
   FacebookLinkInput,
   UploadFile,
@@ -18,6 +19,14 @@ export function useChangePassword() {
   return useMutation({
     mutationFn: (input: ChangePasswordInput) =>
       profileService.changePassword(input),
+  });
+}
+
+export function useDeleteAccount() {
+  const { profileService } = useServices();
+  return useMutation({
+    mutationFn: (input: DeleteAccountInput) =>
+      profileService.deleteAccount(input),
   });
 }
 

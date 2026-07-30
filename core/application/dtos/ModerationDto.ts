@@ -26,3 +26,22 @@ export interface SubmitContentReportRequestDto {
   reason: ContentReportReason;
   details?: string;
 }
+
+export interface UserBlockDto {
+  id?: string | null;
+  blockedUserId?: string | null;
+  blockedNickname?: string | null;
+  blockedReferralCode?: string | null;
+  reason?: string | null;
+  createdAt?: string | null;
+}
+
+export interface BlockUserRequestDto {
+  blockedUserId: string;
+  reason?: string;
+}
+
+export interface UnblockUserDto {
+  blockedUserId?: string | null;
+  unblocked?: boolean | null;
+}

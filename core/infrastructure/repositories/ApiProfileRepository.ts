@@ -23,6 +23,8 @@ import type { IProfileRepository } from "@/core/domain/repositories/IProfileRepo
 import type {
   AvatarUploadResult,
   ChangePasswordInput,
+  DeleteAccountInput,
+  DeleteAccountResult,
   FacebookFollowSubmission,
   FacebookFollowSubmissionInput,
   FacebookLinkInput,
@@ -126,6 +128,30 @@ export class ApiProfileRepository implements IProfileRepository {
       input,
     );
     return Boolean(res);
+  }
+
+  async deleteAccount(input: DeleteAccountInput): Promise<DeleteAccountResult> {
+    const res = await this.http.delete<
+      DeleteAccountResult | { data?: DeleteAccountResult }
+    >(API_ENDPOINTS.PROFILE.SELF, {
+      data: {
+        currentPassword: input.currentPassword,
+        confirm: input.confirm,
+      },
+    });
+    const raw =
+      res != null &&
+      typeof res === "object" &&
+      "deleted" in res
+        ? (res as DeleteAccountResult)
+        : ((res as { data?: DeleteAccountResult } | null)?.data ?? null);
+    return {
+      deleted: Boolean(raw?.deleted ?? true),
+      deletedAt:
+        typeof raw?.deletedAt === "string" && raw.deletedAt.trim()
+          ? raw.deletedAt.trim()
+          : null,
+    };
   }
 
   async uploadAvatar(file: UploadFile): Promise<AvatarUploadResult> {
