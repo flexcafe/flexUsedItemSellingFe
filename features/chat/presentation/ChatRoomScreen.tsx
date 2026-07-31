@@ -63,6 +63,10 @@ import {
 } from "@/presentation/hooks/useClientChat";
 import { useProduct, useSetActiveDeal } from "@/presentation/hooks/useProducts";
 import {
+  BlockUserModal,
+  type BlockUserTarget,
+} from "@/presentation/components/BlockUserModal";
+import {
   ContentReportModal,
   type ContentReportTarget,
 } from "@/presentation/components/ContentReportModal";
@@ -84,6 +88,7 @@ import { useLocale } from "@/presentation/providers/LocaleProvider";
 import {
   chatActionErrorMessage,
   formatChatTimestamp,
+  isChatBlockedContactError,
   isLocationSharingActive,
   locationPointsFromMessages,
   locationSharingByUser,
@@ -496,6 +501,7 @@ export function ChatRoomScreen({
   const [reportTarget, setReportTarget] = useState<ContentReportTarget | null>(
     null,
   );
+  const [blockTarget, setBlockTarget] = useState<BlockUserTarget | null>(null);
   const [keyboardOverlap, setKeyboardOverlap] = useState(0);
   const safePaymentStatusQuery = useSafePaymentStatus(chatRoomId);
   const listRef = useRef<FlatListType<ChatMessage>>(null);
@@ -1072,8 +1078,26 @@ export function ChatRoomScreen({
     const content = draft.trim();
     if (!chatRoomId || !content || sendMessage.isPending) return;
     setDraft("");
-    sendMessage.mutate({ content, type: "TEXT" });
-  }, [chatRoomId, draft, sendMessage]);
+    sendMessage.mutate(
+      { content, type: "TEXT" },
+      {
+        onError: (error) => {
+          setDraft(content);
+          if (isChatBlockedContactError(error)) {
+            Alert.alert(
+              t("chatBlockedContactTitle"),
+              t("chatBlockedContactBody"),
+            );
+            return;
+          }
+          Alert.alert(
+            t("errorTitle"),
+            chatActionErrorMessage(error, t("chatBlockedContactBody")),
+          );
+        },
+      },
+    );
+  }, [chatRoomId, draft, sendMessage, t]);
 
   const openDirectTradeModal = useCallback(() => {
     if (activeDealBlocked) {
@@ -2152,21 +2176,38 @@ export function ChatRoomScreen({
           </ThemedText>
         </View>
         {counterpartUserId ? (
-          <Pressable
-            onPress={() => {
-              void Haptics.selectionAsync();
-              setReportTarget({
-                targetType: "USER_PROFILE",
-                targetId: counterpartUserId,
-              });
-            }}
-            hitSlop={8}
-            style={styles.headerReportBtn}
-            accessibilityRole="button"
-            accessibilityLabel={t("contentReportAction")}
-          >
-            <MaterialIcons name="flag" size={20} color={colors.icon} />
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => {
+                void Haptics.selectionAsync();
+                setBlockTarget({
+                  userId: counterpartUserId,
+                  displayName: resolvedPeerName,
+                });
+              }}
+              hitSlop={8}
+              style={styles.headerReportBtn}
+              accessibilityRole="button"
+              accessibilityLabel={t("userBlockAction")}
+            >
+              <MaterialIcons name="block" size={20} color={colors.icon} />
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                void Haptics.selectionAsync();
+                setReportTarget({
+                  targetType: "USER_PROFILE",
+                  targetId: counterpartUserId,
+                });
+              }}
+              hitSlop={8}
+              style={styles.headerReportBtn}
+              accessibilityRole="button"
+              accessibilityLabel={t("contentReportAction")}
+            >
+              <MaterialIcons name="flag" size={20} color={colors.icon} />
+            </Pressable>
+          </View>
         ) : null}
       </Animated.View>
 
@@ -3802,6 +3843,14 @@ export function ChatRoomScreen({
         target={reportTarget}
         onClose={() => setReportTarget(null)}
       />
+      <BlockUserModal
+        visible={blockTarget != null}
+        target={blockTarget}
+        onClose={() => setBlockTarget(null)}
+        onBlocked={() => {
+          if (router.canGoBack()) router.back();
+        }}
+      />
     </ThemedView>
   );
 }
@@ -4045,11 +4094,15 @@ const styles = StyleSheet.create({
   headerText: { flex: 1, minWidth: 0, gap: 2 },
   headerTitle: { fontSize: 16 },
   headerReportBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   headerSubtitle: { fontSize: 12, opacity: 0.65 },
   pendingLocationBanner: {

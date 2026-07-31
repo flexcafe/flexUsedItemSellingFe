@@ -7,6 +7,8 @@ import type {
 import type {
   AvatarUploadResult,
   ChangePasswordInput,
+  DeleteAccountInput,
+  DeleteAccountResult,
   FacebookFollowSubmission,
   FacebookFollowSubmissionInput,
   FacebookLinkInput,
@@ -20,6 +22,7 @@ export interface IProfileService {
   getWithdrawalRequests(): Promise<WithdrawalRequest[]>;
   requestWithdrawal(amount: number): Promise<WithdrawalRequest>;
   changePassword(input: ChangePasswordInput): Promise<boolean>;
+  deleteAccount(input: DeleteAccountInput): Promise<DeleteAccountResult>;
   uploadAvatar(file: UploadFile): Promise<AvatarUploadResult>;
   linkFacebookAccount(input: FacebookLinkInput): Promise<boolean>;
   getLatestFacebookFollowSubmission(): Promise<FacebookFollowSubmission | null>;

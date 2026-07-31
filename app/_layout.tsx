@@ -54,8 +54,9 @@ function AuthGate() {
     if (isLoading || isLoadingTerms) return;
     if (isAuthenticated && (!statusReady || isCheckingStatus)) return;
 
-    const inAuthGroup = segments[0] === "(auth)";
-    const authScreen = inAuthGroup ? String(segments[1] ?? "") : "";
+    const routeSegments = segments as string[];
+    const inAuthGroup = routeSegments[0] === "(auth)";
+    const authScreen = inAuthGroup ? String(routeSegments[1] ?? "") : "";
     const onTerms = authScreen === "terms";
 
     if (!isAuthenticated) {

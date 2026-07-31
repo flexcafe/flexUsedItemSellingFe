@@ -31,6 +31,7 @@ export const API_ENDPOINTS = {
       `/v1/client/notifications/${notificationId}/read`,
   },
   PROFILE: {
+    SELF: "/v1/client/profile",
     POINTS: "/v1/client/profile/points",
     STATS: "/v1/client/profile/stats",
     RANK_CONFIG: "/v1/client/profile/rank-config",
@@ -104,6 +105,10 @@ export const API_ENDPOINTS = {
   MODERATION: {
     REPORTS: "/v1/client/moderation/reports",
     MY_REPORTS: "/v1/client/moderation/reports/mine",
+    BLOCKS: "/v1/client/moderation/blocks",
+    BLOCK_BY_USER: (userId: string) =>
+      `/v1/client/moderation/blocks/${userId}`,
+    BLOCK_IDS: "/v1/client/moderation/blocks/ids",
   },
   LEGAL: {
     TERMS: "/v1/client/legal/terms",

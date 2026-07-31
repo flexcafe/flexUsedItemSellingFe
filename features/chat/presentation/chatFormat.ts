@@ -238,6 +238,18 @@ export function chatActionErrorMessage(
   return fallback;
 }
 
+/** True when BE rejected chat/open/send because either side blocked the other. */
+export function isChatBlockedContactError(error: unknown): boolean {
+  const message = chatActionErrorMessage(error, "").toLowerCase();
+  if (!message) return false;
+  return (
+    message.includes("block") ||
+    message.includes("차단") ||
+    message.includes("屏蔽") ||
+    message.includes("ပိတ်")
+  );
+}
+
 export function roomListingTitle(
   room: ChatRoom,
   fallbackListingLabel: string,

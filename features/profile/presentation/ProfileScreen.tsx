@@ -50,6 +50,8 @@ import {
 import { normalizeImagePickerAssetForUpload } from "@/presentation/lib/imageUploadAsset";
 import { UI_SECTION_STAGGER_MS } from "@/presentation/lib/uiAnimations";
 import { ReferralCodeBlock } from "@/presentation/components/ReferralCodeBlock";
+import { DeleteAccountModal } from "@/presentation/components/DeleteAccountModal";
+import { MyBlockedUsersSection } from "@/features/moderation/presentation/MyBlockedUsersSection";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 import { useReducedMotion } from "react-native-reanimated";
@@ -383,6 +385,8 @@ export function ProfileScreen() {
   );
   const [showFacebookVerification, setShowFacebookVerification] =
     useState(true);
+  const [blockedUsersVisible, setBlockedUsersVisible] = useState(false);
+  const [deleteAccountVisible, setDeleteAccountVisible] = useState(false);
 
   const sampleName = user?.name?.trim()
     ? user.name.trim()
@@ -3503,12 +3507,34 @@ export function ProfileScreen() {
             reduceMotion={reduceMotion}
           >
             <ProfilePressableScale
+              onPress={() => setBlockedUsersVisible(true)}
+              style={[
+                styles.signOutButton,
+                {
+                  borderColor: colors.icon + "44",
+                  backgroundColor: colors.background,
+                  marginBottom: 10,
+                },
+              ]}
+            >
+              <View style={styles.blockedUsersRow}>
+                <MaterialIcons name="block" size={18} color={colors.text} />
+                <ThemedText
+                  style={[styles.signOutText, { color: colors.text }]}
+                  numberOfLines={2}
+                >
+                  {t("userBlocksOpenButton")}
+                </ThemedText>
+              </View>
+            </ProfilePressableScale>
+            <ProfilePressableScale
               onPress={logout}
               style={[
                 styles.signOutButton,
                 {
                   borderColor: colors.tint,
                   backgroundColor: colors.background,
+                  marginBottom: 10,
                 },
               ]}
             >
@@ -3516,8 +3542,36 @@ export function ProfileScreen() {
                 {t("signOutButton")}
               </ThemedText>
             </ProfilePressableScale>
+            <ProfilePressableScale
+              onPress={() => setDeleteAccountVisible(true)}
+              style={[
+                styles.signOutButton,
+                {
+                  borderColor: DANGER + "88",
+                  backgroundColor: colors.background,
+                },
+              ]}
+            >
+              <View style={styles.blockedUsersRow}>
+                <MaterialIcons name="person-remove" size={18} color={DANGER} />
+                <ThemedText
+                  style={[styles.signOutText, { color: DANGER }]}
+                  numberOfLines={2}
+                >
+                  {t("deleteAccountOpenButton")}
+                </ThemedText>
+              </View>
+            </ProfilePressableScale>
           </ProfileAnimatedSection>
       </KeyboardAwareFormScroll>
+      <MyBlockedUsersSection
+        visible={blockedUsersVisible}
+        onClose={() => setBlockedUsersVisible(false)}
+      />
+      <DeleteAccountModal
+        visible={deleteAccountVisible}
+        onClose={() => setDeleteAccountVisible(false)}
+      />
     </ThemedView>
   );
 }
@@ -4237,8 +4291,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
     paddingVertical: 14,
+    paddingHorizontal: 16,
     alignItems: "center",
     marginTop: 4,
+    alignSelf: "stretch",
   },
-  signOutText: { fontSize: 14, fontWeight: "700" },
+  blockedUsersRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    maxWidth: "100%",
+  },
+  signOutText: {
+    fontSize: 14,
+    fontWeight: "700",
+    flexShrink: 1,
+    textAlign: "center",
+  },
 });

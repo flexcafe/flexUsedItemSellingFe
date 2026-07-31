@@ -23,7 +23,11 @@ import type {
 } from "@/core/domain/entities/ContentReport";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useMyContentReports } from "@/presentation/hooks/useModerationReports";
-import { uiCardShadow, uiCardSurface } from "@/presentation/lib/uiAnimations";
+import {
+  uiCardShadow,
+  uiCardSurface,
+  uiSectionEnter,
+} from "@/presentation/lib/uiAnimations";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 
 type Props = {
@@ -244,28 +248,28 @@ export function MyContentReportsSection({ visible, onClose }: Props) {
 
   const reportsQuery = useMyContentReports();
   const items = useMemo(() => reportsQuery.data ?? [], [reportsQuery.data]);
+  const headerEntering = uiSectionEnter(0, reduceMotion);
 
   const onRefresh = useCallback(() => {
     void reportsQuery.refetch();
   }, [reportsQuery]);
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      onRequestClose={onClose}
-      presentationStyle="pageSheet"
-    >
-      <ThemedView
-        style={[styles.screen, { paddingTop: Math.max(insets.top, 12) }]}
-      >
-        <View
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <ThemedView style={styles.screen}>
+        <Animated.View
+          entering={headerEntering}
           style={[
             styles.hero,
             {
+              paddingTop: Math.max(insets.top, 12) + 8,
               backgroundColor: colors.tint,
-              paddingBottom: 18,
             },
+            uiCardShadow(scheme, {
+              iosOffsetLight: 8,
+              iosOpacityLight: 0.18,
+              androidElevationLight: 6,
+            }),
           ]}
         >
           <View style={styles.heroTop}>
@@ -290,7 +294,7 @@ export function MyContentReportsSection({ visible, onClose }: Props) {
           <ThemedText style={styles.heroSubtitle}>
             {t("contentReportsSubtitle")}
           </ThemedText>
-        </View>
+        </Animated.View>
 
         {reportsQuery.isPending && items.length === 0 ? (
           <View style={styles.centered}>
@@ -351,6 +355,7 @@ const styles = StyleSheet.create({
   },
   hero: {
     paddingHorizontal: 18,
+    paddingBottom: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
@@ -385,8 +390,9 @@ const styles = StyleSheet.create({
   heroSubtitle: {
     color: "rgba(255,255,255,0.88)",
     fontSize: 13,
-    lineHeight: 18,
-    marginTop: 4,
+    lineHeight: 19,
+    marginTop: 6,
+    maxWidth: "95%",
   },
   centered: {
     flex: 1,

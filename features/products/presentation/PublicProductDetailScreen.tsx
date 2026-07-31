@@ -35,6 +35,10 @@ import {
   useLocale,
   userRankLabelKey,
 } from "@/presentation/providers/LocaleProvider";
+import {
+  chatActionErrorMessage,
+  isChatBlockedContactError,
+} from "@/features/chat/presentation/chatFormat";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
@@ -1351,10 +1355,20 @@ export function PublicProductDetailScreen({ productId }: Props) {
                     },
                   });
                 },
-                onError: () => {
+                onError: (error) => {
+                  if (isChatBlockedContactError(error)) {
+                    Alert.alert(
+                      t("chatBlockedContactTitle"),
+                      t("chatBlockedContactBody"),
+                    );
+                    return;
+                  }
                   Alert.alert(
                     t("chatOpenRoomFailed"),
-                    t("publicDetailChatOpenFailedHint"),
+                    chatActionErrorMessage(
+                      error,
+                      t("publicDetailChatOpenFailedHint"),
+                    ),
                   );
                 },
               },
