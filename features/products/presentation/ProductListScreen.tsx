@@ -92,6 +92,10 @@ type PreferredLocationForm = {
   longitude: string;
 };
 const MAX_PREFERRED_LOCATIONS = 3;
+const DEFAULT_MAP_PICKER_COORDS: LocationCoords = {
+  latitude: 16.8,
+  longitude: 96.15,
+};
 const COMPOSER_STEP_COUNT = 4;
 const COMPOSER_STEPS = [
   {
@@ -347,9 +351,7 @@ export function ProductListScreen() {
   const [mapPickerCoords, setMapPickerCoords] = useState<LocationCoords | null>(
     null,
   );
-  const [isLocatingMapPicker, setIsLocatingMapPicker] = useState(false);
   const mapPickerRef = useRef<MapPickerTarget | null>(null);
-  const mapPickerCoordsRef = useRef<LocationCoords | null>(null);
   const directTradeGeocodeTimerRef = useRef<ReturnType<
     typeof setTimeout
   > | null>(null);
@@ -388,10 +390,6 @@ export function ProductListScreen() {
   useEffect(() => {
     mapPickerRef.current = mapPicker;
   }, [mapPicker]);
-
-  useEffect(() => {
-    mapPickerCoordsRef.current = mapPickerCoords;
-  }, [mapPickerCoords]);
 
   useEffect(() => {
     const preferredTimers = preferredGeocodeTimersRef.current;
@@ -449,17 +447,6 @@ export function ProductListScreen() {
     [runReverseGeocodeDirectTrade],
   );
 
-  const flushReverseGeocodeDirectTrade = useCallback(
-    (coords: LocationCoords) => {
-      if (directTradeGeocodeTimerRef.current) {
-        clearTimeout(directTradeGeocodeTimerRef.current);
-        directTradeGeocodeTimerRef.current = null;
-      }
-      void runReverseGeocodeDirectTrade(coords);
-    },
-    [runReverseGeocodeDirectTrade],
-  );
-
   const clearPreferredGeocodeTimer = useCallback((idx: number) => {
     const m = preferredGeocodeTimersRef.current;
     const t = m.get(idx);
@@ -500,14 +487,6 @@ export function ProductListScreen() {
         void runReverseGeocodePreferredRow(idx, coords);
       }, 450);
       preferredGeocodeTimersRef.current.set(idx, timer);
-    },
-    [clearPreferredGeocodeTimer, runReverseGeocodePreferredRow],
-  );
-
-  const flushReverseGeocodePreferredRow = useCallback(
-    (idx: number, coords: LocationCoords) => {
-      clearPreferredGeocodeTimer(idx);
-      void runReverseGeocodePreferredRow(idx, coords);
     },
     [clearPreferredGeocodeTimer, runReverseGeocodePreferredRow],
   );
@@ -557,18 +536,10 @@ export function ProductListScreen() {
   }, [applyTradeCoords, t]);
 
   const closeMapPicker = useCallback(() => {
-    const target = mapPickerRef.current;
-    const coordsSnap = mapPickerCoordsRef.current;
     mapPickerRef.current = null;
     setMapPicker(null);
     setMapPickerCoords(null);
-    setIsLocatingMapPicker(false);
-    if (target?.kind === "directTrade" && coordsSnap) {
-      flushReverseGeocodeDirectTrade(coordsSnap);
-    } else if (target?.kind === "preferred" && coordsSnap) {
-      flushReverseGeocodePreferredRow(target.rowIndex, coordsSnap);
-    }
-  }, [flushReverseGeocodeDirectTrade, flushReverseGeocodePreferredRow]);
+  }, []);
 
   useEffect(() => {
     if (!composerVisible) {
@@ -587,7 +558,7 @@ export function ProductListScreen() {
           ? { latitude: plat, longitude: plng }
           : form.mapCoords
             ? { ...form.mapCoords }
-            : null;
+            : { ...DEFAULT_MAP_PICKER_COORDS };
       mapPickerRef.current = { kind: "preferred", rowIndex: idx };
       setMapPicker({ kind: "preferred", rowIndex: idx });
       setMapPickerCoords(nextCoords);
@@ -598,7 +569,9 @@ export function ProductListScreen() {
   const openDirectTradeMap = useCallback(() => {
     mapPickerRef.current = { kind: "directTrade" };
     setMapPicker({ kind: "directTrade" });
-    setMapPickerCoords(form.mapCoords ? { ...form.mapCoords } : null);
+    setMapPickerCoords(
+      form.mapCoords ? { ...form.mapCoords } : { ...DEFAULT_MAP_PICKER_COORDS },
+    );
   }, [form.mapCoords]);
 
   const applyCoordsToPreferredRow = useCallback(
@@ -640,42 +613,6 @@ export function ProductListScreen() {
     },
     [applyCoordsToPreferredRow, applyTradeCoords],
   );
-
-  const handleUseCurrentMapPicker = useCallback(async () => {
-    const target = mapPickerRef.current;
-    if (!target) return;
-    setIsLocatingMapPicker(true);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          t("productsAlertCoordsTitle"),
-          t("productsAlertCoordsBody"),
-        );
-        return;
-      }
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      const coords = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      };
-      if (target.kind === "preferred") {
-        applyCoordsToPreferredRow(target.rowIndex, coords);
-      } else {
-        applyTradeCoords(coords);
-        setMapPickerCoords(coords);
-      }
-    } catch {
-      Alert.alert(
-        t("productsErrorRequestTitle"),
-        t("productsErrorRequestBody"),
-      );
-    } finally {
-      setIsLocatingMapPicker(false);
-    }
-  }, [applyCoordsToPreferredRow, applyTradeCoords, t]);
 
   const clearPreferredLocationPin = useCallback(
     (idx: number) => {
@@ -2280,23 +2217,6 @@ export function ProductListScreen() {
                   </View>
                 )}
               </View>
-              <Pressable
-                onPress={() => void handleUseCurrentMapPicker()}
-                disabled={isLocatingMapPicker}
-                style={[
-                  styles.preferredMapModalLocateButton,
-                  { borderColor: colors.tint },
-                  isLocatingMapPicker && styles.archiveButtonDisabled,
-                ]}
-              >
-                <ThemedText style={{ color: colors.tint, fontWeight: "700" }}>
-                  {isLocatingMapPicker
-                    ? t("productsMapLocating")
-                    : mapPickerCoords
-                      ? t("productsMapUpdateFromCurrent")
-                      : t("productsMapUseCurrent")}
-                </ThemedText>
-              </Pressable>
             </AppScrollView>
           </View>
         </View>
@@ -2775,12 +2695,6 @@ const styles = StyleSheet.create({
   },
   preferredMapModalPlaceholderDirectTrade: {
     height: 360,
-  },
-  preferredMapModalLocateButton: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: "center",
   },
   saveButton: {
     marginTop: 16,
