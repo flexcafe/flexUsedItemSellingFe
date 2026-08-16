@@ -5,11 +5,6 @@ import { paddingTopInsideSafeAreaForLanguageSwitcher } from "@/constants/languag
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
-  usePublicUserProfile,
-  useSellerReviews,
-} from "@/presentation/hooks/useClientProducts";
-import { ReferralCodeBlock } from "@/presentation/components/ReferralCodeBlock";
-import {
   BlockUserModal,
   type BlockUserTarget,
 } from "@/presentation/components/BlockUserModal";
@@ -17,7 +12,16 @@ import {
   ContentReportModal,
   type ContentReportTarget,
 } from "@/presentation/components/ContentReportModal";
-import { uiCardShadow, uiSectionEnter } from "@/presentation/lib/uiAnimations";
+import { ReferralCodeBlock } from "@/presentation/components/ReferralCodeBlock";
+import {
+  usePublicUserProfile,
+  useSellerReviews,
+} from "@/presentation/hooks/useClientProducts";
+import {
+  uiCardShadow,
+  uiCardSurface,
+  uiSectionEnter,
+} from "@/presentation/lib/uiAnimations";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import {
   useLocale,
@@ -27,8 +31,14 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, View } from "react-native";
+import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  Alert,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  View,
+} from "react-native";
 import Animated, {
   Extrapolation,
   FadeIn,
@@ -47,10 +57,18 @@ type Props = { userId: string };
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const SECTION_STAGGER_MS = 48;
-
-function cardSurface(scheme: "light" | "dark") {
-  return scheme === "dark" ? "#23272E" : "#FFFFFF";
-}
+const SUCCESS = "#16a34a";
+const STAR = "#FB6D00";
+const CARD_SHADOW = {
+  iosOffsetLight: 8,
+  iosOffsetDark: 10,
+  iosOpacityLight: 0.12,
+  iosOpacityDark: 0.38,
+  iosRadiusLight: 16,
+  iosRadiusDark: 18,
+  androidElevationLight: 5,
+  androidElevationDark: 8,
+} as const;
 
 function staggerEnter(delay: number, reduceMotion: boolean | null) {
   return uiSectionEnter(delay, reduceMotion, {
@@ -60,6 +78,78 @@ function staggerEnter(delay: number, reduceMotion: boolean | null) {
     stiffness: 220,
   });
 }
+
+function StarRow({
+  value,
+  size = 14,
+  color = STAR,
+}: {
+  value: number;
+  size?: number;
+  color?: string;
+}) {
+  const filled = Math.max(0, Math.min(5, Math.round(value)));
+  return (
+    <View style={styles.starRow}>
+      {([1, 2, 3, 4, 5] as const).map((star) => (
+        <MaterialIcons
+          key={star}
+          name={star <= filled ? "star" : "star-border"}
+          size={size}
+          color={star <= filled ? color : color + "66"}
+        />
+      ))}
+    </View>
+  );
+}
+
+const SectionCard = memo(function SectionCard({
+  title,
+  icon,
+  tint,
+  surface,
+  borderColor,
+  scheme,
+  enterDelay = 0,
+  trailing,
+  children,
+}: {
+  title: string;
+  icon: keyof typeof MaterialIcons.glyphMap;
+  tint: string;
+  surface: string;
+  borderColor: string;
+  scheme: "light" | "dark";
+  enterDelay?: number;
+  trailing?: ReactNode;
+  children: ReactNode;
+}) {
+  const reduceMotion = useReducedMotion();
+  return (
+    <Animated.View entering={staggerEnter(enterDelay, reduceMotion)}>
+      <View
+        style={[
+          styles.sectionCard,
+          uiCardShadow(scheme, CARD_SHADOW),
+          { backgroundColor: surface, borderColor },
+        ]}
+      >
+        <View style={styles.sectionHeader}>
+          <View
+            style={[styles.sectionIconWrap, { backgroundColor: tint + "18" }]}
+          >
+            <MaterialIcons name={icon} size={18} color={tint} />
+          </View>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            {title}
+          </ThemedText>
+          {trailing}
+        </View>
+        {children}
+      </View>
+    </Animated.View>
+  );
+});
 
 const ReviewBar = memo(function ReviewBar({
   stars,
@@ -109,30 +199,75 @@ export function PublicSellerProfileScreen({ userId }: Props) {
   const colors = Colors[scheme];
   const reduceMotion = useReducedMotion();
   const backPressed = useSharedValue(0);
+  const [reviewsOpen, setReviewsOpen] = useState(false);
   const [page, setPage] = useState(1);
+  const [reviewItems, setReviewItems] = useState<
+    NonNullable<ReturnType<typeof useSellerReviews>["data"]>["items"]
+  >([]);
   const [reportTarget, setReportTarget] = useState<ContentReportTarget | null>(
     null,
   );
   const [blockTarget, setBlockTarget] = useState<BlockUserTarget | null>(null);
 
   const profileQuery = usePublicUserProfile(userId);
-  const reviewsQuery = useSellerReviews(userId, { page, limit: 20 });
+  const reviewsQuery = useSellerReviews(reviewsOpen ? userId : null, {
+    page,
+    limit: 20,
+  });
   const profile = profileQuery.data;
   const isOwnProfile = Boolean(user?.id && user.id === userId);
+  const regionLabel = profile?.region?.trim() || "";
+  const hasVerifiedRegion = regionLabel.length > 0;
 
-  const surface = cardSurface(scheme);
+  const surface = uiCardSurface(scheme);
   const borderColor = colors.icon + "22";
+  const isRefreshing =
+    profileQuery.isRefetching ||
+    (reviewsOpen && reviewsQuery.isRefetching && page <= 1);
 
-  const sortedBreakdown = useMemo(
-    () =>
-      [...(reviewsQuery.data?.starBreakdown ?? [])].sort(
-        (a, b) => b.stars - a.stars,
-      ),
-    [reviewsQuery.data?.starBreakdown],
-  );
+  useEffect(() => {
+    setReviewsOpen(false);
+    setPage(1);
+    setReviewItems([]);
+  }, [userId]);
+
+  useEffect(() => {
+    if (!reviewsOpen) {
+      setPage(1);
+      setReviewItems([]);
+    }
+  }, [reviewsOpen]);
+
+  useEffect(() => {
+    if (!reviewsQuery.data) return;
+    if (page <= 1) {
+      setReviewItems(reviewsQuery.data.items ?? []);
+      return;
+    }
+    setReviewItems((prev) => {
+      const seen = new Set(prev.map((item) => item.id));
+      const appended = (reviewsQuery.data?.items ?? []).filter(
+        (item) => !seen.has(item.id),
+      );
+      return [...prev, ...appended];
+    });
+  }, [page, reviewsQuery.data]);
+
+  const sortedBreakdown = useMemo(() => {
+    const byStar = new Map(
+      (reviewsQuery.data?.starBreakdown ?? []).map((row) => [
+        row.stars,
+        row.count,
+      ]),
+    );
+    return ([5, 4, 3, 2, 1] as const).map((stars) => ({
+      stars,
+      count: byStar.get(stars) ?? 0,
+    }));
+  }, [reviewsQuery.data?.starBreakdown]);
 
   const maxReviewCount = useMemo(
-    () => Math.max(1, ...sortedBreakdown.map((r) => r.count)),
+    () => Math.max(1, ...sortedBreakdown.map((row) => row.count)),
     [sortedBreakdown],
   );
 
@@ -148,6 +283,14 @@ export function PublicSellerProfileScreen({ userId }: Props) {
       },
     ],
   }));
+
+  const refresh = useCallback(() => {
+    void profileQuery.refetch();
+    if (reviewsOpen) {
+      if (page !== 1) setPage(1);
+      else void reviewsQuery.refetch();
+    }
+  }, [page, profileQuery, reviewsOpen, reviewsQuery]);
 
   const openContentReport = useCallback(
     (target: ContentReportTarget) => {
@@ -208,7 +351,9 @@ export function PublicSellerProfileScreen({ userId }: Props) {
                 stiffness: 320,
               });
             }}
-            style={[styles.backButton, backAnimStyle]}
+            style={[styles.iconButton, backAnimStyle]}
+            accessibilityRole="button"
+            accessibilityLabel={t("publicProfileTitle")}
           >
             <MaterialIcons name="arrow-back" size={20} color="#FFF" />
           </AnimatedPressable>
@@ -219,14 +364,14 @@ export function PublicSellerProfileScreen({ userId }: Props) {
             {!isOwnProfile ? (
               <Pressable
                 onPress={openBlockUser}
-                style={styles.backButton}
+                style={styles.iconButton}
                 accessibilityRole="button"
                 accessibilityLabel={t("userBlockAction")}
               >
                 <MaterialIcons name="block" size={20} color="#FFF" />
               </Pressable>
             ) : (
-              <View style={styles.backButton} />
+              <View style={styles.iconButton} />
             )}
             <Pressable
               onPress={() =>
@@ -235,7 +380,7 @@ export function PublicSellerProfileScreen({ userId }: Props) {
                   targetId: userId,
                 })
               }
-              style={styles.backButton}
+              style={styles.iconButton}
               accessibilityRole="button"
               accessibilityLabel={t("contentReportAction")}
             >
@@ -264,61 +409,128 @@ export function PublicSellerProfileScreen({ userId }: Props) {
             entering={reduceMotion ? undefined : FadeIn.duration(240)}
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing && !profileQuery.isLoading}
+                onRefresh={refresh}
+                tintColor={colors.tint}
+                colors={[colors.tint]}
+              />
+            }
           >
             <Animated.View
               entering={staggerEnter(0, reduceMotion)}
               style={[
-                styles.sellerCard,
-                uiCardShadow(scheme, {
-                  iosOffsetLight: 6,
-                  iosOffsetDark: 8,
-                  iosOpacityLight: 0.1,
-                  iosOpacityDark: 0.35,
-                  iosRadiusLight: 12,
-                  iosRadiusDark: 14,
-                  androidElevationLight: 4,
-                  androidElevationDark: 6,
-                }),
+                styles.identityCard,
+                uiCardShadow(scheme, CARD_SHADOW),
                 { backgroundColor: surface, borderColor },
               ]}
             >
-              <View
-                style={[styles.avatarRing, { borderColor: colors.tint + "50" }]}
-              >
-                <Image
-                  source={profile.avatar ? { uri: profile.avatar } : undefined}
-                  style={[
-                    styles.avatar,
-                    { backgroundColor: colors.icon + "1f" },
-                  ]}
-                />
-              </View>
-              <View style={styles.sellerCopy}>
-                <ThemedText type="defaultSemiBold" style={styles.sellerName}>
-                  {profile.nickname}
-                </ThemedText>
+              <View style={styles.identityTop}>
                 <View
                   style={[
-                    styles.rankPill,
-                    { backgroundColor: colors.tint + "18" },
+                    styles.avatarRing,
+                    { borderColor: colors.tint + "55" },
                   ]}
                 >
-                  <ThemedText
-                    style={[styles.rankPillText, { color: colors.tint }]}
+                  {profile.avatar ? (
+                    <Image
+                      source={{ uri: profile.avatar }}
+                      style={[
+                        styles.avatar,
+                        { backgroundColor: colors.icon + "1f" },
+                      ]}
+                    />
+                  ) : (
+                    <View
+                      style={[
+                        styles.avatar,
+                        styles.avatarFallback,
+                        { backgroundColor: colors.tint + "18" },
+                      ]}
+                    >
+                      <MaterialIcons
+                        name="person"
+                        size={36}
+                        color={colors.tint}
+                      />
+                    </View>
+                  )}
+                </View>
+                <View style={styles.identityCopy}>
+                  <ThemedText type="defaultSemiBold" style={styles.sellerName}>
+                    {profile.nickname}
+                  </ThemedText>
+                  <View
+                    style={[
+                      styles.rankPill,
+                      { backgroundColor: colors.tint + "18" },
+                    ]}
                   >
-                    {t(userRankLabelKey(profile.currentRank))}
+                    <MaterialIcons
+                      name="emoji-events"
+                      size={12}
+                      color={colors.tint}
+                    />
+                    <ThemedText
+                      style={[styles.rankPillText, { color: colors.tint }]}
+                    >
+                      {t(userRankLabelKey(profile.currentRank))}
+                    </ThemedText>
+                  </View>
+                </View>
+              </View>
+
+              <View
+                style={[
+                  styles.ratingPanel,
+                  { backgroundColor: colors.tint + "0C" },
+                ]}
+              >
+                <ThemedText style={[styles.ratingAvg, { color: colors.tint }]}>
+                  {profile.averageStars.toFixed(1)}
+                </ThemedText>
+                <View style={styles.ratingCopy}>
+                  <StarRow value={profile.averageStars} />
+                  <ThemedText style={styles.sellerSub}>
+                    {tf("publicProfileRatingSummary", {
+                      avg: profile.averageStars.toFixed(1),
+                      count: profile.totalReviews,
+                    })}
                   </ThemedText>
                 </View>
-                <ThemedText style={styles.sellerSub}>
-                  {tf("publicProfileRatingSummary", {
-                    avg: profile.averageStars.toFixed(1),
-                    count: profile.totalReviews,
-                  })}
-                </ThemedText>
-                <ThemedText style={styles.sellerSub}>
-                  {tf("publicProfileRegion", {
-                    region: profile.region?.trim() || "—",
-                  })}
+              </View>
+
+              <View
+                style={[
+                  styles.regionChip,
+                  {
+                    backgroundColor: hasVerifiedRegion
+                      ? SUCCESS + "14"
+                      : colors.icon + "14",
+                    borderColor: hasVerifiedRegion
+                      ? SUCCESS + "44"
+                      : colors.icon + "33",
+                  },
+                ]}
+              >
+                <MaterialIcons
+                  name={hasVerifiedRegion ? "verified" : "place"}
+                  size={16}
+                  color={hasVerifiedRegion ? SUCCESS : colors.icon}
+                />
+                <ThemedText
+                  style={[
+                    styles.regionChipText,
+                    hasVerifiedRegion
+                      ? styles.sellerRegionVerified
+                      : { color: colors.icon },
+                  ]}
+                  numberOfLines={2}
+                >
+                  {hasVerifiedRegion
+                    ? tf("publicProfileRegion", { region: regionLabel })
+                    : t("publicProfileRegionUnverified")}
                 </ThemedText>
               </View>
             </Animated.View>
@@ -326,7 +538,6 @@ export function PublicSellerProfileScreen({ userId }: Props) {
             {profile.referralCode?.trim() ? (
               <Animated.View
                 entering={staggerEnter(SECTION_STAGGER_MS * 0.75, reduceMotion)}
-                style={{ marginBottom: 12 }}
               >
                 <ReferralCodeBlock
                   code={profile.referralCode.trim()}
@@ -339,232 +550,279 @@ export function PublicSellerProfileScreen({ userId }: Props) {
               </Animated.View>
             ) : null}
 
-            <Animated.View
-              entering={staggerEnter(SECTION_STAGGER_MS, reduceMotion)}
-              style={[
-                styles.statsCard,
-                uiCardShadow(scheme, {
-                  iosOffsetLight: 6,
-                  iosOffsetDark: 8,
-                  iosOpacityLight: 0.1,
-                  iosOpacityDark: 0.35,
-                  iosRadiusLight: 12,
-                  iosRadiusDark: 14,
-                  androidElevationLight: 4,
-                  androidElevationDark: 6,
-                }),
-                { backgroundColor: surface, borderColor },
-              ]}
+            <SectionCard
+              title={t("publicProfileStatsSection")}
+              icon="insights"
+              tint={colors.tint}
+              surface={surface}
+              borderColor={borderColor}
+              scheme={scheme}
+              enterDelay={SECTION_STAGGER_MS}
             >
-              <View
-                style={[
-                  styles.statItem,
-                  { backgroundColor: colors.tint + "0C" },
-                ]}
-              >
-                <MaterialIcons name="store" size={18} color={colors.tint} />
-                <ThemedText style={styles.statLabel}>
-                  {t("rewardCompletedSales")}
-                </ThemedText>
-                <ThemedText style={[styles.statValue, { color: colors.tint }]}>
-                  {profile.completedSales}
-                </ThemedText>
-              </View>
-              <View
-                style={[
-                  styles.statItem,
-                  { backgroundColor: colors.tint + "0C" },
-                ]}
-              >
-                <MaterialIcons
-                  name="shopping-cart"
-                  size={18}
-                  color={colors.tint}
-                />
-                <ThemedText style={styles.statLabel}>
-                  {t("rewardCompletedPurchases")}
-                </ThemedText>
-                <ThemedText style={[styles.statValue, { color: colors.tint }]}>
-                  {profile.completedPurchases}
-                </ThemedText>
-              </View>
-              <View
-                style={[
-                  styles.statItem,
-                  { backgroundColor: colors.tint + "0C" },
-                ]}
-              >
-                <MaterialIcons name="event" size={18} color={colors.tint} />
-                <ThemedText style={styles.statLabel}>
-                  {t("publicProfileMemberSince")}
-                </ThemedText>
-                <ThemedText style={styles.statValue}>
-                  {profile.memberSince
-                    ? formatListingDate(profile.memberSince, locale)
-                    : "—"}
-                </ThemedText>
-              </View>
-            </Animated.View>
-
-            <Animated.View
-              entering={staggerEnter(SECTION_STAGGER_MS * 2, reduceMotion)}
-              style={[
-                styles.breakdownCard,
-                uiCardShadow(scheme, {
-                  iosOffsetLight: 6,
-                  iosOffsetDark: 8,
-                  iosOpacityLight: 0.1,
-                  iosOpacityDark: 0.35,
-                  iosRadiusLight: 12,
-                  iosRadiusDark: 14,
-                  androidElevationLight: 4,
-                  androidElevationDark: 6,
-                }),
-                { backgroundColor: surface, borderColor },
-              ]}
-            >
-              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                {t("publicProfileReviewsSection")}
-              </ThemedText>
-              {sortedBreakdown.map((row) => (
-                <ReviewBar
-                  key={`b-${row.stars}`}
-                  stars={row.stars}
-                  count={row.count}
-                  tint={colors.tint}
-                  maxCount={maxReviewCount}
-                />
-              ))}
-            </Animated.View>
-
-            {reviewsQuery.isLoading ? (
-              <View style={styles.centered}>
-                <FlexMarketLoader size="md" />
-              </View>
-            ) : (
-              <View style={styles.reviewsList}>
-                {(reviewsQuery.data?.items ?? []).map((item, idx) => (
-                  <Animated.View
-                    key={item.id}
-                    entering={
-                      reduceMotion
-                        ? undefined
-                        : FadeInUp.duration(360)
-                            .delay(Math.min(idx, 8) * 45)
-                            .springify()
-                            .damping(18)
-                    }
+              <View style={styles.statsRow}>
+                <View
+                  style={[
+                    styles.statItem,
+                    { backgroundColor: colors.tint + "0C" },
+                  ]}
+                >
+                  <View
                     style={[
-                      styles.reviewItem,
-                      uiCardShadow(scheme, {
-                        iosOffsetLight: 6,
-                        iosOffsetDark: 8,
-                        iosOpacityLight: 0.1,
-                        iosOpacityDark: 0.35,
-                        iosRadiusLight: 12,
-                        iosRadiusDark: 14,
-                        androidElevationLight: 4,
-                        androidElevationDark: 6,
-                      }),
+                      styles.statIconWrap,
+                      { backgroundColor: colors.tint + "18" },
+                    ]}
+                  >
+                    <MaterialIcons name="store" size={18} color={colors.tint} />
+                  </View>
+                  <ThemedText
+                    style={[styles.statValue, { color: colors.tint }]}
+                  >
+                    {profile.completedSales}
+                  </ThemedText>
+                  <ThemedText style={styles.statLabel}>
+                    {t("rewardCompletedSales")}
+                  </ThemedText>
+                </View>
+                <View
+                  style={[
+                    styles.statItem,
+                    { backgroundColor: colors.tint + "0C" },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.statIconWrap,
+                      { backgroundColor: colors.tint + "18" },
+                    ]}
+                  >
+                    <MaterialIcons
+                      name="shopping-cart"
+                      size={18}
+                      color={colors.tint}
+                    />
+                  </View>
+                  <ThemedText
+                    style={[styles.statValue, { color: colors.tint }]}
+                  >
+                    {profile.completedPurchases}
+                  </ThemedText>
+                  <ThemedText style={styles.statLabel}>
+                    {t("rewardCompletedPurchases")}
+                  </ThemedText>
+                </View>
+                <View
+                  style={[
+                    styles.statItem,
+                    { backgroundColor: colors.tint + "0C" },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.statIconWrap,
+                      { backgroundColor: colors.tint + "18" },
+                    ]}
+                  >
+                    <MaterialIcons
+                      name="event"
+                      size={18}
+                      color={colors.tint}
+                    />
+                  </View>
+                  <ThemedText style={styles.statValue}>
+                    {profile.memberSince
+                      ? formatListingDate(profile.memberSince, locale)
+                      : "—"}
+                  </ThemedText>
+                  <ThemedText style={styles.statLabel}>
+                    {t("publicProfileMemberSince")}
+                  </ThemedText>
+                </View>
+              </View>
+            </SectionCard>
+
+            {!reviewsOpen ? (
+              <AnimatedPressable
+                entering={staggerEnter(SECTION_STAGGER_MS * 2, reduceMotion)}
+                onPress={() => {
+                  void Haptics.selectionAsync();
+                  setReviewsOpen(true);
+                }}
+                style={[styles.reviewsBtn, { backgroundColor: colors.tint }]}
+                accessibilityRole="button"
+                accessibilityLabel={t("publicDetailSellerReviews")}
+              >
+                <MaterialIcons name="star" size={16} color="#FFF" />
+                <ThemedText style={styles.reviewsBtnText}>
+                  {tf("publicProfileViewReviews", {
+                    count: profile.totalReviews,
+                  })}
+                </ThemedText>
+              </AnimatedPressable>
+            ) : (
+              <>
+                <SectionCard
+                  title={t("publicProfileReviewsSection")}
+                  icon="star"
+                  tint={colors.tint}
+                  surface={surface}
+                  borderColor={borderColor}
+                  scheme={scheme}
+                  enterDelay={SECTION_STAGGER_MS * 2}
+                  trailing={
+                    <ThemedText style={styles.sectionTrailing}>
+                      {profile.totalReviews}
+                    </ThemedText>
+                  }
+                >
+                  {reviewsQuery.isLoading && page <= 1 ? (
+                    <View style={styles.centered}>
+                      <FlexMarketLoader size="md" />
+                    </View>
+                  ) : (
+                    sortedBreakdown.map((row) => (
+                      <ReviewBar
+                        key={`b-${row.stars}`}
+                        stars={row.stars}
+                        count={row.count}
+                        tint={colors.tint}
+                        maxCount={maxReviewCount}
+                      />
+                    ))
+                  )}
+                </SectionCard>
+
+                {reviewsQuery.isLoading && page <= 1 ? null : reviewItems.length ===
+                  0 ? (
+                  <View
+                    style={[
+                      styles.emptyReviews,
+                      uiCardShadow(scheme, CARD_SHADOW),
                       { backgroundColor: surface, borderColor },
                     ]}
                   >
-                    <View style={styles.reviewItemHeader}>
-                      <ThemedText style={styles.reviewStars}>
-                        {"★".repeat(Math.max(1, item.stars))}
-                      </ThemedText>
-                      <Pressable
-                        onPress={() =>
-                          openContentReport({
-                            targetType: "REVIEW",
-                            targetId: item.id,
-                          })
+                    <MaterialIcons
+                      name="rate-review"
+                      size={28}
+                      color={colors.icon}
+                    />
+                    <ThemedText style={styles.emptyReviewsText}>
+                      {t("publicProfileNoReviews")}
+                    </ThemedText>
+                  </View>
+                ) : (
+                  <View style={styles.reviewsList}>
+                    {reviewItems.map((item, idx) => (
+                      <Animated.View
+                        key={item.id}
+                        entering={
+                          reduceMotion
+                            ? undefined
+                            : FadeInUp.duration(360)
+                                .delay(Math.min(idx, 8) * 45)
+                                .springify()
+                                .damping(18)
                         }
-                        hitSlop={8}
-                        accessibilityRole="button"
-                        accessibilityLabel={t("contentReportAction")}
+                        style={[
+                          styles.reviewItem,
+                          uiCardShadow(scheme, CARD_SHADOW),
+                          { backgroundColor: surface, borderColor },
+                        ]}
                       >
-                        <MaterialIcons
-                          name="flag"
-                          size={18}
-                          color={colors.icon}
-                        />
+                        <View style={styles.reviewItemHeader}>
+                          <View style={styles.reviewerRow}>
+                            {item.reviewerAvatar ? (
+                              <Image
+                                source={{ uri: item.reviewerAvatar }}
+                                style={[
+                                  styles.reviewerAvatar,
+                                  { backgroundColor: colors.icon + "1f" },
+                                ]}
+                              />
+                            ) : (
+                              <View
+                                style={[
+                                  styles.reviewerAvatar,
+                                  styles.avatarFallback,
+                                  { backgroundColor: colors.tint + "18" },
+                                ]}
+                              >
+                                <MaterialIcons
+                                  name="person"
+                                  size={16}
+                                  color={colors.tint}
+                                />
+                              </View>
+                            )}
+                            <View style={styles.reviewerCopy}>
+                              <ThemedText style={styles.reviewNick}>
+                                {item.reviewerNickname ?? "—"}
+                              </ThemedText>
+                              <StarRow value={item.stars} size={12} />
+                            </View>
+                          </View>
+                          <Pressable
+                            onPress={() =>
+                              openContentReport({
+                                targetType: "REVIEW",
+                                targetId: item.id,
+                              })
+                            }
+                            hitSlop={8}
+                            accessibilityRole="button"
+                            accessibilityLabel={t("contentReportAction")}
+                          >
+                            <MaterialIcons
+                              name="flag"
+                              size={18}
+                              color={colors.icon}
+                            />
+                          </Pressable>
+                        </View>
+                        <ThemedText style={styles.reviewBody}>
+                          {item.comment?.trim() || t("publicProfileNoComment")}
+                        </ThemedText>
+                        <ThemedText style={styles.reviewDate}>
+                          {item.createdAt
+                            ? formatListingDate(item.createdAt, locale)
+                            : "—"}
+                        </ThemedText>
+                      </Animated.View>
+                    ))}
+                    {reviewsQuery.data?.hasNextPage ? (
+                      <Pressable
+                        onPress={() => {
+                          void Haptics.selectionAsync();
+                          setPage((p) => p + 1);
+                        }}
+                        disabled={reviewsQuery.isFetching}
+                        style={[
+                          styles.loadMoreBtn,
+                          { borderColor: colors.tint },
+                          reviewsQuery.isFetching && { opacity: 0.6 },
+                        ]}
+                      >
+                        {reviewsQuery.isFetching && page > 1 ? (
+                          <FlexMarketLoader
+                            variant="inline"
+                            size="xs"
+                            showText={false}
+                          />
+                        ) : (
+                          <ThemedText
+                            style={[
+                              styles.loadMoreText,
+                              { color: colors.tint },
+                            ]}
+                          >
+                            {t("publicDetailLoadMoreReviews")}
+                          </ThemedText>
+                        )}
                       </Pressable>
-                    </View>
-                    <ThemedText style={styles.reviewNick}>
-                      {item.reviewerNickname ?? "—"}
-                    </ThemedText>
-                    <ThemedText style={styles.reviewBody}>
-                      {item.comment?.trim() || t("publicProfileNoComment")}
-                    </ThemedText>
-                    <ThemedText style={styles.reviewDate}>
-                      {item.createdAt
-                        ? formatListingDate(item.createdAt, locale)
-                        : "—"}
-                    </ThemedText>
-                  </Animated.View>
-                ))}
-              </View>
+                    ) : null}
+                  </View>
+                )}
+              </>
             )}
-
-            <Animated.View
-              entering={staggerEnter(SECTION_STAGGER_MS * 3, reduceMotion)}
-              style={styles.paginationRow}
-            >
-              <Pressable
-                onPress={() => {
-                  void Haptics.selectionAsync();
-                  setPage((p) => Math.max(1, p - 1));
-                }}
-                disabled={page <= 1}
-                style={[
-                  styles.pageBtn,
-                  uiCardShadow(scheme, {
-                    iosOffsetLight: 6,
-                    iosOffsetDark: 8,
-                    iosOpacityLight: 0.1,
-                    iosOpacityDark: 0.35,
-                    iosRadiusLight: 12,
-                    iosRadiusDark: 14,
-                    androidElevationLight: 4,
-                    androidElevationDark: 6,
-                  }),
-                  { backgroundColor: surface, borderColor },
-                  page <= 1 && { opacity: 0.5 },
-                ]}
-              >
-                <ThemedText>{t("publicProfilePrev")}</ThemedText>
-              </Pressable>
-              <ThemedText style={styles.pageText}>
-                {tf("publicProfilePage", {
-                  page: reviewsQuery.data?.page ?? page,
-                })}
-              </ThemedText>
-              <Pressable
-                onPress={() => {
-                  void Haptics.selectionAsync();
-                  setPage((p) => p + 1);
-                }}
-                disabled={!reviewsQuery.data?.hasNextPage}
-                style={[
-                  styles.pageBtn,
-                  uiCardShadow(scheme, {
-                    iosOffsetLight: 6,
-                    iosOffsetDark: 8,
-                    iosOpacityLight: 0.1,
-                    iosOpacityDark: 0.35,
-                    iosRadiusLight: 12,
-                    iosRadiusDark: 14,
-                    androidElevationLight: 4,
-                    androidElevationDark: 6,
-                  }),
-                  { backgroundColor: surface, borderColor },
-                  !reviewsQuery.data?.hasNextPage && { opacity: 0.5 },
-                ]}
-              >
-                <ThemedText>{t("publicProfileNext")}</ThemedText>
-              </Pressable>
-            </Animated.View>
           </Animated.ScrollView>
         )}
       </ThemedView>
@@ -595,7 +853,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 12,
   },
-  backButton: {
+  iconButton: {
     width: 34,
     height: 34,
     borderRadius: 17,
@@ -615,50 +873,100 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   loadingText: { opacity: 0.65 },
-  content: { padding: 12, gap: 14, paddingBottom: 28 },
-  sellerCard: {
-    flexDirection: "row",
+  content: { padding: 12, gap: 14, paddingBottom: 32 },
+  identityCard: {
     gap: 14,
     padding: 16,
     borderRadius: 20,
     borderWidth: 1,
+  },
+  identityTop: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: 14,
   },
   avatarRing: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     borderWidth: 2,
     padding: 3,
     alignItems: "center",
     justifyContent: "center",
   },
-  avatar: { width: 62, height: 62, borderRadius: 31 },
-  sellerCopy: { flex: 1, gap: 5, minWidth: 0 },
-  sellerName: { fontSize: 18, fontWeight: "800" },
+  avatar: { width: 74, height: 74, borderRadius: 37 },
+  avatarFallback: { alignItems: "center", justifyContent: "center" },
+  identityCopy: { flex: 1, gap: 8, minWidth: 0 },
+  sellerName: { fontSize: 20, fontWeight: "800" },
   rankPill: {
     alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
   },
   rankPillText: { fontSize: 11, fontWeight: "800" },
-  sellerSub: { fontSize: 12, opacity: 0.72, lineHeight: 17 },
-  statsCard: {
+  ratingPanel: {
     flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  ratingAvg: { fontSize: 28, fontWeight: "800", minWidth: 52 },
+  ratingCopy: { flex: 1, gap: 4, minWidth: 0 },
+  starRow: { flexDirection: "row", alignItems: "center", gap: 1 },
+  sellerSub: { fontSize: 12, opacity: 0.72, lineHeight: 17 },
+  regionChip: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
-    padding: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  regionChipText: { flex: 1, fontSize: 13, fontWeight: "700", lineHeight: 18 },
+  sellerRegionVerified: {
+    color: SUCCESS,
+    opacity: 1,
+  },
+  sectionCard: {
     borderRadius: 18,
     borderWidth: 1,
+    padding: 14,
+    gap: 10,
   },
+  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  sectionIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionTitle: { fontSize: 15, flex: 1 },
+  sectionTrailing: { fontSize: 13, fontWeight: "800", opacity: 0.7 },
+  statsRow: { flexDirection: "row", gap: 8 },
   statItem: {
     flex: 1,
-    minHeight: 88,
+    minHeight: 104,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 6,
-    gap: 5,
+    paddingVertical: 10,
+    gap: 6,
+  },
+  statIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
   },
   statLabel: {
     fontSize: 10,
@@ -667,8 +975,6 @@ const styles = StyleSheet.create({
     lineHeight: 13,
   },
   statValue: { fontSize: 13, fontWeight: "800", textAlign: "center" },
-  breakdownCard: { padding: 14, borderRadius: 18, borderWidth: 1, gap: 10 },
-  sectionTitle: { fontSize: 15, marginBottom: 4 },
   breakdownRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   breakdownStars: { width: 26, fontSize: 12, fontWeight: "700" },
   breakdownTrack: {
@@ -681,35 +987,58 @@ const styles = StyleSheet.create({
   breakdownFill: { height: "100%", borderRadius: 4 },
   breakdownCount: { width: 28, textAlign: "right", fontSize: 12, opacity: 0.7 },
   centered: { paddingVertical: 20, alignItems: "center" },
+  emptyReviews: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 28,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  emptyReviewsText: { fontSize: 13, opacity: 0.7, textAlign: "center" },
+  reviewsBtn: {
+    minHeight: 48,
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+  },
+  reviewsBtnText: { color: "#FFF", fontWeight: "800", fontSize: 14 },
   reviewsList: { gap: 10 },
   reviewItem: {
     padding: 14,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    gap: 4,
+    gap: 8,
   },
   reviewItemHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     gap: 8,
   },
-  reviewStars: { color: "#FB6D00", fontSize: 12, fontWeight: "800" },
+  reviewerRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    minWidth: 0,
+  },
+  reviewerAvatar: { width: 36, height: 36, borderRadius: 18 },
+  reviewerCopy: { flex: 1, gap: 3, minWidth: 0 },
   reviewNick: { fontSize: 13, fontWeight: "700" },
   reviewBody: { fontSize: 13, lineHeight: 18 },
   reviewDate: { fontSize: 11, opacity: 0.55 },
-  paginationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-    paddingVertical: 4,
-  },
-  pageBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
+  loadMoreBtn: {
+    minHeight: 44,
     borderWidth: 1,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
   },
-  pageText: { fontSize: 12, opacity: 0.7, fontWeight: "600" },
+  loadMoreText: { fontSize: 13, fontWeight: "800" },
 });

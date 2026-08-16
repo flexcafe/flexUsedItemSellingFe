@@ -1033,7 +1033,7 @@ export function ProfileScreen() {
       : "todo";
   const kbzTone: VerificationTone = user?.isKbzPayVerified
     ? "done"
-    : kbzIsPending && kbzVerificationStarted
+          : kbzIsPending && kbzVerificationStarted
       ? "pending"
       : "todo";
   const toneLabel = (tone: VerificationTone) =>
@@ -1835,9 +1835,9 @@ export function ProfileScreen() {
                             },
                           ]}
                         >
-                          <ThemedText
+                        <ThemedText
                             numberOfLines={1}
-                            style={[
+                          style={[
                               styles.verificationProgressChipText,
                               {
                                 color:
@@ -1851,8 +1851,8 @@ export function ProfileScreen() {
                               done: String(verificationDoneCount),
                               total: "4",
                             })}
-                          </ThemedText>
-                        </View>
+                        </ThemedText>
+                      </View>
                       </View>
                       <ThemedText style={styles.verificationOverviewHint}>
                         {verificationDoneCount === 4
@@ -1911,8 +1911,8 @@ export function ProfileScreen() {
                                 { backgroundColor: accent + "20" },
                               ]}
                             >
-                              <MaterialIcons
-                                name={
+                      <MaterialIcons
+                        name={
                                   item.tone === "done" ? "check" : item.icon
                                 }
                                 size={16}
@@ -1938,8 +1938,8 @@ export function ProfileScreen() {
                             tone={item.tone}
                             label={toneLabel(item.tone)}
                             tint={colors.tint}
-                          />
-                        </Pressable>
+                      />
+                    </Pressable>
                       );
                     })}
                   </View>
@@ -2095,17 +2095,17 @@ export function ProfileScreen() {
                                 <ThemedText style={styles.label}>
                                   {t("phoneNumber")}
                                 </ThemedText>
-                                <TextInput
-                                  style={[styles.input, inputStyle]}
-                                  value={phone}
+                        <TextInput
+                          style={[styles.input, inputStyle]}
+                          value={phone}
                                   onChangeText={(value) => {
                                     setPhone(value);
                                     if (phoneOtpSent) setPhoneOtpSent(false);
                                   }}
-                                  placeholder={t("phoneNumberPlaceholder")}
-                                  placeholderTextColor={colors.icon}
-                                  keyboardType="phone-pad"
-                                  autoCapitalize="none"
+                          placeholder={t("phoneNumberPlaceholder")}
+                          placeholderTextColor={colors.icon}
+                          keyboardType="phone-pad"
+                          autoCapitalize="none"
                                 />
                                 <Pressable
                                   onPress={handleSendOtp}
@@ -2164,34 +2164,34 @@ export function ProfileScreen() {
                                   >
                                     {t("phoneCodeSentHint")}
                                   </ThemedText>
-                                  <TextInput
+                              <TextInput
                                     style={[styles.input, inputStyle]}
-                                    value={otpCode}
-                                    onChangeText={(v) =>
-                                      setOtpCode(v.replace(/\D/g, ""))
-                                    }
-                                    placeholder={t("otpPlaceholder")}
-                                    placeholderTextColor={colors.icon}
-                                    keyboardType="number-pad"
-                                    maxLength={6}
-                                  />
-                                  <Pressable
-                                    onPress={handleVerifyOtp}
+                                value={otpCode}
+                                onChangeText={(v) =>
+                                  setOtpCode(v.replace(/\D/g, ""))
+                                }
+                                placeholder={t("otpPlaceholder")}
+                                placeholderTextColor={colors.icon}
+                                keyboardType="number-pad"
+                                maxLength={6}
+                              />
+                              <Pressable
+                                onPress={handleVerifyOtp}
                                     disabled={
                                       loading.verifyOtp ||
                                       otpCode.trim().length < 4
                                     }
-                                    style={[
-                                      styles.primaryButton,
+                                style={[
+                                  styles.primaryButton,
                                       styles.fullWidthButton,
-                                      { backgroundColor: colors.tint },
+                                  { backgroundColor: colors.tint },
                                       (loading.verifyOtp ||
                                         otpCode.trim().length < 4) && {
                                         opacity: 0.5,
-                                      },
-                                    ]}
-                                  >
-                                    {loading.verifyOtp ? (
+                                  },
+                                ]}
+                              >
+                                {loading.verifyOtp ? (
                                       <FlexMarketLoader
                                         variant="inline"
                                         size="xs"
@@ -2201,11 +2201,11 @@ export function ProfileScreen() {
                                       <ThemedText
                                         style={styles.primaryButtonText}
                                       >
-                                        {t("verify")}
-                                      </ThemedText>
-                                    )}
-                                  </Pressable>
-                                </View>
+                                    {t("verify")}
+                                  </ThemedText>
+                                )}
+                              </Pressable>
+                            </View>
                               </View>
                             ) : null}
                           </View>
@@ -2233,7 +2233,7 @@ export function ProfileScreen() {
                     tone={emailTone}
                     statusLabel={toneLabel(emailTone)}
                     expanded={showEmailVerification}
-                    onPress={() =>
+                        onPress={() =>
                       setShowEmailVerification((prev) => !prev)
                     }
                     colors={colors}
@@ -2264,17 +2264,17 @@ export function ProfileScreen() {
                             ]}
                           >
                             <View
-                              style={[
+                          style={[
                                 styles.kbzStatusIcon,
                                 { backgroundColor: SUCCESS + "20" },
-                              ]}
-                            >
-                              <MaterialIcons
+                          ]}
+                        >
+                      <MaterialIcons
                                 name="verified"
                                 size={26}
                                 color={SUCCESS}
                               />
-                            </View>
+                  </View>
                             <ThemedText style={styles.kbzStateTitle}>
                               {t("emailVerifiedTitle")}
                             </ThemedText>
@@ -2337,7 +2337,7 @@ export function ProfileScreen() {
                                   keyboardType="email-address"
                                   autoCapitalize="none"
                                 />
-                                <Pressable
+                              <Pressable
                                   onPress={handleSendEmail}
                                   disabled={loading.sendEmail || !email.trim()}
                                   style={[
@@ -2428,13 +2428,13 @@ export function ProfileScreen() {
                                         showText={false}
                                       />
                                     ) : (
-                                      <ThemedText
+                                <ThemedText
                                         style={styles.primaryButtonText}
-                                      >
+                                >
                                         {t("verifyEmailButton")}
-                                      </ThemedText>
+                                </ThemedText>
                                     )}
-                                  </Pressable>
+                              </Pressable>
                                 </View>
                               </View>
                             ) : null}
@@ -2542,8 +2542,8 @@ export function ProfileScreen() {
                                 <ThemedText style={styles.kbzStateTitle}>
                                   {t("facebookStartTitle")}
                                 </ThemedText>
-                                <ThemedText style={styles.profileSub}>
-                                  {t("facebookLinkIntro")}
+                            <ThemedText style={styles.profileSub}>
+                              {t("facebookLinkIntro")}
                                 </ThemedText>
                                 <View style={styles.kbzInstructionRow}>
                                   <View
@@ -2561,23 +2561,23 @@ export function ProfileScreen() {
                                   <View style={styles.kbzInstructionBody}>
                                     <ThemedText style={styles.label}>
                                       {t("facebookLinkStepTitle")}
-                                    </ThemedText>
-                                    <Pressable
-                                      onPress={handleStartFacebookOAuth}
-                                      disabled={
+                            </ThemedText>
+                            <Pressable
+                              onPress={handleStartFacebookOAuth}
+                              disabled={
                                         loading.facebookLink || !FACEBOOK_APP_ID
-                                      }
-                                      style={[
-                                        styles.primaryButton,
-                                        styles.fullWidthButton,
-                                        { backgroundColor: "#1877F2" },
-                                        (loading.facebookLink ||
+                              }
+                              style={[
+                                styles.primaryButton,
+                                styles.fullWidthButton,
+                                { backgroundColor: "#1877F2" },
+                                (loading.facebookLink ||
                                           !FACEBOOK_APP_ID) && {
                                           opacity: 0.6,
                                         },
-                                      ]}
-                                    >
-                                      {loading.facebookLink ? (
+                              ]}
+                            >
+                              {loading.facebookLink ? (
                                         <FlexMarketLoader
                                           variant="inline"
                                           size="xs"
@@ -2587,10 +2587,10 @@ export function ProfileScreen() {
                                         <ThemedText
                                           style={styles.primaryButtonText}
                                         >
-                                          {t("facebookOAuthButton")}
-                                        </ThemedText>
-                                      )}
-                                    </Pressable>
+                                  {t("facebookOAuthButton")}
+                                </ThemedText>
+                              )}
+                            </Pressable>
                                   </View>
                                 </View>
                               </>
@@ -2681,7 +2681,7 @@ export function ProfileScreen() {
                                   style={styles.kbzInstructionNumberText}
                                 >
                                   2
-                                </ThemedText>
+                            </ThemedText>
                               </View>
                               <View style={styles.kbzInstructionBody}>
                                 <ThemedText style={styles.label}>
@@ -2693,11 +2693,11 @@ export function ProfileScreen() {
                                     { color: colors.icon },
                                   ]}
                                 >
-                                  {t("facebookFollowIntro")}
-                                </ThemedText>
+                              {t("facebookFollowIntro")}
+                            </ThemedText>
                                 {facebookFollowStatus === "REJECTED" ? (
-                                  <View
-                                    style={[
+                            <View
+                              style={[
                                       styles.kbzImportantBanner,
                                       {
                                         backgroundColor: DANGER + "12",
@@ -2725,18 +2725,18 @@ export function ProfileScreen() {
                                     style={[
                                       styles.kbzSubmittedId,
                                       { borderColor: colors.icon + "44" },
-                                    ]}
-                                  >
-                                    <ThemedText style={styles.infoLabel}>
-                                      {t("facebookNameLabel")}
-                                    </ThemedText>
-                                    <ThemedText style={styles.infoValue}>
-                                      {user?.facebookName || facebookName}
-                                    </ThemedText>
-                                  </View>
+                              ]}
+                            >
+                              <ThemedText style={styles.infoLabel}>
+                                {t("facebookNameLabel")}
+                              </ThemedText>
+                              <ThemedText style={styles.infoValue}>
+                                {user?.facebookName || facebookName}
+                              </ThemedText>
+                            </View>
                                 ) : null}
-                                {FACEBOOK_PAGE_URL ? (
-                                  <Pressable
+                            {FACEBOOK_PAGE_URL ? (
+                              <Pressable
                                     onPress={() =>
                                       handleOpenUrl(FACEBOOK_PAGE_URL)
                                     }
@@ -2752,82 +2752,82 @@ export function ProfileScreen() {
                                       size={18}
                                       color={colors.tint}
                                     />
-                                    <ThemedText
+                                <ThemedText
                                       style={[
                                         styles.kbzSecondaryButtonText,
                                         { color: colors.tint },
                                       ]}
-                                    >
-                                      {t("facebookOpenPage")}
-                                    </ThemedText>
-                                  </Pressable>
-                                ) : (
-                                  <ThemedText style={styles.profileSub}>
-                                    {t("facebookMissingPageUrl")}
-                                  </ThemedText>
-                                )}
-                                <Pressable
-                                  onPress={handlePickFacebookScreenshot}
-                                  disabled={
-                                    !facebookLinked ||
-                                    loading.facebookScreenshot ||
-                                    loading.facebookFollowSubmit
-                                  }
-                                  style={[
-                                    styles.outlineButton,
-                                    { borderColor: colors.tint },
-                                    (!facebookLinked ||
-                                      loading.facebookScreenshot ||
-                                      loading.facebookFollowSubmit) && {
-                                      opacity: 0.6,
-                                    },
-                                  ]}
                                 >
-                                  {loading.facebookScreenshot ? (
+                                  {t("facebookOpenPage")}
+                                </ThemedText>
+                              </Pressable>
+                            ) : (
+                              <ThemedText style={styles.profileSub}>
+                                {t("facebookMissingPageUrl")}
+                              </ThemedText>
+                            )}
+                            <Pressable
+                              onPress={handlePickFacebookScreenshot}
+                              disabled={
+                                !facebookLinked ||
+                                loading.facebookScreenshot ||
+                                loading.facebookFollowSubmit
+                              }
+                              style={[
+                                styles.outlineButton,
+                                { borderColor: colors.tint },
+                                (!facebookLinked ||
+                                  loading.facebookScreenshot ||
+                                  loading.facebookFollowSubmit) && {
+                                  opacity: 0.6,
+                                },
+                              ]}
+                            >
+                              {loading.facebookScreenshot ? (
                                     <FlexMarketLoader
                                       variant="inline"
                                       size="xs"
                                       showText={false}
                                     />
-                                  ) : (
-                                    <ThemedText
-                                      style={[
-                                        styles.outlineButtonText,
-                                        { color: colors.tint },
-                                      ]}
-                                    >
-                                      {facebookScreenshot
-                                        ? t("facebookScreenshotSelected")
-                                        : t("facebookScreenshotButton")}
-                                    </ThemedText>
-                                  )}
-                                </Pressable>
-                                {facebookScreenshot ? (
-                                  <ThemedText style={styles.profileSub}>
-                                    {facebookScreenshot.name}
-                                  </ThemedText>
-                                ) : null}
-                                <Pressable
-                                  onPress={handleSubmitFacebookFollow}
-                                  disabled={
-                                    loading.facebookFollowSubmit ||
-                                    !facebookLinked ||
-                                    !FACEBOOK_PAGE_URL ||
-                                    !facebookScreenshot
-                                  }
+                              ) : (
+                                <ThemedText
                                   style={[
-                                    styles.primaryButton,
-                                    styles.fullWidthButton,
-                                    { backgroundColor: colors.tint },
-                                    (loading.facebookFollowSubmit ||
-                                      !facebookLinked ||
-                                      !FACEBOOK_PAGE_URL ||
-                                      !facebookScreenshot) && {
-                                      opacity: 0.6,
-                                    },
+                                    styles.outlineButtonText,
+                                    { color: colors.tint },
                                   ]}
                                 >
-                                  {loading.facebookFollowSubmit ? (
+                                  {facebookScreenshot
+                                    ? t("facebookScreenshotSelected")
+                                    : t("facebookScreenshotButton")}
+                                </ThemedText>
+                              )}
+                            </Pressable>
+                            {facebookScreenshot ? (
+                              <ThemedText style={styles.profileSub}>
+                                {facebookScreenshot.name}
+                              </ThemedText>
+                            ) : null}
+                            <Pressable
+                              onPress={handleSubmitFacebookFollow}
+                              disabled={
+                                loading.facebookFollowSubmit ||
+                                !facebookLinked ||
+                                !FACEBOOK_PAGE_URL ||
+                                !facebookScreenshot
+                              }
+                              style={[
+                                styles.primaryButton,
+                                styles.fullWidthButton,
+                                { backgroundColor: colors.tint },
+                                (loading.facebookFollowSubmit ||
+                                  !facebookLinked ||
+                                  !FACEBOOK_PAGE_URL ||
+                                  !facebookScreenshot) && {
+                                  opacity: 0.6,
+                                },
+                              ]}
+                            >
+                              {loading.facebookFollowSubmit ? (
                                     <FlexMarketLoader
                                       variant="inline"
                                       size="xs"
@@ -2837,72 +2837,72 @@ export function ProfileScreen() {
                                     <ThemedText
                                       style={styles.primaryButtonText}
                                     >
-                                      {t("facebookSubmitFollowProof")}
-                                    </ThemedText>
-                                  )}
-                                </Pressable>
+                                  {t("facebookSubmitFollowProof")}
+                                </ThemedText>
+                              )}
+                            </Pressable>
                               </View>
                             </View>
                           </View>
                         )}
 
-                        <View
-                          style={[
-                            styles.infoBox,
-                            { borderColor: colors.icon },
-                          ]}
-                        >
-                          <View style={styles.facebookStatusRow}>
-                            <ThemedText style={styles.infoLabel}>
-                              {t("facebookFollowLatestStatus")}
-                            </ThemedText>
-                            {latestFacebookFollowQuery.isFetching ? (
+                            <View
+                              style={[
+                                styles.infoBox,
+                                { borderColor: colors.icon },
+                              ]}
+                            >
+                              <View style={styles.facebookStatusRow}>
+                                <ThemedText style={styles.infoLabel}>
+                                  {t("facebookFollowLatestStatus")}
+                                </ThemedText>
+                                {latestFacebookFollowQuery.isFetching ? (
                               <FlexMarketLoader
                                 variant="inline"
                                 size="xs"
                                 showText={false}
                               />
-                            ) : null}
-                          </View>
-                          <ThemedText
-                            style={[
-                              styles.infoValue,
-                              { color: facebookFollowStatusColor },
-                            ]}
-                          >
-                            {facebookFollowStatus ||
-                              t("facebookFollowNoSubmission")}
-                          </ThemedText>
-                          {latestFacebookFollow?.facebookPageUrl ? (
-                            <Pressable
-                              onPress={() =>
-                                handleOpenUrl(
-                                  latestFacebookFollow.facebookPageUrl,
-                                )
-                              }
-                              style={styles.inlineLinkButton}
-                            >
+                                ) : null}
+                              </View>
                               <ThemedText
-                                style={{
-                                  color: colors.tint,
-                                  fontWeight: "700",
-                                }}
+                                style={[
+                                  styles.infoValue,
+                                  { color: facebookFollowStatusColor },
+                                ]}
                               >
-                                {t("facebookOpenPage")}
+                                {facebookFollowStatus ||
+                                  t("facebookFollowNoSubmission")}
                               </ThemedText>
-                            </Pressable>
-                          ) : null}
-                          {latestFacebookFollow?.adminNote ? (
-                            <ThemedText style={styles.profileSub}>
-                              {t("facebookFollowAdminNote")}:{" "}
-                              {latestFacebookFollow.adminNote}
-                            </ThemedText>
-                          ) : null}
-                        </View>
+                              {latestFacebookFollow?.facebookPageUrl ? (
+                                <Pressable
+                                  onPress={() =>
+                                    handleOpenUrl(
+                                      latestFacebookFollow.facebookPageUrl,
+                                    )
+                                  }
+                                  style={styles.inlineLinkButton}
+                                >
+                                  <ThemedText
+                                    style={{
+                                      color: colors.tint,
+                                      fontWeight: "700",
+                                    }}
+                                  >
+                                    {t("facebookOpenPage")}
+                                  </ThemedText>
+                                </Pressable>
+                              ) : null}
+                              {latestFacebookFollow?.adminNote ? (
+                                <ThemedText style={styles.profileSub}>
+                                  {t("facebookFollowAdminNote")}:{" "}
+                                  {latestFacebookFollow.adminNote}
+                                </ThemedText>
+                              ) : null}
+                            </View>
                       </View>
-                    </ProfileFadeIn>
-                  ) : null}
-                </ProfileAnimatedCard>
+                      </ProfileFadeIn>
+                    ) : null}
+                  </ProfileAnimatedCard>
 
                 <ProfileAnimatedCard
                   scheme={scheme}
@@ -2948,20 +2948,20 @@ export function ProfileScreen() {
                           <View style={styles.kbzStateContent}>
                             <ThemedText style={styles.kbzStateTitle}>
                               {t("kbzPayStartTitle")}
-                            </ThemedText>
-                            <ThemedText style={styles.profileSub}>
+                                </ThemedText>
+                          <ThemedText style={styles.profileSub}>
                               {t("kbzPayRequestIntro")}
-                            </ThemedText>
+                          </ThemedText>
 
                             <View
-                              style={[
+                          style={[
                                 styles.kbzPrerequisiteBox,
                                 { borderColor: colors.icon + "44" },
-                              ]}
-                            >
+                          ]}
+                        >
                               <ThemedText style={styles.kbzPrerequisiteTitle}>
                                 {t("kbzPayBeforeStart")}
-                              </ThemedText>
+                        </ThemedText>
                               {[
                                 {
                                   label: t("kbzPayPhoneRequirement"),
@@ -2976,8 +2976,8 @@ export function ProfileScreen() {
                                   key={item.label}
                                   style={styles.kbzRequirementRow}
                                 >
-                                  <MaterialIcons
-                                    name={
+                      <MaterialIcons
+                        name={
                                       item.ready
                                         ? "check-circle"
                                         : "radio-button-unchecked"
@@ -2987,7 +2987,7 @@ export function ProfileScreen() {
                                   />
                                   <ThemedText style={styles.kbzRequirementText}>
                                     {item.label}
-                                  </ThemedText>
+                            </ThemedText>
                                 </View>
                               ))}
                             </View>
@@ -3062,7 +3062,7 @@ export function ProfileScreen() {
                             </View>
                             <ThemedText style={styles.kbzStateTitle}>
                               {t("kbzPayWaitingTitle")}
-                            </ThemedText>
+                          </ThemedText>
                             <ThemedText
                               style={[
                                 styles.kbzCenteredText,
@@ -3130,55 +3130,55 @@ export function ProfileScreen() {
                                   { color: colors.text },
                                 ]}
                               >
-                                {t("kbzPayPendingHint")}
-                              </ThemedText>
+                              {t("kbzPayPendingHint")}
+                            </ThemedText>
                             </View>
 
                             <View style={styles.kbzInstructionRow}>
-                              <View
-                                style={[
+                            <View
+                              style={[
                                   styles.kbzInstructionNumber,
                                   { backgroundColor: colors.tint },
-                                ]}
-                              >
+                              ]}
+                            >
                                 <ThemedText style={styles.kbzInstructionNumberText}>
                                   1
                                 </ThemedText>
                               </View>
                               <View style={styles.kbzInstructionBody}>
-                                <ThemedText style={styles.infoLabel}>
-                                  {t("kbzPayAmountLabel")}
-                                </ThemedText>
+                              <ThemedText style={styles.infoLabel}>
+                                {t("kbzPayAmountLabel")}
+                              </ThemedText>
                                 <ThemedText
                                   style={[
                                     styles.kbzAmountValue,
                                     { color: colors.tint },
                                   ]}
                                 >
-                                  {t("kbzPayAmountValue")}
-                                </ThemedText>
-                              </View>
+                                {t("kbzPayAmountValue")}
+                              </ThemedText>
+                            </View>
                             </View>
 
                             <View style={styles.kbzInstructionRow}>
-                              <View
-                                style={[
+                            <View
+                              style={[
                                   styles.kbzInstructionNumber,
                                   { backgroundColor: colors.tint },
-                                ]}
-                              >
+                              ]}
+                            >
                                 <ThemedText style={styles.kbzInstructionNumberText}>
                                   2
                                 </ThemedText>
                               </View>
                               <View style={styles.kbzInstructionBody}>
-                                <ThemedText style={styles.infoLabel}>
-                                  {t("kbzPayAdminPhoneLabel")}
-                                </ThemedText>
+                              <ThemedText style={styles.infoLabel}>
+                                {t("kbzPayAdminPhoneLabel")}
+                              </ThemedText>
                                 <View style={styles.kbzCopyRow}>
                                   <ThemedText style={styles.kbzPhoneValue}>
-                                    {kbzAdminPhone}
-                                  </ThemedText>
+                                {kbzAdminPhone}
+                              </ThemedText>
                                   <Pressable
                                     onPress={handleCopyKbzPhone}
                                     style={[
@@ -3200,7 +3200,7 @@ export function ProfileScreen() {
                                       {t("actionCopy")}
                                     </ThemedText>
                                   </Pressable>
-                                </View>
+                            </View>
                               </View>
                             </View>
 
@@ -3220,12 +3220,12 @@ export function ProfileScreen() {
                                   color={colors.icon}
                                 />
                                 <View style={styles.kbzInstructionBody}>
-                                  <ThemedText style={styles.infoLabel}>
-                                    {t("kbzPayAdminNoteLabel")}
-                                  </ThemedText>
-                                  <ThemedText style={styles.infoValue}>
-                                    {kbzAdminNote}
-                                  </ThemedText>
+                                <ThemedText style={styles.infoLabel}>
+                                  {t("kbzPayAdminNoteLabel")}
+                                </ThemedText>
+                                <ThemedText style={styles.infoValue}>
+                                  {kbzAdminNote}
+                                </ThemedText>
                                 </View>
                               </View>
                             ) : null}
@@ -3242,9 +3242,9 @@ export function ProfileScreen() {
                                 </ThemedText>
                               </View>
                               <View style={styles.kbzInstructionBody}>
-                                <ThemedText style={styles.label}>
-                                  {t("kbzPayTxnIdLabel")}
-                                </ThemedText>
+                            <ThemedText style={styles.label}>
+                              {t("kbzPayTxnIdLabel")}
+                            </ThemedText>
                                 <ThemedText
                                   style={[
                                     styles.kbzInputHint,
@@ -3253,33 +3253,33 @@ export function ProfileScreen() {
                                 >
                                   {t("kbzPayTxnIdHelp")}
                                 </ThemedText>
-                                <TextInput
-                                  style={[
-                                    styles.input,
-                                    inputStyle,
-                                    kbzTransactionError
-                                      ? { borderColor: DANGER }
-                                      : null,
-                                  ]}
-                                  value={kbzTransactionId}
-                                  onChangeText={(value) => {
-                                    setKbzTransactionId(value);
-                                    if (kbzTransactionError)
-                                      setKbzTransactionError("");
-                                  }}
-                                  placeholder={t("kbzPayTxnIdPlaceholder")}
-                                  placeholderTextColor={colors.icon}
-                                  autoCapitalize="characters"
-                                  autoCorrect={false}
-                                  editable={
-                                    !loading.kbzSubmit && !kbzSubmitCoolingDown
-                                  }
-                                />
-                                {kbzTransactionError ? (
-                                  <ThemedText style={styles.error}>
-                                    {kbzTransactionError}
-                                  </ThemedText>
-                                ) : null}
+                            <TextInput
+                              style={[
+                                styles.input,
+                                inputStyle,
+                                kbzTransactionError
+                                  ? { borderColor: DANGER }
+                                  : null,
+                              ]}
+                              value={kbzTransactionId}
+                              onChangeText={(value) => {
+                                setKbzTransactionId(value);
+                                if (kbzTransactionError)
+                                  setKbzTransactionError("");
+                              }}
+                              placeholder={t("kbzPayTxnIdPlaceholder")}
+                              placeholderTextColor={colors.icon}
+                              autoCapitalize="characters"
+                              autoCorrect={false}
+                              editable={
+                                !loading.kbzSubmit && !kbzSubmitCoolingDown
+                              }
+                            />
+                            {kbzTransactionError ? (
+                              <ThemedText style={styles.error}>
+                                {kbzTransactionError}
+                              </ThemedText>
+                            ) : null}
                               </View>
                             </View>
 
@@ -3435,7 +3435,7 @@ export function ProfileScreen() {
                             </View>
                             <ThemedText style={styles.kbzStateTitle}>
                               {t("kbzPayVerifiedTitle")}
-                            </ThemedText>
+                          </ThemedText>
                             <ThemedText
                               style={[
                                 styles.kbzCenteredText,

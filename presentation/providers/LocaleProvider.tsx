@@ -3260,7 +3260,7 @@ By tapping Agree / Accept, you confirm that you have read and agree to these Ter
     ko: "위치 업데이트 시각: {time}",
     my: "တည်နေရာ အပ်ဒိတ် အချိန်: {time}",
     zh: "位置更新时间：{time}",
-      en: "Chat Location Updated At"
+    en: "Location updated: {time}",
   },
   chatLocationPermissionDenied: {
     ko: "위치 권한이 필요합니다.",
@@ -4018,7 +4018,7 @@ By tapping Agree / Accept, you confirm that you have read and agree to these Ter
     ko: "{km}km 이내",
     my: "{km}km အတွင်း",
     zh: "{km}公里内",
-      en: "Home Radius Filter Summary Within"
+    en: "Within {km} km",
   },
   homeRadiusFilterNoLocationHint: {
     ko: "위치를 활성화하면 반경 필터를 사용할 수 있습니다.",
@@ -4216,7 +4216,7 @@ By tapping Agree / Accept, you confirm that you have read and agree to these Ter
     ko: "+{points} 포인트",
     my: "+{points} ပွိုင့်",
     zh: "+{points} 积分",
-      en: "Home Reports Points Awarded"
+    en: "+{points} points",
   },
   homeSuggestionTab: {
     ko: "제안",
@@ -4903,16 +4903,22 @@ By tapping Agree / Accept, you confirm that you have read and agree to these Ter
     en: "Seller profile",
   },
   publicProfileRegion: {
-    ko: "지역: {region}",
-    my: "ဒေသ: {region}",
-    zh: "地区：{region}",
-      en: "Public Profile Region"
+    ko: "인증된 지역: {region}",
+    my: "အတည်ပြုထားသော ဒေသ: {region}",
+    zh: "已验证地区：{region}",
+    en: "Verified region: {region}",
+  },
+  publicProfileRegionUnverified: {
+    ko: "지역 미인증",
+    my: "ဒေသ မအတည်ပြုရသေး",
+    zh: "地区未验证",
+    en: "Region not verified",
   },
   publicProfileRatingSummary: {
     ko: "★ {avg} · 리뷰 {count}건",
     my: "★ {avg} · သုံးသပ်ချက် {count}",
     zh: "★ {avg} · {count} 条评价",
-      en: "Public Profile Rating Summary"
+    en: "★ {avg} · {count} reviews",
   },
   publicProfileMemberSince: {
     ko: "가입일",
@@ -4920,11 +4926,35 @@ By tapping Agree / Accept, you confirm that you have read and agree to these Ter
     zh: "注册时间",
     en: "Member since",
   },
+  publicProfileStatsSection: {
+    ko: "활동",
+    my: "လှုပ်ရှားမှု",
+    zh: "动态",
+    en: "Activity",
+  },
   publicProfileReviewsSection: {
     ko: "리뷰",
     my: "သုံးသပ်ချက်များ",
     zh: "评价",
     en: "Reviews",
+  },
+  publicProfileViewReviews: {
+    ko: "리뷰 보기 ({count})",
+    my: "သုံးသပ်ချက်များ ကြည့်ရန် ({count})",
+    zh: "查看评价（{count}）",
+    en: "View reviews ({count})",
+  },
+  publicProfileNoReviews: {
+    ko: "아직 리뷰가 없습니다.",
+    my: "သုံးသပ်ချက် မရှိသေးပါ။",
+    zh: "暂无评价。",
+    en: "No reviews yet.",
+  },
+  publicProfilePageOf: {
+    ko: "페이지 {page} / {total}",
+    my: "စာမျက်နှာ {page} / {total}",
+    zh: "第 {page} / {total} 页",
+    en: "Page {page} of {total}",
   },
   publicProfilePrev: {
     ko: "이전",
@@ -4942,7 +4972,7 @@ By tapping Agree / Accept, you confirm that you have read and agree to these Ter
     ko: "페이지 {page}",
     my: "စာမျက်နှာ {page}",
     zh: "第 {page} 页",
-      en: "Public Profile Page"
+    en: "Page {page}",
   },
   publicProfileNoComment: {
     ko: "코멘트 없음",
@@ -5259,19 +5289,19 @@ By tapping Agree / Accept, you confirm that you have read and agree to these Ter
     ko: "{count}개 이미지 선택됨",
     my: "ပုံ {count} ခု ရွေးထားသည်",
     zh: "已选择 {count} 张图片",
-      en: "Products Selected Images Count"
+    en: "{count} photos selected",
   },
   productsSelectedMapScreenshot: {
     ko: "선택된 스크린샷: {name}",
     my: "ရွေးထားသော screenshot: {name}",
     zh: "已选截图：{name}",
-      en: "Products Selected Map Screenshot"
+    en: "Selected screenshot: {name}",
   },
   productsExistingImagesCount: {
     ko: "현재 등록 이미지: {count}개",
     my: "လက်ရှိပုံများ: {count} ခု",
     zh: "当前图片：{count} 张",
-      en: "Products Existing Images Count"
+    en: "Current photos: {count}",
   },
   productsExistingMapScreenshot: {
     ko: "현재 지도 스크린샷이 등록되어 있습니다.",
@@ -5385,7 +5415,7 @@ By tapping Agree / Accept, you confirm that you have read and agree to these Ter
     ko: "선호 장소 {index} — 지도",
     my: "နှစ်သက်နေရာ {index} — မြေပုံ",
     zh: "偏好地点 {index} — 地图",
-      en: "Products Preferred Location Map Title"
+    en: "Preferred place {index} — map",
   },
   productsPreferredLocationMapHint: {
     ko: "지도를 탭하거나 핀을 드래그하면 이 장소의 좌표가 저장됩니다.",

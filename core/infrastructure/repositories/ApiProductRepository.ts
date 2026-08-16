@@ -160,10 +160,13 @@ function mapSellerReviewPage(data: unknown): SellerReviewPage {
           typeof item.reviewerNickname === "string"
             ? item.reviewerNickname.trim() || null
             : null,
-        reviewerAvatar:
-          typeof item.reviewerAvatar === "string" && item.reviewerAvatar.trim()
-            ? item.reviewerAvatar.trim()
-            : null,
+        reviewerAvatar: (() => {
+          const raw =
+            typeof item.reviewerAvatar === "string" && item.reviewerAvatar.trim()
+              ? item.reviewerAvatar.trim()
+              : null;
+          return raw ? toAbsoluteMediaUrl(raw) : null;
+        })(),
         createdAt:
           typeof item.createdAt === "string" && item.createdAt.trim()
             ? item.createdAt.trim()
@@ -206,10 +209,18 @@ function mapPublicUserProfile(data: unknown): PublicUserProfile | null {
   ) as PublicUserProfile["currentRank"];
   const avatarRaw = extractAvatarStringFromUnknown(row.avatar);
   const avatar = avatarRaw ? toAbsoluteMediaUrl(avatarRaw) : null;
-  const region =
-    typeof row.region === "string" && row.region.trim()
-      ? row.region.trim()
+  const nestedProfile =
+    row.profile != null &&
+    typeof row.profile === "object" &&
+    !Array.isArray(row.profile)
+      ? (row.profile as Record<string, unknown>)
       : null;
+  const regionRaw = row.region ?? nestedProfile?.region;
+  const region =
+    typeof regionRaw === "string" && regionRaw.trim()
+      ? regionRaw.trim()
+      : null;
+  const isRegionVerified = Boolean(region);
   const toNum = (value: unknown, fallback = 0) => {
     const n = Number(value);
     return Number.isFinite(n) ? n : fallback;
@@ -228,6 +239,7 @@ function mapPublicUserProfile(data: unknown): PublicUserProfile | null {
     avatar,
     referralCode,
     region,
+    isRegionVerified,
     currentRank,
     averageStars: toNum(row.averageStars),
     totalReviews: Math.max(0, Math.round(toNum(row.totalReviews))),
