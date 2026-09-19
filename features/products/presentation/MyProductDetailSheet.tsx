@@ -17,6 +17,7 @@ import {
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Alert,
@@ -217,6 +218,7 @@ export const MyProductDetailSheet = memo(function MyProductDetailSheet({
   onEdit,
 }: MyProductDetailSheetProps) {
   const { t, tf, locale } = useLocale();
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const scheme = colorScheme ?? "light";
   const colors = Colors[scheme];
@@ -268,6 +270,19 @@ export const MyProductDetailSheet = memo(function MyProductDetailSheet({
       setPhotoIndex(Math.min(Math.max(idx, 0), Math.max(images.length - 1, 0)));
     },
     [gallerySlideWidth, images.length],
+  );
+
+  const openBuyerProfile = useCallback(
+    (userId: string | null | undefined) => {
+      const id = userId?.trim();
+      if (!id) return;
+      void Haptics.selectionAsync();
+      router.push({
+        pathname: "/seller/[userId]",
+        params: { userId: id },
+      });
+    },
+    [router],
   );
 
   const onSetActiveDeal = useCallback(
@@ -670,10 +685,14 @@ export const MyProductDetailSheet = memo(function MyProductDetailSheet({
                     <View style={styles.activeDealList}>
                       {dealRooms.map((room) => {
                         const selected = activeDealChatRoomId === room.id;
+                        const buyerUserId =
+                          room.counterpartUserId?.trim() ||
+                          room.buyerId?.trim() ||
+                          null;
                         const buyerLabel =
                           room.counterpartNickname?.trim() ||
-                          room.counterpartUserId?.slice(0, 8) ||
-                          room.buyerId.slice(0, 8);
+                          buyerUserId?.slice(0, 8) ||
+                          "—";
                         return (
                           <View
                             key={room.id}
@@ -702,6 +721,24 @@ export const MyProductDetailSheet = memo(function MyProductDetailSheet({
                                   : t("productsActiveDealNotSelected")}
                               </ThemedText>
                             </View>
+                            {buyerUserId ? (
+                              <Pressable
+                                onPress={() => openBuyerProfile(buyerUserId)}
+                                hitSlop={8}
+                                style={[
+                                  styles.activeDealProfileBtn,
+                                  { borderColor: colors.tint + "55" },
+                                ]}
+                                accessibilityRole="button"
+                                accessibilityLabel={t("publicProfileViewBuyer")}
+                              >
+                                <MaterialIcons
+                                  name="person"
+                                  size={18}
+                                  color={colors.tint}
+                                />
+                              </Pressable>
+                            ) : null}
                             <Pressable
                               onPress={() => onSetActiveDeal(selected ? null : room.id)}
                               disabled={setActiveDealMutation.isPending}
@@ -1178,6 +1215,14 @@ const styles = StyleSheet.create({
   activeDealBuyer: {
     fontSize: 13,
     fontWeight: "800",
+  },
+  activeDealProfileBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   activeDealState: {
     fontSize: 11,

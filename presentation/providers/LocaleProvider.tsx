@@ -4866,6 +4866,12 @@ By tapping Agree / Accept, you confirm that you have read and agree to these Ter
     zh: "查看卖家资料",
     en: "View seller profile",
   },
+  publicProfileViewBuyer: {
+    ko: "구매자 프로필 보기",
+    my: "ဝယ်သူ ပရိုဖိုင်ကြည့်ရန်",
+    zh: "查看买家资料",
+    en: "View buyer profile",
+  },
   publicDetailLoadMoreReviews: {
     ko: "리뷰 더 보기",
     my: "သုံးသပ်ချက်များ ထပ်ကြည့်ရန်",

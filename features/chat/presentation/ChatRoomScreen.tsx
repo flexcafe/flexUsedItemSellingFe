@@ -638,6 +638,7 @@ export function ChatRoomScreen({
   const isSeller = Boolean(
     user?.id && roomMeta?.sellerId && user.id === roomMeta.sellerId,
   );
+  const buyerProfileUserId = isSeller ? counterpartUserId : null;
   const isTradeParticipant = isBuyer || isSeller;
   const canSelectActiveDealFromChat = Boolean(
     roomMeta?.listingId && isSeller,
@@ -2171,12 +2172,53 @@ export function ChatRoomScreen({
           >
             {resolvedListingTitle}
           </ThemedText>
-          <ThemedText style={styles.headerSubtitle} numberOfLines={1}>
-            {resolvedPeerName}
-          </ThemedText>
+          {buyerProfileUserId ? (
+            <Pressable
+              onPress={() => {
+                void Haptics.selectionAsync();
+                router.push({
+                  pathname: "/seller/[userId]",
+                  params: { userId: buyerProfileUserId },
+                });
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={t("publicProfileViewBuyer")}
+            >
+              <ThemedText style={styles.headerSubtitle} numberOfLines={1}>
+                {resolvedPeerName}
+              </ThemedText>
+              <ThemedText
+                style={[styles.headerProfileLink, { color: colors.tint }]}
+                numberOfLines={1}
+              >
+                {t("publicProfileViewBuyer")}
+              </ThemedText>
+            </Pressable>
+          ) : (
+            <ThemedText style={styles.headerSubtitle} numberOfLines={1}>
+              {resolvedPeerName}
+            </ThemedText>
+          )}
         </View>
         {counterpartUserId ? (
           <View style={styles.headerActions}>
+            {buyerProfileUserId ? (
+              <Pressable
+                onPress={() => {
+                  void Haptics.selectionAsync();
+                  router.push({
+                    pathname: "/seller/[userId]",
+                    params: { userId: buyerProfileUserId },
+                  });
+                }}
+                hitSlop={8}
+                style={styles.headerReportBtn}
+                accessibilityRole="button"
+                accessibilityLabel={t("publicProfileViewBuyer")}
+              >
+                <MaterialIcons name="person" size={20} color={colors.tint} />
+              </Pressable>
+            ) : null}
             <Pressable
               onPress={() => {
                 void Haptics.selectionAsync();
@@ -4105,6 +4147,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerSubtitle: { fontSize: 12, opacity: 0.65 },
+  headerProfileLink: { fontSize: 11, fontWeight: "800" },
   pendingLocationBanner: {
     marginHorizontal: 12,
     marginBottom: 8,
