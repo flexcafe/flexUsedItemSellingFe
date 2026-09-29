@@ -1,4 +1,5 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { usePathname, type Href } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -25,6 +26,7 @@ import {
 } from "@/core/domain/entities/ContentReport";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSubmitContentReport } from "@/presentation/hooks/useModerationReports";
+import { openLogin } from "@/presentation/lib/requireAuth";
 import { uiCardSurface } from "@/presentation/lib/uiAnimations";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
@@ -170,6 +172,7 @@ function readApiErrorMessage(error: unknown): string {
 export function ContentReportModal({ visible, target, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { t } = useLocale();
+  const pathname = usePathname();
   const { isAuthenticated } = useAuth();
   const submitReport = useSubmitContentReport();
   const colorScheme = useColorScheme();
@@ -209,10 +212,7 @@ export function ContentReportModal({ visible, target, onClose }: Props) {
   const onSubmit = async () => {
     if (!target?.targetId?.trim() || submitReport.isPending) return;
     if (!isAuthenticated) {
-      Alert.alert(
-        t("contentReportLoginRequiredTitle"),
-        t("contentReportLoginRequiredBody"),
-      );
+      openLogin(pathname as Href);
       return;
     }
     try {

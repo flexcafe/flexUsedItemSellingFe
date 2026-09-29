@@ -17,6 +17,7 @@ import {
   usePublicUserProfile,
   useSellerReviews,
 } from "@/presentation/hooks/useClientProducts";
+import { openLogin } from "@/presentation/lib/requireAuth";
 import {
   uiCardShadow,
   uiCardSurface,
@@ -30,7 +31,7 @@ import {
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Alert,
@@ -295,24 +296,24 @@ export function PublicSellerProfileScreen({ userId }: Props) {
   const openContentReport = useCallback(
     (target: ContentReportTarget) => {
       if (!isAuthenticated) {
-        Alert.alert(
-          t("contentReportLoginRequiredTitle"),
-          t("contentReportLoginRequiredBody"),
-        );
+        openLogin({
+          pathname: "/seller/[userId]",
+          params: { userId },
+        } as Href);
         return;
       }
       void Haptics.selectionAsync();
       setReportTarget(target);
     },
-    [isAuthenticated, t],
+    [isAuthenticated, userId],
   );
 
   const openBlockUser = useCallback(() => {
     if (!isAuthenticated) {
-      Alert.alert(
-        t("userBlockLoginRequiredTitle"),
-        t("userBlockLoginRequiredBody"),
-      );
+      openLogin({
+        pathname: "/seller/[userId]",
+        params: { userId },
+      } as Href);
       return;
     }
     if (isOwnProfile) {

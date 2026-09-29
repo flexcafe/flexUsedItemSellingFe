@@ -113,6 +113,21 @@ function mergeQueryIntoUrl(url: string, params?: unknown): string {
   return url.includes("?") ? `${url}&${qs}` : `${url}?${qs}`;
 }
 
+function requestSentAuthorization(headers: unknown): boolean {
+  if (!headers || typeof headers !== "object") return false;
+  const bag = headers as {
+    Authorization?: unknown;
+    authorization?: unknown;
+    get?: (name: string) => unknown;
+  };
+  if (typeof bag.get === "function") {
+    const value = bag.get("Authorization") ?? bag.get("authorization");
+    if (value != null && String(value).trim() !== "") return true;
+  }
+  const direct = bag.Authorization ?? bag.authorization;
+  return direct != null && String(direct).trim() !== "";
+}
+
 function headersToPlainStrings(
   headers?: AxiosRequestConfig["headers"],
 ): Record<string, string> {
@@ -161,7 +176,10 @@ export class HttpClient {
     this.client.interceptors.response.use(
       (response) => response,
       async (error) => {
-        if (error.response?.status === 401) {
+        if (
+          error.response?.status === 401 &&
+          requestSentAuthorization(error.config?.headers)
+        ) {
           await TokenStorage.clearTokens();
           this.onUnauthorized?.();
         }
@@ -210,7 +228,7 @@ export class HttpClient {
       // non-JSON body
     }
 
-    if (response.status === 401) {
+    if (response.status === 401 && requestSentAuthorization(headers)) {
       await TokenStorage.clearTokens();
       this.onUnauthorized?.();
     }

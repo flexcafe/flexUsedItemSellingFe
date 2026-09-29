@@ -4,11 +4,12 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { paddingTopInsideSafeAreaForLanguageSwitcher } from "@/constants/language-switcher-layout";
 import { ScreenTitleTypography } from "@/constants/typography";
 import { AppScrollView } from "@/components/app-scroll-view";
+import { openLogin } from "@/presentation/lib/requireAuth";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 /** Compact tiles to match reference (~square, many visible per row). */
@@ -81,7 +82,7 @@ export function HomeHero({
   onOpenContentReports,
 }: HomeHeroProps) {
   const router = useRouter();
-  const { logout } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const { t, categorySecondLine } = useLocale();
   const colorScheme = useColorScheme();
   const scheme = colorScheme ?? "light";
@@ -101,23 +102,41 @@ export function HomeHero({
           {t("homeMarketTitleFlex")}
         </Text>
         <Pressable
-          onPress={() => void logout()}
+          onPress={() => {
+            if (!isAuthenticated) {
+              openLogin();
+              return;
+            }
+            void logout();
+          }}
           style={({ pressed }) => [
             styles.logoutBtn,
             pressed && styles.pressed,
           ]}
           accessibilityRole="button"
-          accessibilityLabel={t("homeLogoutCaps")}
+          accessibilityLabel={
+            isAuthenticated ? t("homeLogoutCaps") : t("signIn")
+          }
         >
-          <MaterialIcons name="logout" size={15} color={tint} />
+          <MaterialIcons
+            name={isAuthenticated ? "logout" : "login"}
+            size={15}
+            color={tint}
+          />
           <Text style={[styles.logoutText, { color: tint }]} numberOfLines={1}>
-            {t("homeLogoutCaps")}
+            {isAuthenticated ? t("homeLogoutCaps") : t("signIn")}
           </Text>
         </Pressable>
       </View>
 
       <Pressable
-        onPress={() => router.push("/(tabs)/profile")}
+        onPress={() => {
+          if (!isAuthenticated) {
+            openLogin("/(tabs)/profile" as Href);
+            return;
+          }
+          router.push("/(tabs)/profile");
+        }}
         style={({ pressed }) => [
           styles.profileCard,
           pressed && styles.pressed,

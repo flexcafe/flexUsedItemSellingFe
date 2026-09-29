@@ -153,6 +153,12 @@ const DICT: Dictionary = {
     zh: "登录",
     en: "Sign in",
   },
+  browseAsGuest: {
+    ko: "로그인 없이 둘러보기",
+    my: "အကောင့်မလိုဘဲ ကြည့်မည်",
+    zh: "先随便看看",
+    en: "Browse without an account",
+  },
   forgotPassword: {
     ko: "비밀번호 찾기",
     my: "စကားဝှက် မေ့နေပါသလား",

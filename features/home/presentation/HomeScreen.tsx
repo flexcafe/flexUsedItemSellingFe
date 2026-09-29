@@ -11,6 +11,8 @@ import type { ClientCatalogRadiusSelection } from "@/core/domain/types/catalog";
 import { useBuyerCatalogLocation } from "@/presentation/hooks/useBuyerCatalogLocation";
 import { useCategories } from "@/presentation/hooks/useCategories";
 import { useClientProductsCatalog } from "@/presentation/hooks/useClientProducts";
+import { openLogin } from "@/presentation/lib/requireAuth";
+import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useBlockedUserIds } from "@/presentation/hooks/useModerationReports";
 import {
   uiCardShadow,
@@ -20,7 +22,7 @@ import {
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Pressable,
@@ -262,6 +264,7 @@ export function HomeScreen() {
     ],
   }));
 
+  const { isAuthenticated } = useAuth();
   const categoriesQuery = useCategories();
   const categories = useMemo(
     () => flattenCategories(categoriesQuery.data),
@@ -356,14 +359,28 @@ export function HomeScreen() {
           selectedCategoryId={selectedCategoryId}
           onSelectCategory={setSelectedCategoryId}
           onOpenSuggestion={() => {
+            if (!isAuthenticated) {
+              openLogin();
+              return;
+            }
             setReportsMode("suggestion");
             setReportsVisible(true);
           }}
           onOpenFraudReport={() => {
+            if (!isAuthenticated) {
+              openLogin();
+              return;
+            }
             setReportsMode("fraud");
             setReportsVisible(true);
           }}
-          onOpenContentReports={() => setContentReportsVisible(true)}
+          onOpenContentReports={() => {
+            if (!isAuthenticated) {
+              openLogin();
+              return;
+            }
+            setContentReportsVisible(true);
+          }}
         />
         <View style={styles.sliderSection}>
           <HomeSlider />
@@ -374,12 +391,17 @@ export function HomeScreen() {
           <AddProductListingButton
             horizontalPadding={16}
             style={styles.addListingButton}
-            onPress={() =>
-              router.push({
+            onPress={() => {
+              const href = {
                 pathname: "/(tabs)/products",
                 params: { openCreate: "1" },
-              })
-            }
+              } as Href;
+              if (!isAuthenticated) {
+                openLogin(href);
+                return;
+              }
+              router.push(href);
+            }}
           />
         </Animated.View>
         <Animated.View
@@ -490,6 +512,7 @@ export function HomeScreen() {
     [
       categories,
       categoriesQuery.isError,
+      isAuthenticated,
       colors.icon,
       colors.text,
       colors.tint,

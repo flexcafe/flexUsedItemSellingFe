@@ -3,10 +3,17 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { Slot, useRouter, useSegments, type Href } from "expo-router";
+import {
+  Slot,
+  useGlobalSearchParams,
+  usePathname,
+  useRouter,
+  useSegments,
+  type Href,
+} from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useState } from "react";
-import { View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { StyleSheet, View } from "react-native";
 import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -26,7 +33,13 @@ import type { IProductService } from "@/core/domain/services/IProductService";
 import type { IProfileService } from "@/core/domain/services/IProfileService";
 import type { ISliderAdService } from "@/core/domain/services/ISliderAdService";
 import container from "@/core/infrastructure/di/container";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import {
+  didRequestLogin,
+  finishAuthenticatedNavigation,
+  replaceWithLogin,
+} from "@/presentation/lib/requireAuth";
 import { NotificationToastRoot } from "@/presentation/components/notification-toast-root";
 import { AuthProvider, useAuth } from "@/presentation/providers/AuthProvider";
 import {
@@ -38,20 +51,54 @@ import { QueryProvider } from "@/presentation/providers/QueryProvider";
 import { RealtimeProvider } from "@/presentation/providers/RealtimeProvider";
 import { ServicesProvider } from "@/presentation/providers/ServicesProvider";
 
+const ACCOUNT_TABS = new Set([
+  "products",
+  "chats",
+  "notifications",
+  "profile",
+]);
+
+function isPublicBrowseRoute(segments: string[]): boolean {
+  const root = segments[0] ?? "";
+  if (root === "" || root === "(tabs)") {
+    const tab = root === "(tabs)" ? (segments[1] ?? "index") : "index";
+    return !ACCOUNT_TABS.has(tab);
+  }
+  return root === "product" || root === "seller" || root === "modal" || root === "verify";
+}
+
+function hrefFromLocation(
+  pathname: string,
+  params: Record<string, string | string[] | undefined>,
+): Href {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value == null) continue;
+    const single = Array.isArray(value) ? value[0] : value;
+    if (!single) continue;
+    query.set(key, single);
+  }
+  const qs = query.toString();
+  return (qs ? `${pathname}?${qs}` : pathname) as Href;
+}
+
 function AuthGate() {
   const { isAuthenticated, isLoading } = useAuth();
-  const {
-    isLoadingTerms,
-    isCheckingStatus,
-    statusReady,
-    hasPreAuthAcceptedCurrent,
-    needsAcceptance,
-  } = useLegalTerms();
+  const { isCheckingStatus, statusReady, needsAcceptance } = useLegalTerms();
   const segments = useSegments();
+  const pathname = usePathname();
+  const params = useGlobalSearchParams();
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
+  const sentGuestToLogin = useRef(false);
+
+  const blockNavigation =
+    isLoading || (isAuthenticated && (!statusReady || isCheckingStatus));
 
   useEffect(() => {
-    if (isLoading || isLoadingTerms) return;
+    if (isLoading) return;
     if (isAuthenticated && (!statusReady || isCheckingStatus)) return;
 
     const routeSegments = segments as string[];
@@ -60,19 +107,35 @@ function AuthGate() {
     const onTerms = authScreen === "terms";
 
     if (!isAuthenticated) {
-      if (!hasPreAuthAcceptedCurrent) {
-        if (!onTerms) router.replace("/(auth)/terms" as Href);
+      if (inAuthGroup) {
+        const openedOnPurpose = didRequestLogin();
+        const restoredAuthScreen =
+          authScreen === "" ||
+          authScreen === "login" ||
+          authScreen === "register" ||
+          authScreen === "forgot-password";
+        if (!openedOnPurpose && restoredAuthScreen) {
+          router.replace("/(tabs)" as Href);
+        }
+        sentGuestToLogin.current = false;
         return;
       }
-      if (onTerms) {
-        router.replace("/(auth)/login");
+      if (isPublicBrowseRoute(routeSegments)) {
+        sentGuestToLogin.current = false;
         return;
       }
-      if (!inAuthGroup) {
-        router.replace("/(auth)/login");
-      }
+      if (sentGuestToLogin.current) return;
+      sentGuestToLogin.current = true;
+      replaceWithLogin(
+        hrefFromLocation(
+          pathname,
+          paramsRef.current as Record<string, string | string[] | undefined>,
+        ),
+      );
       return;
     }
+
+    sentGuestToLogin.current = false;
 
     if (needsAcceptance) {
       if (!onTerms) router.replace("/(auth)/terms" as Href);
@@ -80,35 +143,38 @@ function AuthGate() {
     }
 
     if (inAuthGroup) {
-      router.replace("/(tabs)");
+      finishAuthenticatedNavigation();
     }
   }, [
     isAuthenticated,
     isLoading,
-    isLoadingTerms,
     isCheckingStatus,
     statusReady,
-    hasPreAuthAcceptedCurrent,
     needsAcceptance,
     segments,
+    pathname,
     router,
   ]);
 
-  if (
-    isLoading ||
-    isLoadingTerms ||
-    (isAuthenticated && (!statusReady || isCheckingStatus))
-  ) {
-    return (
-      <SafeAreaScreenWrapper mode="full">
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <FlexMarketLoader size="lg" />
+  return (
+    <View style={styles.gate}>
+      <Slot />
+      {blockNavigation ? (
+        <View
+          style={[
+            styles.bootOverlay,
+            { backgroundColor: Colors[colorScheme ?? "light"].background },
+          ]}
+        >
+          <SafeAreaScreenWrapper mode="full">
+            <View style={styles.bootCenter}>
+              <FlexMarketLoader size="lg" />
+            </View>
+          </SafeAreaScreenWrapper>
         </View>
-      </SafeAreaScreenWrapper>
-    );
-  }
-
-  return <Slot />;
+      ) : null}
+    </View>
+  );
 }
 
 export default function RootLayout() {
@@ -168,3 +234,18 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  gate: {
+    flex: 1,
+  },
+  bootOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 20,
+  },
+  bootCenter: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});

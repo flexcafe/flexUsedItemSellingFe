@@ -1,4 +1,5 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { usePathname, type Href } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -19,6 +20,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useBlockUser } from "@/presentation/hooks/useModerationReports";
+import { openLogin } from "@/presentation/lib/requireAuth";
 import { uiCardSurface } from "@/presentation/lib/uiAnimations";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
@@ -55,6 +57,7 @@ export function BlockUserModal({
 }: Props) {
   const insets = useSafeAreaInsets();
   const { t } = useLocale();
+  const pathname = usePathname();
   const { isAuthenticated, user } = useAuth();
   const blockUser = useBlockUser();
   const colorScheme = useColorScheme();
@@ -81,10 +84,7 @@ export function BlockUserModal({
     const blockedUserId = target?.userId?.trim();
     if (!blockedUserId || blockUser.isPending) return;
     if (!isAuthenticated) {
-      Alert.alert(
-        t("userBlockLoginRequiredTitle"),
-        t("userBlockLoginRequiredBody"),
-      );
+      openLogin(pathname as Href);
       return;
     }
     if (user?.id && user.id === blockedUserId) {

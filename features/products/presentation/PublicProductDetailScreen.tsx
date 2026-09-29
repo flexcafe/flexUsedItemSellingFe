@@ -27,6 +27,7 @@ import {
   ContentReportModal,
   type ContentReportTarget,
 } from "@/presentation/components/ContentReportModal";
+import { openLogin } from "@/presentation/lib/requireAuth";
 import { uiCardShadow, uiSectionEnter } from "@/presentation/lib/uiAnimations";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import {
@@ -42,7 +43,7 @@ import {
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import {
   memo,
   useCallback,
@@ -685,16 +686,16 @@ export function PublicProductDetailScreen({ productId }: Props) {
   const openContentReport = useCallback(
     (target: ContentReportTarget) => {
       if (!isAuthenticated) {
-        Alert.alert(
-          t("contentReportLoginRequiredTitle"),
-          t("contentReportLoginRequiredBody"),
-        );
+        openLogin({
+          pathname: "/product/[productId]",
+          params: { productId },
+        } as Href);
         return;
       }
       void Haptics.selectionAsync();
       setReportTarget(target);
     },
-    [isAuthenticated, t],
+    [isAuthenticated, productId],
   );
 
   const screenBackButton = (
@@ -1334,6 +1335,13 @@ export function PublicProductDetailScreen({ productId }: Props) {
         <AnimatedPressable
           onPress={() => {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (!isAuthenticated) {
+              openLogin({
+                pathname: "/product/[productId]",
+                params: { productId },
+              } as Href);
+              return;
+            }
             const sellerId = product.seller?.userId;
             if (!sellerId || openChatRoom.isPending) return;
             openChatRoom.mutate(

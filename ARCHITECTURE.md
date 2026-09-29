@@ -125,10 +125,10 @@ app/ → features/ → presentation/ → core/application/ → core/domain/
 
 1. App launches → `AuthProvider` calls `AuthService.bootstrap()` (delegates token check + profile hydration behind abstractions)
 2. If token exists → calls `getProfile()` to validate and hydrate user state
-3. If no token or invalid → `AuthGate` redirects to `(auth)/login`
+3. If no token or invalid → guest stays on public browse routes (home catalog, product detail, categories, public seller profile). Account-only routes open `(auth)/login` and return to that screen after sign-in
 4. Login → `AuthService.login()` → repository persists token (infrastructure concern) → updates context
 5. `HttpClient` interceptor reads token from `TokenStorage` for every request
-6. On 401 → clears tokens, triggers logout, redirects to login
+6. On 401 from a request that sent a token → clears tokens, triggers logout, redirects to login
 7. Logout → `AuthService.logout()` clears tokens, clears React Query cache, resets auth state
 
 ## Environment Variables

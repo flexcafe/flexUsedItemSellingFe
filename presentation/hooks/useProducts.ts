@@ -6,6 +6,7 @@ import type {
   ProductUpdateInput,
 } from "@/core/domain/types/product";
 import { CLIENT_PRODUCTS_QUERY_KEY } from "@/presentation/hooks/useClientProducts";
+import { useAuth } from "../providers/AuthProvider";
 import { useServices } from "../providers/ServicesProvider";
 
 const PRODUCTS_KEY = ["products"] as const;
@@ -13,6 +14,7 @@ const MY_PRODUCTS_KEY = [...PRODUCTS_KEY, "my"] as const;
 
 export function useProducts(params?: MyProductListParams) {
   const { productService } = useServices();
+  const { isAuthenticated, isLoading } = useAuth();
   const limit = params?.limit ?? 20;
   const status = params?.status ?? null;
   return useInfiniteQuery({
@@ -22,6 +24,7 @@ export function useProducts(params?: MyProductListParams) {
       productService.getMyList({ page: pageParam as number, limit, status: params?.status }),
     getNextPageParam: (lastPage) =>
       lastPage.hasNextPage ? lastPage.page + 1 : undefined,
+    enabled: !isLoading && isAuthenticated,
   });
 }
 

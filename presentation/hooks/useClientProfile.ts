@@ -6,6 +6,7 @@ import type {
   UploadFile,
 } from "@/core/domain/types/profile";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "../providers/AuthProvider";
 import { useServices } from "../providers/ServicesProvider";
 
 export const FACEBOOK_FOLLOW_SUBMISSION_QUERY_KEY = [
@@ -47,9 +48,11 @@ export function useLinkFacebookAccount() {
 
 export function useLatestFacebookFollowSubmission() {
   const { profileService } = useServices();
+  const { isAuthenticated, isLoading } = useAuth();
   return useQuery({
     queryKey: FACEBOOK_FOLLOW_SUBMISSION_QUERY_KEY,
     queryFn: () => profileService.getLatestFacebookFollowSubmission(),
+    enabled: !isLoading && isAuthenticated,
   });
 }
 

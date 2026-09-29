@@ -1,4 +1,4 @@
-import { Tabs } from "expo-router";
+import { Tabs, type Href } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -9,6 +9,8 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useChatRoomsUnreadCount } from "@/presentation/hooks/useClientChat";
 import { useNotifications } from "@/presentation/hooks/useNotifications";
+import { openLogin } from "@/presentation/lib/requireAuth";
+import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 
 function TabIconWithBadge({
@@ -35,9 +37,20 @@ function TabIconWithBadge({
   );
 }
 
+function accountTabListeners(isAuthenticated: boolean, href: Href) {
+  return {
+    tabPress: (event: { preventDefault: () => void }) => {
+      if (isAuthenticated) return;
+      event.preventDefault();
+      openLogin(href);
+    },
+  };
+}
+
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { t } = useLocale();
+  const { isAuthenticated } = useAuth();
   const notificationsQuery = useNotifications(20);
   const unreadCount =
     notificationsQuery.data?.filter((item) => !item.isRead).length ?? 0;
@@ -63,6 +76,10 @@ export default function TabLayout() {
         />
         <Tabs.Screen
           name="products"
+          listeners={accountTabListeners(
+            isAuthenticated,
+            "/(tabs)/products" as Href,
+          )}
           options={{
             title: t("tabsProducts"),
             tabBarIcon: ({ color }) => (
@@ -78,6 +95,7 @@ export default function TabLayout() {
         />
         <Tabs.Screen
           name="chats"
+          listeners={accountTabListeners(isAuthenticated, "/(tabs)/chats" as Href)}
           options={{
             title: t("tabsChats"),
             tabBarIcon: ({ color }) => (
@@ -91,6 +109,10 @@ export default function TabLayout() {
         />
         <Tabs.Screen
           name="notifications"
+          listeners={accountTabListeners(
+            isAuthenticated,
+            "/(tabs)/notifications" as Href,
+          )}
           options={{
             title: t("tabsNotifications"),
             tabBarIcon: ({ color }) => (
@@ -104,6 +126,10 @@ export default function TabLayout() {
         />
         <Tabs.Screen
           name="profile"
+          listeners={accountTabListeners(
+            isAuthenticated,
+            "/(tabs)/profile" as Href,
+          )}
           options={{
             title: t("tabsProfile"),
             tabBarIcon: ({ color }) => (

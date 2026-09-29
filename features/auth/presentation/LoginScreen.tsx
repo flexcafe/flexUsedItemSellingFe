@@ -24,6 +24,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { clearAuthReturn } from "@/presentation/lib/requireAuth";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import { useLocale } from "@/presentation/providers/LocaleProvider";
 
@@ -305,7 +306,21 @@ export function LoginScreen() {
               </Pressable>
             </AuthStaggerItem>
 
-            <AuthStaggerItem index={5} reduceMotion={reduceMotion}>
+            <AuthStaggerItem index={5} reduceMotion={reduceMotion} style={styles.browseRow}>
+              <Pressable
+                disabled={isSubmitting}
+                onPress={() => {
+                  clearAuthReturn();
+                  router.replace("/(tabs)" as Href);
+                }}
+              >
+                <ThemedText style={[styles.signUpLink, { color: colors.tint }]}>
+                  {t("browseAsGuest")}
+                </ThemedText>
+              </Pressable>
+            </AuthStaggerItem>
+
+            <AuthStaggerItem index={6} reduceMotion={reduceMotion}>
               <AppVersionLabel style={styles.versionLabel} />
             </AuthStaggerItem>
           </View>
@@ -407,6 +422,10 @@ const styles = StyleSheet.create({
   signUpLink: {
     fontWeight: "700",
     fontSize: 14,
+  },
+  browseRow: {
+    alignItems: "center",
+    marginTop: 16,
   },
   versionLabel: {
     marginTop: 8,

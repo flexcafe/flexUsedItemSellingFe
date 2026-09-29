@@ -103,7 +103,6 @@ export function TermsScreen() {
       }
       if (isReaccept) {
         await acceptCurrentTerms();
-        router.replace("/(tabs)");
         return;
       }
       await agreePreAuth();

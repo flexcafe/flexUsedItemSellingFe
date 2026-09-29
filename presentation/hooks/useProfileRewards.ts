@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "../providers/AuthProvider";
 import { useServices } from "../providers/ServicesProvider";
 
 const PROFILE_REWARDS_KEY = ["profile", "rewards"] as const;
@@ -19,25 +20,31 @@ export function useRankConfigs() {
 
 export function useProfilePoints() {
   const { profileService } = useServices();
+  const { isAuthenticated, isLoading } = useAuth();
   return useQuery({
     queryKey: PROFILE_POINTS_KEY,
     queryFn: () => profileService.getPointsSummary(),
+    enabled: !isLoading && isAuthenticated,
   });
 }
 
 export function useProfileTransactionStats() {
   const { profileService } = useServices();
+  const { isAuthenticated, isLoading } = useAuth();
   return useQuery({
     queryKey: PROFILE_STATS_KEY,
     queryFn: () => profileService.getTransactionStats(),
+    enabled: !isLoading && isAuthenticated,
   });
 }
 
 export function useWithdrawalRequests() {
   const { profileService } = useServices();
+  const { isAuthenticated, isLoading } = useAuth();
   return useQuery({
     queryKey: PROFILE_WITHDRAWALS_KEY,
     queryFn: () => profileService.getWithdrawalRequests(),
+    enabled: !isLoading && isAuthenticated,
   });
 }
 
