@@ -2390,6 +2390,12 @@ By tapping Agree / Accept, you confirm that you have read and agree to these Ter
   tabsProfile: { ko: "프로필", my: "ပရိုဖိုင်", zh: "个人资料", en: "Profile" },
   tabsNotifications: { ko: "알림", my: "အသိပေးချက်", zh: "通知", en: "Notifications" },
   tabsChats: { ko: "채팅", my: "ချတ်", zh: "聊天", en: "Chats" },
+  chatIncomingMessage: {
+    ko: "새 메시지",
+    my: "မက်ဆေ့အသစ်",
+    zh: "新消息",
+    en: "New message",
+  },
   chatInboxTitle: { ko: "채팅함", my: "ချတ်စာများ", zh: "聊天收件箱", en: "Chats" },
   chatInboxSubtitle: {
     ko: "구매·판매 대화를 한곳에서 확인하세요. 판매자는 구매자가 첫 메시지를 보낸 뒤에만 알림을 받습니다.",

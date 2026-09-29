@@ -2,23 +2,30 @@ import type { ClientNotificationDto } from "@/core/application/dtos/Notification
 import { toClientNotification } from "@/core/application/mappers/NotificationMapper";
 import type { ClientNotification } from "@/core/domain/entities/Notification";
 import { API_CONFIG, API_ENDPOINTS } from "@/core/infrastructure/api/constants";
+import { CLIENT_CHAT_QUERY_KEY } from "@/presentation/hooks/useClientChat";
 import {
   CLIENT_NOTIFICATIONS_DEFAULT_LIMIT,
   CLIENT_NOTIFICATIONS_QUERY_KEY,
 } from "@/presentation/hooks/useNotifications";
+import { isChatNotification } from "@/presentation/i18n/notifications";
+import { openChatLiveSocket } from "@/presentation/lib/chatLiveSocket";
+import { openUserLiveChannel } from "@/presentation/lib/userLiveChannel";
 import { showIncomingNotificationToast } from "@/presentation/notifications/show-incoming-notification-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePathname } from "expo-router";
 import { useEffect, useRef, type ReactNode } from "react";
-import { Platform } from "react-native";
+import * as Haptics from "expo-haptics";
+import Toast from "react-native-toast-message";
 import { useAuth } from "./AuthProvider";
+import { useLegalTerms } from "./LegalTermsProvider";
 import { useLocale } from "./LocaleProvider";
 import { useServices } from "./ServicesProvider";
 
 const PUSHER_KEY = process.env.EXPO_PUBLIC_PUSHER_KEY ?? "";
 const PUSHER_CLUSTER = process.env.EXPO_PUBLIC_PUSHER_CLUSTER ?? "";
 const POLL_INTERVAL_MS = 5000;
-const ENABLE_PUSHER_ON_ANDROID =
-  process.env.EXPO_PUBLIC_ENABLE_PUSHER_ANDROID === "1";
+/** Wait until home is on screen before opening the live socket. */
+const LIVE_START_DELAY_MS = 800;
 
 function unwrapMaybeJson(value: unknown): unknown {
   if (typeof value !== "string") return value;
@@ -53,6 +60,44 @@ function extractNotificationDto(
     : null;
 }
 
+function readRecord(value: unknown): Record<string, unknown> | null {
+  return value != null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function readChatRoomId(payload: unknown): string | null {
+  const row = readRecord(payload);
+  if (!row) return null;
+  if (typeof row.chatRoomId === "string" && row.chatRoomId) return row.chatRoomId;
+  const message = readRecord(row.message);
+  if (typeof message?.chatRoomId === "string" && message.chatRoomId) {
+    return message.chatRoomId;
+  }
+  return null;
+}
+
+function readSenderId(payload: unknown): string | null {
+  const row = readRecord(payload);
+  if (!row) return null;
+  if (typeof row.senderId === "string" && row.senderId) return row.senderId;
+  const message = readRecord(row.message);
+  if (typeof message?.senderId === "string" && message.senderId) {
+    return message.senderId;
+  }
+  return null;
+}
+
+function readMessageId(payload: unknown): string | null {
+  const row = readRecord(payload);
+  if (!row) return null;
+  if (typeof row.messageId === "string" && row.messageId) return row.messageId;
+  if (typeof row.id === "string" && row.id) return row.id;
+  const message = readRecord(row.message);
+  if (typeof message?.id === "string" && message.id) return message.id;
+  return null;
+}
+
 function parseNotificationPayload(rawData: unknown): ClientNotification | null {
   const dto = extractNotificationDto(rawData);
   if (!dto) return null;
@@ -60,21 +105,35 @@ function parseNotificationPayload(rawData: unknown): ClientNotification | null {
   return notification.id ? notification : null;
 }
 
-export function RealtimeProvider({ children }: { children: ReactNode }) {
+export function RealtimeProvider({
+  children,
+  liveEnabled = true,
+}: {
+  children: ReactNode;
+  /** False while the launch splash is covering the app. */
+  liveEnabled?: boolean;
+}) {
   const { isAuthenticated, user } = useAuth();
+  const { statusReady, isCheckingStatus } = useLegalTerms();
   const { locale, tf, t } = useLocale();
   const { notificationService } = useServices();
   const qc = useQueryClient();
 
-  /** Pusher must not reconnect on locale change (native Android can NPE); toast uses latest copy. */
+  /** Toast copy follows the current locale without reconnecting the socket. */
+  const pathname = usePathname();
   const localeRef = useRef(locale);
   const tfRef = useRef(tf);
   const tRef = useRef(t);
+  const pathnameRef = useRef(pathname);
+  const userIdRef = useRef(user?.id);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const bootstrappedRef = useRef(false);
+  const lastChatToastRef = useRef("");
   localeRef.current = locale;
   tfRef.current = tf;
   tRef.current = t;
+  pathnameRef.current = pathname;
+  userIdRef.current = user?.id;
 
   useEffect(() => {
     if (!isAuthenticated || !user?.id || !user.accessToken) {
@@ -122,6 +181,9 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           refetchType: "active",
         });
       }
+      if (fresh.some((item) => isChatNotification(item))) {
+        void qc.invalidateQueries({ queryKey: CLIENT_CHAT_QUERY_KEY });
+      }
     };
 
     const pollOnce = async () => {
@@ -147,110 +209,148 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     };
   }, [isAuthenticated, notificationService, qc, user?.accessToken, user?.id]);
 
+  const accessTokenRef = useRef(user?.accessToken);
+  accessTokenRef.current = user?.accessToken;
+
   useEffect(() => {
-    if (!isAuthenticated || !user?.id || !user.accessToken) return;
+    if (!liveEnabled) return;
+    if (!isAuthenticated || !user?.id || !accessTokenRef.current) return;
+    if (!statusReady || isCheckingStatus) return;
     if (!PUSHER_KEY || !PUSHER_CLUSTER) return;
-    if (Platform.OS === "android" && !ENABLE_PUSHER_ON_ANDROID) return;
 
-    let mounted = true;
+    let channel: ReturnType<typeof openUserLiveChannel> | null = null;
+    const token = accessTokenRef.current;
     const channelName = `private-user-${user.id}`;
-    type PusherClient = {
-      init: (args: unknown) => Promise<void>;
-      subscribe: (args: unknown) => Promise<void>;
-      connect: () => Promise<void>;
-      unsubscribe: (args: unknown) => Promise<void>;
-      disconnect: () => Promise<void>;
-    };
 
-    let pusher: PusherClient | null = null;
-
-    (async () => {
-      try {
-        // IMPORTANT: In Expo Go / managed workflow, this native module isn't available.
-        // We load it dynamically to avoid crashing the whole app.
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const mod = require("@pusher/pusher-websocket-react-native") as {
-          Pusher?: { getInstance: () => PusherClient };
-        };
-        pusher = mod?.Pusher?.getInstance?.() ?? null;
-        if (!pusher) return;
-
-        await pusher.init({
-          apiKey: PUSHER_KEY,
-          cluster: PUSHER_CLUSTER,
-          authEndpoint: `${API_CONFIG.BASE_URL}${API_ENDPOINTS.PUSHER.AUTH}`,
-          auth: {
-            headers: {
-              Authorization: `Bearer ${user.accessToken}`,
+    const startTimer = setTimeout(() => {
+      if (!token) return;
+      channel = openUserLiveChannel({
+        key: PUSHER_KEY,
+        cluster: PUSHER_CLUSTER,
+        channelName,
+        authEndpoint: `${API_CONFIG.BASE_URL}${API_ENDPOINTS.PUSHER.AUTH}`,
+        token,
+        onEvent: (eventName, data) => {
+          const looksLikeChat =
+            eventName.toLowerCase().includes("chat") ||
+            eventName.toLowerCase().includes("message");
+          if (eventName !== "notification.created") {
+            if (looksLikeChat) {
+              void qc.invalidateQueries({ queryKey: CLIENT_CHAT_QUERY_KEY });
+            }
+            return;
+          }
+          const incoming = parseNotificationPayload(data);
+          if (!incoming) {
+            if (looksLikeChat) {
+              void qc.invalidateQueries({ queryKey: CLIENT_CHAT_QUERY_KEY });
+            }
+            return;
+          }
+          const listKey = [
+            ...CLIENT_NOTIFICATIONS_QUERY_KEY,
+            CLIENT_NOTIFICATIONS_DEFAULT_LIMIT,
+          ] as const;
+          const existing = qc.getQueryData<ClientNotification[]>(listKey) ?? [];
+          const isNew =
+            !existing.some((item) => item.id === incoming.id) &&
+            !seenIdsRef.current.has(incoming.id);
+          seenIdsRef.current.add(incoming.id);
+          qc.setQueriesData(
+            { queryKey: CLIENT_NOTIFICATIONS_QUERY_KEY },
+            (prev: ClientNotification[] | undefined) => {
+              const list = prev ?? [];
+              if (list.some((item) => item.id === incoming.id)) return list;
+              return [incoming, ...list];
             },
-          },
-        });
-
-        await pusher.subscribe({
-          channelName,
-          onEvent: (event: { eventName?: string; data?: unknown }) => {
-            if (event.eventName !== "notification.created") return;
-            const incoming = parseNotificationPayload(event.data);
-            if (!incoming) return;
-            const listKey = [
-              ...CLIENT_NOTIFICATIONS_QUERY_KEY,
-              CLIENT_NOTIFICATIONS_DEFAULT_LIMIT,
-            ] as const;
-            const existing =
-              qc.getQueryData<ClientNotification[]>(listKey) ?? [];
-            const isNew =
-              !existing.some((item) => item.id === incoming.id) &&
-              !seenIdsRef.current.has(incoming.id);
-            seenIdsRef.current.add(incoming.id);
-            qc.setQueriesData(
-              { queryKey: CLIENT_NOTIFICATIONS_QUERY_KEY },
-              (prev: ClientNotification[] | undefined) => {
-                const list = prev ?? [];
-                if (list.some((item) => item.id === incoming.id)) return list;
-                return [incoming, ...list];
-              },
+          );
+          if (isNew || !bootstrappedRef.current) {
+            showIncomingNotificationToast(
+              incoming,
+              localeRef.current,
+              tfRef.current,
+              tRef.current("tabsNotifications"),
             );
-            if (isNew || !bootstrappedRef.current) {
-              showIncomingNotificationToast(
-                incoming,
-                localeRef.current,
-                tfRef.current,
-                tRef.current("tabsNotifications"),
-              );
-            }
-            bootstrappedRef.current = true;
-            if (isNew) {
-              void qc.invalidateQueries({
-                queryKey: CLIENT_NOTIFICATIONS_QUERY_KEY,
-                refetchType: "active",
-              });
-            }
-          },
-        });
-
-        if (mounted) {
-          await pusher.connect();
-        }
-      } catch {
-        // Swallow: realtime is optional and should not break app startup.
-      }
-    })();
+          }
+          bootstrappedRef.current = true;
+          if (isNew) {
+            void qc.invalidateQueries({
+              queryKey: CLIENT_NOTIFICATIONS_QUERY_KEY,
+              refetchType: "active",
+            });
+          }
+          if (isChatNotification(incoming)) {
+            void qc.invalidateQueries({ queryKey: CLIENT_CHAT_QUERY_KEY });
+          }
+        },
+      });
+    }, LIVE_START_DELAY_MS);
 
     return () => {
-      mounted = false;
-      if (!pusher) return;
-      try {
-        void pusher.unsubscribe({ channelName });
-      } catch {
-        // Native bridge can throw if already torn down.
-      }
-      try {
-        void pusher.disconnect();
-      } catch {
-        // Same as above.
-      }
+      clearTimeout(startTimer);
+      channel?.close();
     };
-  }, [isAuthenticated, qc, user?.accessToken, user?.id]);
+  }, [
+    isAuthenticated,
+    isCheckingStatus,
+    liveEnabled,
+    qc,
+    statusReady,
+    user?.id,
+  ]);
+
+  useEffect(() => {
+    if (!liveEnabled) return;
+    if (!isAuthenticated || !user?.id || !accessTokenRef.current) return;
+    if (!statusReady || isCheckingStatus) return;
+
+    let live: ReturnType<typeof openChatLiveSocket> = null;
+    const token = accessTokenRef.current;
+
+    const startTimer = setTimeout(() => {
+      if (!token) return;
+      live = openChatLiveSocket({
+        baseUrl: API_CONFIG.BASE_URL,
+        token,
+        onEvent: (eventName, payload) => {
+          void qc.invalidateQueries({ queryKey: CLIENT_CHAT_QUERY_KEY });
+          if (
+            eventName !== "chat.message.sent" &&
+            eventName !== "chat.room.updated"
+          ) {
+            return;
+          }
+          const senderId = readSenderId(payload);
+          if (senderId && senderId === userIdRef.current) return;
+          const roomId = readChatRoomId(payload);
+          if (roomId && pathnameRef.current.includes(roomId)) return;
+          const toastKey = `${roomId ?? ""}:${readMessageId(payload) ?? eventName}`;
+          if (lastChatToastRef.current === toastKey) return;
+          lastChatToastRef.current = toastKey;
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          Toast.show({
+            type: "notification",
+            text1: tRef.current("chatIncomingMessage"),
+            visibilityTime: 7000,
+            swipeable: true,
+            position: "bottom",
+          });
+        },
+      });
+    }, LIVE_START_DELAY_MS);
+
+    return () => {
+      clearTimeout(startTimer);
+      live?.close();
+    };
+  }, [
+    isAuthenticated,
+    isCheckingStatus,
+    liveEnabled,
+    qc,
+    statusReady,
+    user?.id,
+  ]);
 
   return children;
 }

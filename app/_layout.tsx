@@ -214,7 +214,7 @@ export default function RootLayout() {
             <LocaleProvider>
               <AuthProvider>
                 <LegalTermsProvider>
-                  <RealtimeProvider>
+                  <RealtimeProvider liveEnabled={!showLaunch}>
                     <View style={{ flex: 1 }}>
                       <AuthGate />
                       <LanguageSwitcher />
