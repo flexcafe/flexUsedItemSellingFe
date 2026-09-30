@@ -1,5 +1,5 @@
 # Privacy Policy for Flex Used Market
-**Last Updated:** June 6, 2026
+**Last Updated:** September 30, 2026
 
 ## 1. Introduction
 Flex Used Market ("we", "us", or "our") respects your privacy. This Privacy Policy explains how we collect, use, disclose, and protect information when you use the Flex Used Market mobile application and related services.
@@ -15,8 +15,6 @@ When you create an account, use the app, or submit forms, you may provide:
 - Phone number
 - Email address
 - Password
-- Gender, age, and marital status
-- Region or general location
 - KBZ Pay name and phone number
 - Referral code or inviter information
 - Profile photo or avatar
@@ -26,8 +24,8 @@ When you create an account, use the app, or submit forms, you may provide:
 
 ### Location information
 The app may request access to your device location for features such as:
-- Verifying your registration region
 - Showing nearby or relevant marketplace content
+- Setting a listing meetup or trade location
 - Supporting chat and direct-trade location features
 
 Depending on how you use the app, we may collect:

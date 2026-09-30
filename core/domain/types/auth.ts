@@ -5,8 +5,6 @@ export type LoginCredentials =
   | { mode: "email"; email: string; password: string };
 
 export type RegistrationType = "PHONE_AND_FACEBOOK" | "PHONE_ONLY";
-export type Gender = "MALE" | "FEMALE";
-export type MaritalStatus = "SINGLE" | "MARRIED";
 
 export interface RegisterInput {
   registrationType: RegistrationType;
@@ -18,12 +16,6 @@ export interface RegisterInput {
   facebookId?: string;
   kbzPayName: string;
   kbzPayPhoneNumber: string;
-  gender: Gender;
-  age: number;
-  maritalStatus: MaritalStatus;
-  region: string;
-  gpsLatitude: number;
-  gpsLongitude: number;
   referralId?: string;
   acceptedTerms: true;
   termsVersion: string;

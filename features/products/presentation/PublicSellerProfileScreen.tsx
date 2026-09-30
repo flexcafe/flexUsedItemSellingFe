@@ -58,7 +58,6 @@ type Props = { userId: string };
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const SECTION_STAGGER_MS = 48;
-const SUCCESS = "#16a34a";
 const STAR = "#FB6D00";
 const CARD_SHADOW = {
   iosOffsetLight: 8,
@@ -217,8 +216,6 @@ export function PublicSellerProfileScreen({ userId }: Props) {
   });
   const profile = profileQuery.data;
   const isOwnProfile = Boolean(user?.id && user.id === userId);
-  const regionLabel = profile?.region?.trim() || "";
-  const hasVerifiedRegion = regionLabel.length > 0;
 
   const surface = uiCardSurface(scheme);
   const borderColor = colors.icon + "22";
@@ -500,39 +497,6 @@ export function PublicSellerProfileScreen({ userId }: Props) {
                     })}
                   </ThemedText>
                 </View>
-              </View>
-
-              <View
-                style={[
-                  styles.regionChip,
-                  {
-                    backgroundColor: hasVerifiedRegion
-                      ? SUCCESS + "14"
-                      : colors.icon + "14",
-                    borderColor: hasVerifiedRegion
-                      ? SUCCESS + "44"
-                      : colors.icon + "33",
-                  },
-                ]}
-              >
-                <MaterialIcons
-                  name={hasVerifiedRegion ? "verified" : "place"}
-                  size={16}
-                  color={hasVerifiedRegion ? SUCCESS : colors.icon}
-                />
-                <ThemedText
-                  style={[
-                    styles.regionChipText,
-                    hasVerifiedRegion
-                      ? styles.sellerRegionVerified
-                      : { color: colors.icon },
-                  ]}
-                  numberOfLines={2}
-                >
-                  {hasVerifiedRegion
-                    ? tf("publicProfileRegion", { region: regionLabel })
-                    : t("publicProfileRegionUnverified")}
-                </ThemedText>
               </View>
             </Animated.View>
 
@@ -921,20 +885,6 @@ const styles = StyleSheet.create({
   ratingCopy: { flex: 1, gap: 4, minWidth: 0 },
   starRow: { flexDirection: "row", alignItems: "center", gap: 1 },
   sellerSub: { fontSize: 12, opacity: 0.72, lineHeight: 17 },
-  regionChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  regionChipText: { flex: 1, fontSize: 13, fontWeight: "700", lineHeight: 18 },
-  sellerRegionVerified: {
-    color: SUCCESS,
-    opacity: 1,
-  },
   sectionCard: {
     borderRadius: 18,
     borderWidth: 1,

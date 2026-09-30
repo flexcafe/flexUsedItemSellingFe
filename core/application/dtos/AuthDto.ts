@@ -7,13 +7,6 @@ export interface LoginRequestDto {
 /** Nested profile on GET /client/auth/me (and similar) — avatar lives here, not only at root. */
 export interface AuthClientProfileDto {
   avatar?: unknown;
-  gender?: string | null;
-  age?: number | null;
-  maritalStatus?: string | null;
-  region?: string | null;
-  gpsLatitude?: number | null;
-  gpsLongitude?: number | null;
-  isRegionVerified?: boolean;
   facebookName?: string | null;
   facebookProfileUrl?: string | null;
   facebookLinkedAt?: string | null;
@@ -76,12 +69,6 @@ export interface RegisterRequestDto {
   facebookId?: string;
   kbzPayName: string;
   kbzPayPhoneNumber: string;
-  gender: "MALE" | "FEMALE";
-  age: number;
-  maritalStatus: "SINGLE" | "MARRIED";
-  region: string;
-  gpsLatitude: number;
-  gpsLongitude: number;
   referralId?: string;
   acceptedTerms: true;
   termsVersion: string;

@@ -122,9 +122,6 @@ export interface PublicUserProfile {
   avatar?: string | null;
   /** Invite code for registration — not userId. */
   referralCode?: string | null;
-  region?: string | null;
-  /** True when the public profile includes a region from the backend. */
-  isRegionVerified?: boolean;
   currentRank: "NEWBIE" | "BRONZE" | "SILVER" | "GOLD" | "VIP";
   averageStars: number;
   totalReviews: number;

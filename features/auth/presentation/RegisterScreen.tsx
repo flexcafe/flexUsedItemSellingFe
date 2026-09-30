@@ -1,4 +1,3 @@
-import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import {
   isValidPhoneNumber,
@@ -15,7 +14,6 @@ import {
   View,
 } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
-import { WebView } from "react-native-webview";
 import { z } from "zod";
 
 import { AppVersionLabel } from "@/components/app-version-label";
@@ -27,11 +25,7 @@ import { PhoneNumberInput } from "@/components/phone-number-input";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
-import type {
-  Gender,
-  MaritalStatus,
-  RegisterInput,
-} from "@/core/domain/types/auth";
+import type { RegisterInput } from "@/core/domain/types/auth";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/presentation/providers/AuthProvider";
 import {
@@ -51,13 +45,9 @@ import {
 } from "./authAnimated";
 
 const DANGER = "#e74c3c";
-const SUCCESS = "#16a34a";
 const WARNING_BG = "#FFF7ED";
 const WARNING_BORDER = "#FDBA74";
 const WARNING_TEXT = "#C2410C";
-
-type SegmentOption<T extends string> = { value: T; label: string };
-type LocationCoords = { latitude: number; longitude: number };
 
 type PhoneCountry = {
   code: CountryCode;
@@ -87,48 +77,6 @@ function normalizePhone(raw: string, country: CountryCode): string {
   return parsed.number; // E.164
 }
 
-function Segmented<T extends string>({
-  options,
-  value,
-  onChange,
-  tint,
-  borderColor,
-  disabled,
-}: {
-  options: SegmentOption<T>[];
-  value: T;
-  onChange: (v: T) => void;
-  tint: string;
-  borderColor: string;
-  disabled?: boolean;
-}) {
-  return (
-    <View style={styles.segment}>
-      {options.map((opt) => {
-        const selected = opt.value === value;
-        return (
-          <Pressable
-            key={opt.value}
-            onPress={() => onChange(opt.value)}
-            disabled={disabled}
-            style={[
-              styles.segmentItem,
-              { borderColor },
-              selected && { backgroundColor: tint, borderColor: tint },
-            ]}
-          >
-            <ThemedText
-              style={[styles.segmentText, selected && { color: "#fff" }]}
-            >
-              {opt.label}
-            </ThemedText>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
 export function RegisterScreen() {
   const router = useRouter();
   const { ref: refFromLink } = useLocalSearchParams<{ ref?: string | string[] }>();
@@ -154,14 +102,6 @@ export function RegisterScreen() {
   const [email, setEmail] = useState("");
   const [kbzPayName, setKbzPayName] = useState("");
   const [kbzPayPhoneNumber, setKbzPayPhoneNumber] = useState("");
-  const [gender, setGender] = useState<Gender>("MALE");
-  const [age, setAge] = useState("");
-  const [maritalStatus, setMaritalStatus] = useState<MaritalStatus>("SINGLE");
-  const [region, setRegion] = useState("");
-  const [locationCoords, setLocationCoords] = useState<LocationCoords | null>(
-    null,
-  );
-  const [regionAuto, setRegionAuto] = useState(true);
   const [referralId, setReferralId] = useState("");
 
   useEffect(() => {
@@ -171,7 +111,6 @@ export function RegisterScreen() {
   }, [refFromLink]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLocating, setIsLocating] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const emailOk = useMemo(
     () => z.string().trim().email().safeParse(email).success,
@@ -188,14 +127,6 @@ export function RegisterScreen() {
       email: z.string().trim().email(t("emailInvalid")),
       kbzPayName: z.string().trim().min(1),
       kbzPayPhoneNumber: z.string().trim().min(3),
-      gender: z.enum(["MALE", "FEMALE"]),
-      age: z.coerce
-        .number()
-        .int()
-        .min(14, t("ageInvalid"))
-        .max(120, t("ageInvalid")),
-      maritalStatus: z.enum(["SINGLE", "MARRIED"]),
-      region: z.string().trim().min(1),
       referralId: z.string().trim().optional(),
     });
     return base
@@ -226,123 +157,6 @@ export function RegisterScreen() {
       );
   }, [t, phoneCountry.code, kbzPayPhoneCountry.code]);
 
-  const applyCoords = async (coords: LocationCoords) => {
-    setLocationCoords(coords);
-    setErrors((e) => {
-      const next = { ...e };
-      delete next.region;
-      return next;
-    });
-
-    if (!regionAuto) return;
-    try {
-      const list = await Location.reverseGeocodeAsync({
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-      });
-      const first = list?.[0];
-      const candidate =
-        first?.district ||
-        first?.city ||
-        first?.subregion ||
-        first?.region ||
-        first?.country;
-      if (candidate && candidate.trim().length > 0) {
-        setRegion(candidate.trim());
-      }
-    } catch {
-      // ignore reverse geocode failures; user can type region manually
-    }
-  };
-
-  const handleUseCurrentLocation = async () => {
-    setIsLocating(true);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setErrors((e) => ({ ...e, region: t("regionVerify") }));
-        return;
-      }
-
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      await applyCoords({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      });
-    } catch {
-      setErrors((e) => ({ ...e, region: t("regionVerify") }));
-      Alert.alert(t("errorTitle"), t("genericErrorBody"));
-    } finally {
-      setIsLocating(false);
-    }
-  };
-  const leafletHtml = useMemo(() => {
-    if (!locationCoords) return "";
-
-    const { latitude, longitude } = locationCoords;
-    const tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-
-    // Leaflet + OSM tiles in a WebView works in Expo Go (no native map module).
-    return `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-      crossorigin=""
-    />
-    <style>
-      html, body { height: 100%; margin: 0; padding: 0; }
-      #map { height: 100%; width: 100%; }
-      .leaflet-control-attribution { font-size: 10px; }
-    </style>
-  </head>
-  <body>
-    <div id="map"></div>
-    <script
-      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-      crossorigin=""
-    ></script>
-    <script>
-      (function () {
-        var lat = ${latitude};
-        var lng = ${longitude};
-        var map = L.map('map', { zoomControl: true }).setView([lat, lng], 16);
-
-        L.tileLayer('${tileUrl}', {
-          maxZoom: 19,
-          attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
-
-        var marker = L.marker([lat, lng], { draggable: true }).addTo(map);
-
-        function send(lat, lng) {
-          try {
-            window.ReactNativeWebView.postMessage(JSON.stringify({ latitude: lat, longitude: lng }));
-          } catch (e) {}
-        }
-
-        map.on('click', function (e) {
-          marker.setLatLng(e.latlng);
-          send(e.latlng.lat, e.latlng.lng);
-        });
-
-        marker.on('dragend', function () {
-          var p = marker.getLatLng();
-          send(p.lat, p.lng);
-        });
-      })();
-    </script>
-  </body>
-</html>`;
-  }, [locationCoords]);
-
   const handleSubmit = async () => {
     setErrors({});
     const parsed = schema.safeParse({
@@ -354,10 +168,6 @@ export function RegisterScreen() {
       email,
       kbzPayName,
       kbzPayPhoneNumber,
-      gender,
-      age,
-      maritalStatus,
-      region,
       referralId,
     });
 
@@ -368,11 +178,6 @@ export function RegisterScreen() {
         if (field) fieldErrors[field] = issue.message;
       });
       setErrors(fieldErrors);
-      return;
-    }
-
-    if (!locationCoords) {
-      setErrors({ region: t("regionVerify") });
       return;
     }
 
@@ -394,12 +199,6 @@ export function RegisterScreen() {
         parsed.data.kbzPayPhoneNumber,
         kbzPayPhoneCountry.code,
       ),
-      gender: parsed.data.gender,
-      age: parsed.data.age,
-      maritalStatus: parsed.data.maritalStatus,
-      region: parsed.data.region,
-      gpsLatitude: locationCoords.latitude,
-      gpsLongitude: locationCoords.longitude,
       referralId: normalizeReferralCodeInput(parsed.data.referralId ?? ""),
       acceptedTerms: true,
       termsVersion,
@@ -456,27 +255,6 @@ export function RegisterScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleAgeChange = (value: string) => {
-    const digits = value.replace(/[^0-9]/g, "").slice(0, 3);
-    setAge(digits);
-
-    setErrors((prev) => {
-      const next = { ...prev };
-      if (!digits) {
-        delete next.age;
-        return next;
-      }
-
-      const n = Number(digits);
-      if (n < 14 || n > 120) {
-        next.age = t("ageInvalid");
-      } else {
-        delete next.age;
-      }
-      return next;
-    });
   };
 
   const inputStyle = (hasError?: boolean) => [
@@ -703,161 +481,9 @@ export function RegisterScreen() {
             </View>
           </AuthStaggerItem>
 
-          {/* Gender */}
-          <AuthStaggerItem
-            index={7}
-            reduceMotion={reduceMotion}
-            style={styles.field}
-          >
-            <ThemedText style={styles.label}>{t("gender")}</ThemedText>
-            <Segmented<Gender>
-              options={[
-                { value: "MALE", label: t("male") },
-                { value: "FEMALE", label: t("female") },
-              ]}
-              value={gender}
-              onChange={setGender}
-              tint={colors.tint}
-              borderColor={colors.icon}
-              disabled={isSubmitting}
-            />
-          </AuthStaggerItem>
-
-          {/* Age */}
-          <AuthStaggerItem
-            index={8}
-            reduceMotion={reduceMotion}
-            style={styles.field}
-          >
-            <ThemedText style={styles.label}>{t("age")}</ThemedText>
-            <TextInput
-              style={inputStyle(!!errors.age)}
-              value={age}
-              onChangeText={handleAgeChange}
-              placeholder={t("agePlaceholder")}
-              placeholderTextColor={colors.icon}
-              keyboardType="number-pad"
-              maxLength={3}
-              editable={!isSubmitting}
-            />
-            {errors.age ? (
-              <ThemedText style={styles.error}>{errors.age}</ThemedText>
-            ) : null}
-          </AuthStaggerItem>
-
-          {/* Marital status */}
-          <AuthStaggerItem
-            index={9}
-            reduceMotion={reduceMotion}
-            style={styles.field}
-          >
-            <ThemedText style={styles.label}>{t("maritalStatus")}</ThemedText>
-            <Segmented<MaritalStatus>
-              options={[
-                { value: "MARRIED", label: t("married") },
-                { value: "SINGLE", label: t("single") },
-              ]}
-              value={maritalStatus}
-              onChange={setMaritalStatus}
-              tint={colors.tint}
-              borderColor={colors.icon}
-              disabled={isSubmitting}
-            />
-          </AuthStaggerItem>
-
-          {/* Region */}
-          <AuthStaggerItem
-            index={10}
-            reduceMotion={reduceMotion}
-            style={styles.field}
-          >
-            <ThemedText style={styles.label}>{t("region")}</ThemedText>
-            <TextInput
-              style={inputStyle(!!errors.region)}
-              value={region}
-              onChangeText={(v) => {
-                setRegion(v);
-                setRegionAuto(false);
-              }}
-              placeholder={t("regionPlaceholder")}
-              placeholderTextColor={colors.icon}
-              editable={!isSubmitting}
-            />
-            <View style={styles.mapWrap}>
-              {locationCoords ? (
-                <WebView
-                  key={`${locationCoords.latitude},${locationCoords.longitude}`}
-                  style={styles.map}
-                  originWhitelist={["*"]}
-                  source={{ html: leafletHtml }}
-                  onMessage={(e) => {
-                    if (isSubmitting) return;
-                    try {
-                      const data = JSON.parse(
-                        e.nativeEvent.data,
-                      ) as LocationCoords;
-                      if (
-                        typeof data?.latitude === "number" &&
-                        typeof data?.longitude === "number"
-                      ) {
-                        applyCoords({
-                          latitude: data.latitude,
-                          longitude: data.longitude,
-                        });
-                      }
-                    } catch {
-                      // ignore malformed messages
-                    }
-                  }}
-                />
-              ) : (
-                <View
-                  style={[
-                    styles.mapPlaceholder,
-                    {
-                      borderColor: colors.icon,
-                      backgroundColor: colors.background,
-                    },
-                  ]}
-                >
-                  <ThemedText style={{ opacity: 0.7, textAlign: "center" }}>
-                    {t("regionVerify")}
-                  </ThemedText>
-                </View>
-              )}
-            </View>
-            <Pressable
-              onPress={handleUseCurrentLocation}
-              disabled={isSubmitting || isLocating}
-              style={[
-                styles.regionButton,
-                {
-                  borderColor: locationCoords ? SUCCESS : colors.tint,
-                  backgroundColor: locationCoords ? SUCCESS : "transparent",
-                },
-              ]}
-            >
-              <ThemedText
-                style={{
-                  color: locationCoords ? "#fff" : colors.tint,
-                  fontWeight: "600",
-                }}
-              >
-                {locationCoords
-                  ? `✓ ${t("regionVerified")}`
-                  : isLocating
-                    ? "Locating..."
-                    : `📍 ${t("regionVerify")}`}
-              </ThemedText>
-            </Pressable>
-            {errors.region ? (
-              <ThemedText style={styles.error}>{errors.region}</ThemedText>
-            ) : null}
-          </AuthStaggerItem>
-
           {/* Referral */}
           <AuthStaggerItem
-            index={11}
+            index={7}
             reduceMotion={reduceMotion}
             style={styles.field}
           >
@@ -878,7 +504,7 @@ export function RegisterScreen() {
           </AuthStaggerItem>
 
           {/* Submit */}
-          <AuthStaggerItem index={12} reduceMotion={reduceMotion}>
+          <AuthStaggerItem index={8} reduceMotion={reduceMotion}>
             <AuthPrimaryButton
               onPress={handleSubmit}
               disabled={isSubmitting}
@@ -896,7 +522,7 @@ export function RegisterScreen() {
           </AuthStaggerItem>
 
           <AuthStaggerItem
-            index={13}
+            index={9}
             reduceMotion={reduceMotion}
             style={styles.footer}
           >
@@ -910,7 +536,7 @@ export function RegisterScreen() {
             </Pressable>
           </AuthStaggerItem>
 
-          <AuthStaggerItem index={14} reduceMotion={reduceMotion}>
+          <AuthStaggerItem index={10} reduceMotion={reduceMotion}>
             <AppVersionLabel style={styles.versionLabel} />
           </AuthStaggerItem>
       </AuthKeyboardScreen>
@@ -1023,15 +649,6 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     flex: 1,
   },
-  segment: { flexDirection: "row", gap: 10 },
-  segmentItem: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  segmentText: { fontWeight: "600", fontSize: 14 },
   section: {
     borderWidth: 1,
     borderRadius: 12,
@@ -1045,31 +662,6 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   warningText: { fontSize: 12, lineHeight: 18 },
-  mapWrap: {
-    marginTop: 10,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  map: {
-    height: 220,
-    width: "100%",
-  },
-  mapPlaceholder: {
-    height: 220,
-    width: "100%",
-    borderWidth: 1,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 12,
-  },
-  regionButton: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: "center",
-    marginTop: 6,
-  },
   optionalText: { opacity: 0.6, fontSize: 12, fontWeight: "400" },
   error: { color: DANGER, fontSize: 12 },
   submitButton: {

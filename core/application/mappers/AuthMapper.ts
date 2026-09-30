@@ -175,12 +175,6 @@ export function toRegisterRequestDto(
         : {}),
       kbzPayName: data.kbzPayName,
       kbzPayPhoneNumber: data.kbzPayPhoneNumber,
-      gender: data.gender,
-      age: data.age,
-      maritalStatus: data.maritalStatus,
-      region: data.region,
-      gpsLatitude: data.gpsLatitude,
-      gpsLongitude: data.gpsLongitude,
       ...(data.referralId && data.referralId.length > 0
         ? { referralId: data.referralId }
         : {}),
