@@ -1,10 +1,33 @@
 import Constants from "expo-constants";
 
-const envApiUrl =
-  Constants.expoConfig?.extra?.apiUrl ?? process.env.EXPO_PUBLIC_API_URL;
+/** Backend used by store builds, and the safe fallback in release builds. */
+const PRODUCTION_API_URL = "https://api.flexusedmarket.com/api";
+/** Only used while running locally without any configured URL. */
+const LOCAL_DEV_API_URL = "http://localhost:3000/api";
+
+function normalizeBaseUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim().replace(/\/+$/, "");
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function resolveBaseUrl(): string {
+  // 1. Baked into the binary / update manifest by `app.config.js`, which
+  //    resolves it per EAS build profile (production vs UAT).
+  const fromAppConfig = normalizeBaseUrl(Constants.expoConfig?.extra?.apiUrl);
+  if (fromAppConfig) return fromAppConfig;
+
+  // 2. Inlined at bundle time from `EXPO_PUBLIC_API_URL` (eas.json profile env,
+  //    EAS environment variables, or the local `.env`).
+  const fromEnv = normalizeBaseUrl(process.env.EXPO_PUBLIC_API_URL);
+  if (fromEnv) return fromEnv;
+
+  // 3. Release builds must never point at localhost.
+  return __DEV__ ? LOCAL_DEV_API_URL : PRODUCTION_API_URL;
+}
 
 export const API_CONFIG = {
-  BASE_URL: envApiUrl ?? "http://localhost:3000/api",
+  BASE_URL: resolveBaseUrl(),
 } as const;
 
 export const API_ENDPOINTS = {

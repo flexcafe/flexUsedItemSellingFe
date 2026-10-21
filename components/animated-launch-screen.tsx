@@ -168,7 +168,7 @@ export function AnimatedLaunchScreen({ onFinish }: AnimatedLaunchScreenProps) {
     
     // Exit animation
     exitAnim.value = withDelay(
-      6500,
+      5000,
       withTiming(1, { duration: 600, easing: Easing.inOut(Easing.cubic) }, (finished) => {
         if (finished) runOnJS(onFinish)();
       })

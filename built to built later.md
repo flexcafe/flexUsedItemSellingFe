@@ -20,17 +20,17 @@ Deferred work and production readiness items tracked here.
 
 ---
 
-### 2. API base URL falls back to plain HTTP when env is missing
+### 2. ✅ Resolved — API base URL falls back to plain HTTP when env is missing
 
-**Risk:** Misconfigured builds can ship with insecure networking by accident.
+**Resolved by:**
 
-**Where:** `core/infrastructure/api/constants.ts:7` — default `http://localhost:3000/api` when `EXPO_PUBLIC_API_URL` / `extra.apiUrl` is unset.
-
-**Fix direction:**
-
-- Require HTTPS API URL in production EAS profiles / env.
-- Fail fast at startup in release if base URL is missing or not `https://`.
-- Keep HTTP fallback only for local dev, gated by `__DEV__` or an explicit dev flag.
+- `app.config.js` resolves the API URL per EAS build profile and bakes it into `extra.apiUrl`
+  (production profile is always forced to `https://api.flexusedmarket.com/api`).
+- `eas.json` sets `EXPO_PUBLIC_API_URL` for every build profile
+  (UAT: `https://flexapi.winterarc.asia/api`, production: `https://api.flexusedmarket.com/api`),
+  so Metro inlines the same URL even though `.env` is gitignored.
+- `core/infrastructure/api/constants.ts` only uses `http://localhost:3000/api` in development;
+  release builds fall back to the production URL instead of localhost.
 
 ---
 
