@@ -26,7 +26,7 @@
     "android": {
       "softwareKeyboardLayoutMode": "resize",
       "usesCleartextTraffic": true,
-      "versionCode": 27,
+      "versionCode": 28,
       "adaptiveIcon": {
         "backgroundColor": "#FFF7ED",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
