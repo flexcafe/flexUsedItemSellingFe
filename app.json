@@ -2,7 +2,7 @@
   "expo": {
     "name": "Flex Used Market",
     "slug": "flex-used-market-fe",
-    "version": "1.3.16",
+    "version": "1.3.17",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "flexusedmarket",
@@ -109,6 +109,6 @@
         "projectId": "476f125c-2259-465c-be76-480a4180a067"
       }
     },
-    "owner": "fles-used-market"
+    "owner": "flex-used-market"
   }
 }
